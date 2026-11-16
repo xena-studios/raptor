@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/doi/egg-doi.json
+license: MIT
+credits:
+  - "Written for Raptor from Day of Infamy's own server documentation, on the pattern of Raptor's Source eggs"
+  - "Icon: Day of Infamy's icon, from Steam (New World Interactive)"
+certified: true
+arch: [amd64]
+# Source servers answer Steam's query on their game port.
+players:
+  query: source
+test:
+  tier: slow
+  memory_mib: 2048
+  done_timeout: 60m
+  command: "status"
+  expect: "hostname"

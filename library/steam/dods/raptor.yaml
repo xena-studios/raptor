@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/dods/egg-dods.json
+license: MIT
+credits:
+  - "Written for Raptor from Day of Defeat: Source's own server documentation, on the pattern of Raptor's Source eggs"
+  - "Icon: Day of Defeat: Source's icon, from Steam (Valve)"
+certified: true
+arch: [amd64]
+# Source servers answer Steam's query on their game port.
+players:
+  query: source
+test:
+  tier: slow
+  memory_mib: 2048
+  done_timeout: 30m
+  command: "status"
+  expect: "hostname"

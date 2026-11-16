@@ -1,0 +1,22 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/chivalry/egg-chivalry.json
+license: MIT
+credits:
+  - "Written for Raptor from Chivalry: Medieval Warfare's own server documentation"
+  - "Icon: Chivalry: Medieval Warfare's icon, from Steam (Torn Banner Studios)"
+certified: true
+arch: [amd64]
+# No players query: the server answers Steam's query through Steam's own
+# sockets, which need Steam registration (not available on CI).
+# The server has no console input and logs only to UDKGame/Logs/Launch.log,
+# which the startup follows; Ctrl+C stops it.
+test:
+  tier: manual
+  reason: >-
+    On CI's runners the server installs and starts (PhysX loads) but never
+    writes a log line Wings can see, neither to the console nor to
+    UDKGame/Logs/Launch.log, so its ready line can't be confirmed there.
+    Test it on a real host.
+  memory_mib: 2048
+  done_timeout: 30m
