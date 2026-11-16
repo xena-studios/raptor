@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/scpsl/egg-scpsl.json
+license: MIT
+credits:
+  - "Based on the SCP: Secret Laboratory and Exiled eggs in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: SCP: Secret Laboratory's icon, from Steam (Northwood Studios)"
+certified: true
+arch: [amd64]
+test:
+  tier: slow
+  memory_mib: 3072
+  done_timeout: 20m

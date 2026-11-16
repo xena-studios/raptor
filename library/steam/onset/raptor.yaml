@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/onset/egg-onset.json
+license: MIT
+credits:
+  - "Based on the Onset egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Onset's icon, from Steam (BlueMountains)"
+certified: true
+arch: [amd64]
+test:
+  tier: slow
+  memory_mib: 1024
+  done_timeout: 15m

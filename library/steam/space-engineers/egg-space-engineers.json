@@ -1,0 +1,231 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Based on the Space Engineers egg in https://github.com/pterodactyl/game-eggs (MIT).",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-15T00:00:00+00:00",
+    "name": "Space Engineers",
+    "author": "support@raptorpanel.net",
+    "description": "The voxel sandbox of building ships and stations in space and on planets. Installs the Windows dedicated server with SteamCMD, runs it under Wine and keeps it updated.",
+    "features": [],
+    "docker_images": {
+        "Wine": "ghcr.io/pelican-eggs/yolks:wine_latest@sha256:1d4cc591785abceb9faae159dcf6ce686d5327d4abfa4ba40db74937aa9a3b7b"
+    },
+    "file_denylist": [],
+    "startup": "export WINEDLLOVERRIDES=\"mscoree=n,b;mshtml=n,b\"; wine ./DedicatedServer64/SpaceEngineersDedicated.exe -path Z:\\\\home\\\\container\\\\config -console -ignorelastsession",
+    "config": {
+        "files": "{\"config/SpaceEngineers-Dedicated.cfg\": {\"parser\": \"xml\", \"find\": {\"MyConfigDedicated.SessionSettings.GameMode\": \"{{server.build.env.SERVER_MODE}}\", \"MyConfigDedicated.SessionSettings.MaxPlayers\": \"{{server.build.env.MAX_PLAYERS}}\", \"MyConfigDedicated.SessionSettings.AutoSaveInMinutes\": \"{{server.build.env.SAVE_INTERVAL}}\", \"MyConfigDedicated.SessionSettings.EnableSaving\": \"{{server.build.env.SAVE_ENABLED}}\", \"MyConfigDedicated.SessionSettings.ExperimentalMode\": \"{{server.build.env.EXPERIMENTAL_ENABLED}}\", \"MyConfigDedicated.SessionSettings.EnableIngameScripts\": \"{{server.build.env.INGAMESCRIPTS_ENABLED}}\", \"MyConfigDedicated.LoadWorld\": \"Z:\\\\home\\\\container\\\\config\\\\Saves\\\\World\", \"MyConfigDedicated.IP\": \"0.0.0.0\", \"MyConfigDedicated.ServerPort\": \"{{server.build.default.port}}\", \"MyConfigDedicated.SteamPort\": \"{{server.build.env.STEAM_PORT}}\", \"MyConfigDedicated.ServerName\": \"{{server.build.env.SERVER_NAME}}\", \"MyConfigDedicated.WorldName\": \"World\", \"MyConfigDedicated.ServerDescription\": \"{{server.build.env.SERVER_DESC}}\", \"MyConfigDedicated.RemoteApiEnabled\": \"{{server.build.env.REMOTEAPI_ENABLE}}\", \"MyConfigDedicated.RemoteApiPort\": \"{{server.build.env.REMOTEAPI_PORT}}\"}}, \"config/Saves/World/Sandbox.sbc\": {\"parser\": \"xml\", \"find\": {\"MyObjectBuilder_Checkpoint.Settings.GameMode\": \"{{server.build.env.SERVER_MODE}}\", \"MyObjectBuilder_Checkpoint.Settings.MaxPlayers\": \"{{server.build.env.MAX_PLAYERS}}\", \"MyObjectBuilder_Checkpoint.Settings.AutoSaveInMinutes\": \"{{server.build.env.SAVE_INTERVAL}}\", \"MyObjectBuilder_Checkpoint.Settings.EnableSaving\": \"{{server.build.env.SAVE_ENABLED}}\", \"MyObjectBuilder_Checkpoint.Settings.ExperimentalMode\": \"{{server.build.env.EXPERIMENTAL_ENABLED}}\", \"MyObjectBuilder_Checkpoint.Settings.EnableIngameScripts\": \"{{server.build.env.INGAMESCRIPTS_ENABLED}}\"}}, \"config/Saves/World/Sandbox_config.sbc\": {\"parser\": \"xml\", \"find\": {\"MyObjectBuilder_WorldConfiguration.Settings.GameMode\": \"{{server.build.env.SERVER_MODE}}\", \"MyObjectBuilder_WorldConfiguration.Settings.MaxPlayers\": \"{{server.build.env.MAX_PLAYERS}}\", \"MyObjectBuilder_WorldConfiguration.Settings.AutoSaveInMinutes\": \"{{server.build.env.SAVE_INTERVAL}}\", \"MyObjectBuilder_WorldConfiguration.Settings.EnableSaving\": \"{{server.build.env.SAVE_ENABLED}}\", \"MyObjectBuilder_WorldConfiguration.Settings.ExperimentalMode\": \"{{server.build.env.EXPERIMENTAL_ENABLED}}\", \"MyObjectBuilder_WorldConfiguration.Settings.EnableIngameScripts\": \"{{server.build.env.INGAMESCRIPTS_ENABLED}}\"}}}",
+        "startup": "{\"done\": \"Game ready...\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Space Engineers. Installs or updates the dedicated server (Steam app 298740) with\n# SteamCMD, signed in anonymously. The world and\n# config, once made, are never replaced.\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-298740}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+@sSteamCmdForcePlatformType windows +force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\n\n# A starting world and the server's config, made once: never replaced.\nbase=https://raw.githubusercontent.com/pterodactyl/game-eggs/be654a201bf3b90446569167d4864edec1b33009/space_engineers/default\nfetch() {\n    curl -fsSL --retry 3 -o \"$2.part\" \"$base/$1\" || fail \"The starting $1 can't be downloaded right now. Reinstall to try again.\"\n    [ \"$(sha256sum \"$2.part\" | cut -d' ' -f1)\" = \"$3\" ] || { rm -f \"$2.part\"; fail \"The starting $1 download is damaged. Reinstall to try again.\"; }\n    mv \"$2.part\" \"$2\"\n}\nmkdir -p config/Saves\nif [ ! -d config/Saves/World ]; then\n    work=/mnt/server/.raptor-build\n    rm -rf \"$work\" && mkdir -p \"$work\"\n    trap 'rm -rf \"$work\"' EXIT\n    fetch World.zip \"$work/World.zip\" b2a982b36fd699dc2b220963b08ca35edce682ad581c914e94fffdb60b01b398\n    unzip -q \"$work/World.zip\" -d config/Saves/\n    echo \"Made the starting world, config/Saves/World.\"\nfi\nif [ ! -f config/SpaceEngineers-Dedicated.cfg ]; then\n    fetch SpaceEngineers-Dedicated.cfg config/SpaceEngineers-Dedicated.cfg 723c5d1c71f845f6827f33fd70de1278ee02dddd112c9e59a4a0950db77efdda\nfi\n# The starting config came with a blank line before <?xml ...?>, which the\n# server refuses (it then ignores the whole file and finds no world).\nsed -i '/./,$!d' config/SpaceEngineers-Dedicated.cfg\n# Steam's libraries next to the server, which Workshop mods need.\nfor f in steamclient.dll steamclient64.dll tier0_s.dll tier0_s64.dll vstdlib_s.dll vstdlib_s64.dll; do\n    [ ! -f \"$f\" ] || cp -f \"$f\" DedicatedServer64/\ndone\necho \"Installed Space Engineers build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name players see in the server browser.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A Space Engineers server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[^<>&]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Description",
+            "description": "The description players see in the server browser.",
+            "env_variable": "SERVER_DESC",
+            "default_value": "A Space Engineers server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^[^<>&]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Game mode",
+            "description": "Survival or Creative.",
+            "env_variable": "SERVER_MODE",
+            "default_value": "Survival",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:Survival,Creative",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can be on the server at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "4",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,64",
+            "field_type": "text"
+        },
+        {
+            "name": "Saving",
+            "description": "Save the world; false keeps nothing between restarts.",
+            "env_variable": "SAVE_ENABLED",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Save interval",
+            "description": "How often the world is saved, in minutes.",
+            "env_variable": "SAVE_INTERVAL",
+            "default_value": "5",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,999",
+            "field_type": "text"
+        },
+        {
+            "name": "Experimental mode",
+            "description": "Turn on experimental features; most Workshop mods need it.",
+            "env_variable": "EXPERIMENTAL_ENABLED",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "In-game scripts",
+            "description": "Let players run programmable block scripts.",
+            "env_variable": "INGAMESCRIPTS_ENABLED",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam port",
+            "description": "The port Steam's server queries use; give it an allocation.",
+            "env_variable": "STEAM_PORT",
+            "default_value": "8766",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1025,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Remote API",
+            "description": "Turn on the game's remote admin API.",
+            "env_variable": "REMOTEAPI_ENABLE",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Remote API port",
+            "description": "The remote admin API's port; give it an allocation if it's on.",
+            "env_variable": "REMOTEAPI_PORT",
+            "default_value": "8080",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1025,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Wine packages",
+            "description": "What Wine installs before the server starts: the runtimes Space Engineers needs.",
+            "env_variable": "WINETRICKS_RUN",
+            "default_value": "win11 vcrun2022 mono corefonts",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Wine architecture",
+            "description": "Wine's architecture, 64-bit as the server is.",
+            "env_variable": "WINEARCH",
+            "default_value": "win64",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:win64",
+            "field_type": "text"
+        },
+        {
+            "name": "Wine path",
+            "description": "Where Wine looks for programs.",
+            "env_variable": "WINEPATH",
+            "default_value": "/home/container",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Windows install",
+            "description": "Install the Windows version of the server, which runs under Wine.",
+            "env_variable": "WINDOWS_INSTALL",
+            "default_value": "1",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:1",
+            "field_type": "text"
+        },
+        {
+            "name": "Wine debug",
+            "description": "What Wine logs; -all keeps its messages out of the console.",
+            "env_variable": "WINEDEBUG",
+            "default_value": "-all",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto update",
+            "description": "Update the game from Steam every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta branch",
+            "description": "The Steam beta branch to install, or empty for the normal release. Reinstall after changing it.",
+            "env_variable": "SRCDS_BETAID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[A-Za-z0-9._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta password",
+            "description": "The password of a private beta branch, if it has one.",
+            "env_variable": "SRCDS_BETAPASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Steam app ID",
+            "description": "The dedicated server's Steam app ID, which SteamCMD installs.",
+            "env_variable": "SRCDS_APPID",
+            "default_value": "298740",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|in:298740",
+            "field_type": "text"
+        }
+    ]
+}

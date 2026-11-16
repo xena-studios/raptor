@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/necesse/egg-necesse.json
+license: MIT
+credits:
+  - "Based on the Necesse egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Necesse's logo, from its Steam store page (Fair Games)"
+certified: true
+arch: [amd64]
+# Necesse can't pause saving, so a backup saves first and has nothing to undo.
+backup:
+  pre: ["save"]
+  wait_for: "Completed world save"
+  timeout: 5m
+test:
+  tier: slow
+  memory_mib: 2048
+  done_timeout: 20m

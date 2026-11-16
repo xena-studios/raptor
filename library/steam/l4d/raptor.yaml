@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/l4d/egg-l4d.json
+license: MIT
+credits:
+  - "Based on the Left 4 Dead egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Left 4 Dead's icon, from Steam (Valve)"
+certified: true
+arch: [amd64]
+players:
+  query: source
+test:
+  tier: slow
+  memory_mib: 2048
+  done_timeout: 30m
+  command: "status"
+  expect: "hostname"

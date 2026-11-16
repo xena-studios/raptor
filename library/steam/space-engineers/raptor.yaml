@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/space-engineers/egg-space-engineers.json
+license: MIT
+credits:
+  - "Based on the Space Engineers egg in https://github.com/pterodactyl/game-eggs (MIT); the starting world and config are downloaded from it"
+  - "Icon: Space Engineers' icon, from Steam (Keen Software House)"
+certified: true
+arch: [amd64]
+# No player count or backup hooks: the console has no save command, and
+# Steam's query answers only for a listed server.
+test:
+  tier: slow
+  memory_mib: 8192
+  done_timeout: 60m

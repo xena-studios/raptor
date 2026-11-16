@@ -1,0 +1,24 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/project-zomboid/egg-project-zomboid.json
+license: MIT
+credits:
+  - "Based on the Project Zomboid egg in https://github.com/pterodactyl/game-eggs (MIT)"
+  - "Icon: Project Zomboid's icon, from Steam (The Indie Stone)"
+certified: true
+arch: [amd64]
+# Project Zomboid can't pause saving, so a backup saves first and has nothing
+# to undo. "World saved" comes when the save is only queued; "Saving finish"
+# when it's written.
+backup:
+  pre: ["save"]
+  wait_for: "Saving finish"
+  timeout: 5m
+test:
+  tier: slow
+  memory_mib: 8192
+  variables:
+    ADMIN_PASSWORD: "conformance"
+  done_timeout: 40m
+  command: "players"
+  expect: "Players connected"

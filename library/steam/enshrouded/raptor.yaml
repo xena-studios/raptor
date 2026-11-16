@@ -1,0 +1,21 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/enshrouded/egg-enshrouded.json
+license: MIT
+credits:
+  - "Based on the Enshrouded egg in https://github.com/pterodactyl/game-eggs (MIT) and https://github.com/pelican-eggs/games-steamcmd (MIT)"
+  - "Icon: Enshrouded's icon, from Steam (Keen Games)"
+certified: true
+arch: [amd64]
+# Enshrouded answers Steam's query on its one port.
+players:
+  query: source
+# No backup hooks: Enshrouded has no console; it saves on its own.
+test:
+  tier: manual
+  reason: "under Wine the server starts, answers queries and stops in CI, but its second start (after the suite's reinstall) never prints HostOnline; restarts inside one container (killed, signalled, loading a save) come online in 5s, and the cause isn't found yet"
+  memory_mib: 8192
+  variables:
+    SRV_PW: "conformance-admin"
+    SRV_PW2: "conformance-friend"
+  done_timeout: 60m
