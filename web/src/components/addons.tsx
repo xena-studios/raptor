@@ -702,25 +702,26 @@ function InstallDialog({
   const [busy, setBusy] = useState(false);
   const list = versions.data?.versions ?? [];
   const v = list.find((x) => x.id === chosen) ?? list[0];
-  // What else it needs (Modrinth lists dependencies; Hangar's aren't read).
+  // What else it needs (Modrinth, Factorio, and CurseForge list
+  // dependencies; Hangar's aren't read).
+  const resolves = ["modrinth", "factorio", "curseforge"].includes(project.source);
   const deps = useQuery(
     AddonService.method.resolveAddonDependencies,
     {
       orgId,
-      versionId: v?.id ?? "",
+      versionId: project.source === "curseforge" && v?.id ? `${project.id}@${v.id}` : (v?.id ?? ""),
       loaders,
       gameVersion: version,
       installed,
       source: project.source,
     },
-    { enabled: (project.source === "modrinth" || project.source === "factorio") && !!v?.id },
+    { enabled: resolves && !!v?.id && !v?.file?.manualUrl },
   );
   const [optional, setOptional] = useState<Set<string>>(new Set());
   const [alone, setAlone] = useState(false);
   const required = alone ? [] : (deps.data?.required ?? []);
   const blocked = (deps.data?.incompatible.length ?? 0) > 0;
-  const waiting =
-    (project.source === "modrinth" || project.source === "factorio") && !!v?.id && deps.isPending;
+  const waiting = resolves && !!v?.id && !v?.file?.manualUrl && deps.isPending;
   return (
     <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
       <DialogContent>
@@ -953,11 +954,16 @@ function NeedsDialog({
 }) {
   const deps = useQuery(AddonService.method.resolveAddonDependencies, {
     orgId,
-    versionId: addon.version?.id ?? "",
+    versionId:
+      addon.project?.source === "curseforge"
+        ? `${addon.project.id}@${addon.version?.id ?? ""}`
+        : (addon.version?.id ?? ""),
     loaders,
     gameVersion: version,
     installed,
-    source: addon.project?.source === "factorio" ? "factorio" : "",
+    source: ["factorio", "curseforge"].includes(addon.project?.source ?? "")
+      ? (addon.project?.source ?? "")
+      : "",
   });
   const [busy, setBusy] = useState(false);
   const required = deps.data?.required ?? [];

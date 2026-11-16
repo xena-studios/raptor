@@ -674,7 +674,8 @@ export type ResolveAddonDependenciesRequest = Message<"raptor.panel.v1.ResolveAd
   installed: string[];
 
   /**
-   * "modrinth" (the default) or "factorio" (version_id is "mod@version").
+   * "modrinth" (the default), "factorio" (version_id is "mod@version"), or
+   * "curseforge" (version_id is "mod@file", both CurseForge IDs).
    *
    * @generated from field: string source = 6;
    */

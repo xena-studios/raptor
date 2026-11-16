@@ -135,6 +135,13 @@ func TestAddons(t *testing.T) {
 			_, _ = io.WriteString(w, `{"data":{"exactMatches":[{"file":`+file("1", "238222", "2026-01-01T00:00:00Z")+`}]}}`)
 		case "/v1/mods":
 			_, _ = io.WriteString(w, `{"data":[`+mod+`]}`)
+		case "/v1/mods/238222/files/2":
+			_, _ = io.WriteString(w, `{"data":`+file("2", "238222", "2026-02-01T00:00:00Z")+`}`)
+		case "/v1/mods/306612":
+			_, _ = io.WriteString(w, `{"data":{"id":306612,"classId":6,"name":"Fabric API","slug":"fabric-api"}}`)
+		case "/v1/mods/306612/files":
+			_, _ = io.WriteString(w, `{"data":[{"id":7,"modId":306612,"displayName":"api","fileName":"api.jar","fileDate":"2026-01-01T00:00:00Z","isAvailable":true,
+				"downloadUrl":"https://edge.forgecdn.net/files/7.jar","hashes":[{"value":"`+strings.Repeat("b", 40)+`","algo":1}]}]}`)
 		default:
 			http.NotFound(w, r)
 		}
@@ -283,6 +290,13 @@ func TestAddons(t *testing.T) {
 	cfID, err := alice.addons.IdentifyAddons(ctx, &panelv1.IdentifyAddonsRequest{OrgId: org, Hashes: []string{h}, Loaders: []string{"fabric"}, Curseforge: map[string]uint32{h: 1}})
 	if err != nil || len(cfID.GetAddons()) != 1 || cfID.GetAddons()[0].GetVersion().GetId() != "1" || cfID.GetAddons()[0].GetLatest().GetId() != "2" {
 		t.Fatalf("curseforge identify: %v, %v", cfID, err)
+	}
+	deps, err := alice.addons.ResolveAddonDependencies(ctx, &panelv1.ResolveAddonDependenciesRequest{OrgId: org, VersionId: "238222@2", Loaders: []string{"fabric"}, Source: "curseforge"})
+	if err != nil || len(deps.GetRequired()) != 1 || deps.GetRequired()[0].GetProject().GetTitle() != "Fabric API" || deps.GetRequired()[0].GetVersion().GetFile().GetSha1() == "" {
+		t.Fatalf("curseforge dependencies: %v, %v", deps, err)
+	}
+	if deps, err := alice.addons.ResolveAddonDependencies(ctx, &panelv1.ResolveAddonDependenciesRequest{OrgId: org, VersionId: "238222@2", Loaders: []string{"fabric"}, Source: "curseforge", Installed: []string{"306612"}}); err != nil || len(deps.GetRequired()) != 0 {
+		t.Errorf("an installed dependency: %v, %v", deps, err)
 	}
 	if _, err := alice.addons.SearchAddons(ctx, &panelv1.SearchAddonsRequest{OrgId: org, Kind: "datapacks", Loaders: []string{"datapack"}, Source: "curseforge"}); connect.CodeOf(err) != connect.CodeInvalidArgument {
 		t.Errorf("curseforge datapacks: %v", err)
