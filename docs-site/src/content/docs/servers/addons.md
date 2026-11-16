@@ -38,6 +38,16 @@ Rust servers get a **Plugins** tab for Oxide and Carbon plugins from [uMod](http
 - Plugins' settings are in `oxide/config` (or `carbon/configs`) in the file manager.
 - Codefling and other paid plugin sites aren't offered: their downloads need a login. Upload those in the file manager.
 
+## Bedrock players (Geyser)
+
+Java servers running Paper (and Purpur, Folia, Spigot), Velocity, Waterfall, Fabric, or NeoForge can let **Bedrock** players join: phones, consoles, and Windows. On **Network**, under **Bedrock players**:
+
+1. **Let Bedrock players join** installs [Geyser](https://geysermc.org) and, unless you untick it, Floodgate (so Bedrock players don't need a Java account). Each is checked against its source's hash like any add-on. On Velocity and Waterfall, Floodgate is left out: on a proxy it also needs its key on every server behind it.
+2. **Restart the server:** Geyser makes its settings on its first start.
+3. **Finish setting up** puts Bedrock on the server's own port, so Bedrock players use the same address and port as Java players. (Raptor publishes every port for both TCP and UDP; Bedrock uses UDP.)
+
+The card then shows the address and port to give Bedrock players. If they can't connect, check your provider's firewall lets **UDP** through on that port.
+
 ## Steam Workshop
 
 Games that load Steam Workshop items themselves get a **Workshop** section in Add-ons: Garry's Mod (a collection), Counter-Strike 2 (a map collection), ARK (mods), Conan Exiles (mods, loaded in the order you list them), and Squad (items).

@@ -1,5 +1,6 @@
 import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
+import { AddonService } from "@/gen/raptor/panel/v1/addon_pb";
 import { AuthService } from "@/gen/raptor/panel/v1/auth_pb";
 import { BillingService } from "@/gen/raptor/panel/v1/billing_pb";
 import { CommandService } from "@/gen/raptor/panel/v1/command_pb";
@@ -30,3 +31,4 @@ export const orgClient = createClient(OrgService, transport);
 export const commandClient = createClient(CommandService, transport);
 export const staffClient = createClient(StaffService, transport);
 export const eggClient = createClient(EggService, transport);
+export const addonClient = createClient(AddonService, transport);

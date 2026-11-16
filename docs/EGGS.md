@@ -330,6 +330,10 @@ modpack:
 - The picker (`web/src/components/modpack-picker.tsx`) is on the new-server form and on Startup (for whoever may edit the pack's variable). It searches Modrinth's modpacks (`AddonService.SearchAddons` and `ListAddonVersions` with kind `modpacks`, which need no loader) and offers **the newest** (`latest`, updated at each reinstall) or a version, which sets the game version to one it's for, since the Modrinth egg filters versions by it. On Startup it says to save and reinstall, with a backup first.
 - The library's Modrinth modpack egg sets it. FTB, Technic, and CurseForge (#412) packs come later. The summary Wings reports carries it (`modpack`), so servers on older Wings show no picker on Startup until they update; the new-server form reads it from the catalog.
 
+## Bedrock players (Geyser)
+
+Servers whose egg has the plugin installer (Paper's family, Velocity, Waterfall/BungeeCord) or the mod manager (Fabric, NeoForge) get a **Bedrock players** card on Network (#419, `web/src/components/bedrock-players.tsx`, `web/src/lib/geyser.ts`). It installs Geyser from Modrinth and Floodgate from Hangar (plugins) or Modrinth (mods) through the ordinary `addons.install`, so each file is checked by its source's hash; Floodgate is left out on proxies (its key must be on every backend). Geyser writes its config on its first start; **Finish setting up** then puts Bedrock on the server's own port: `bedrock.clone-remote-port: true` for the plugins (Geyser follows the Java port at every start), `bedrock.port: <the primary port>` for the mods. No new allocation is needed, because every allocation is published for TCP and UDP. With Floodgate and `remote.address: auto` (the default), Geyser picks Floodgate's auth itself. It needs `files.read` to see and `files.write` to change.
+
 ## Steam Workshop
 
 Games that download Steam Workshop items themselves take them under `x-raptor.workshop` (DECISIONS #264):

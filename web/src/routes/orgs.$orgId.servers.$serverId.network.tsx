@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { ServerAddress } from "@/components/address";
+import { BedrockPlayers } from "@/components/bedrock-players";
 import { ConnectionTest } from "@/components/connection-test";
 import { Minehut } from "@/components/minehut";
 import { DetailList } from "@/components/page";
@@ -76,6 +77,16 @@ function NetworkTab() {
             host={host}
             port={server.ports[0]}
             canChange={can(server, "*") || (can(server, "startup") && can(server, "files.write"))}
+          />
+        )}
+        {can(server, "files.read") && (
+          <BedrockPlayers
+            orgId={orgId}
+            nodeId={nodeId}
+            serverId={serverId}
+            address={(server.displayAddress || host).replace(/:\d+$/, "")}
+            port={server.ports[0]}
+            canChange={can(server, "files.write")}
           />
         )}
         {can(server, "*") && (
