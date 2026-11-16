@@ -1,6 +1,6 @@
 ---
 title: Plugins, mods, and the Workshop
-description: Install Minecraft plugins, mods, and datapacks from Modrinth and Hangar, and Steam Workshop items, from the app.
+description: Install Minecraft plugins, mods, and datapacks from Modrinth and Hangar, Steam Workshop items, and Counter-Strike 2's plugin frameworks, from the app.
 sidebar:
   order: 6
 ---
@@ -89,3 +89,20 @@ Games that load Steam Workshop items themselves get a **Workshop** section in Ad
 - The page says whether a **restart** or a **reinstall** picks the change up.
 
 The game downloads the items itself; Raptor only changes the setting that lists them. It needs the **Startup settings** permission.
+
+## Counter-Strike 2 plugins
+
+Counter-Strike 2 servers get a **Frameworks** section in Add-ons, for the two frameworks CS2 server plugins run on:
+
+- **Metamod:Source**, the plugin loader every CS2 server plugin needs.
+- **CounterStrikeSharp**, which runs C# plugins. It runs on Metamod, so turning it on loads Metamod too.
+
+Turn one on and choose **Save and reinstall**: Raptor backs up the server's files, reinstalls it, and downloads the framework into `game/csgo/addons`. Your maps, configs, and plugins stay. Each has a **Version**: `latest` (the newest, updated at every reinstall), or a Metamod build number (`1491`) or CounterStrikeSharp release (`1.0.380`) to stay on.
+
+Raptor adds Metamod to `gameinfo.gi` every time the server starts, so a game update (which replaces that file) doesn't turn it off. When a CS2 update breaks the frameworks, reinstall once their authors have released a fix to get the newest builds.
+
+Turning one off takes effect at the next start, and nothing is deleted. Raptor only undoes what it did, so Metamod or CounterStrikeSharp you installed by hand is left alone.
+
+Then put CounterStrikeSharp plugins in `game/csgo/addons/counterstrikesharp/plugins` with the file manager, and restart. The page needs the **Startup settings** permission, and **Reinstall** to install.
+
+The same switches are in **Startup** as **Metamod:Source** and **CounterStrikeSharp**. Servers made before they existed get them once they move to the egg's new version (see [Egg library](/eggs/library/)).

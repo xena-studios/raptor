@@ -5,7 +5,7 @@ import { useIds } from "@/lib/ids";
 import { useServer } from "@/lib/org-data";
 
 // A server's Add-ons tab (#436): its plugins, mods, datapacks, and
-// Workshop items, one section each, with a row to switch between them
+// Workshop items (and CS2's frameworks), one section each, with a row to switch between them
 // when there's more than one.
 export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/addons")({
   component: AddonsLayout,
@@ -28,6 +28,15 @@ function AddonsLayout() {
               <Link
                 key={s.key}
                 to="/orgs/$orgId/servers/$serverId/addons/bedrock"
+                params={params}
+                className={pill}
+              >
+                {s.label}
+              </Link>
+            ) : s.key === "frameworks" ? (
+              <Link
+                key={s.key}
+                to="/orgs/$orgId/servers/$serverId/addons/frameworks"
                 params={params}
                 className={pill}
               >

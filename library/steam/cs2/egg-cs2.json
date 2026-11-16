@@ -6,13 +6,13 @@
     "exported_at": "2026-11-15T00:00:00+00:00",
     "name": "Counter-Strike 2",
     "author": "support@raptorpanel.net",
-    "description": "Valve's tactical shooter. Installs the dedicated server with SteamCMD and keeps it updated, with game mode, map and Workshop collection settings.",
+    "description": "Valve's tactical shooter. Installs the dedicated server with SteamCMD and keeps it updated, with game mode, map and Workshop collection settings, and Metamod:Source and CounterStrikeSharp for plugins.",
     "features": [],
     "docker_images": {
         "Steam Runtime 3": "ghcr.io/pelican-eggs/steamcmd:sniper@sha256:99d436be50b2c57e94e922597adca0f327a8fcc29204520be929c26efb1f4810"
     },
     "file_denylist": [],
-    "startup": "LD_LIBRARY_PATH=\"$HOME/game/bin/linuxsteamrt64:$LD_LIBRARY_PATH\" ./game/bin/linuxsteamrt64/cs2 -dedicated $([ \"{{VAC_ENABLED}}\" = 1 ] || echo -insecure) $([ \"{{RCON_ENABLED}}\" = 1 ] && echo -usercon) -ip 0.0.0.0 -port {{SERVER_PORT}} -tv_port {{TV_PORT}} -maxplayers {{MAX_PLAYERS}} +game_type {{GAME_TYPE}} +game_mode {{GAME_MODE}} +map {{SRCDS_MAP}} +hostname \"{{SERVER_NAME}}\" +sv_password \"{{SERVER_PASSWORD}}\" +rcon_password \"{{RCON_PASSWORD}}\" ${STEAM_GSLT:++sv_setsteamaccount $STEAM_GSLT} ${WORKSHOP_COLLECTION:++host_workshop_collection $WORKSHOP_COLLECTION}",
+    "startup": "gi=game/csgo/gameinfo.gi; mm='Game csgo/addons/metamod // added by Raptor (Metamod:Source)'; vdf=game/csgo/addons/metamod/counterstrikesharp.vdf; if [ \"{{METAMOD}}\" = 1 ] || [ \"{{COUNTERSTRIKESHARP}}\" = 1 ]; then if [ ! -f game/csgo/addons/metamod/bin/linuxsteamrt64/metamod.2.cs2.so ]; then echo \"Metamod:Source isn't installed yet: reinstall the server to install it.\"; elif ! grep -q 'csgo/addons/metamod' \"$gi\"; then sed -i \"/Game_LowViolence/a $mm\" \"$gi\"; grep -q 'csgo/addons/metamod' \"$gi\" || echo \"gameinfo.gi has no Game_LowViolence line, so Metamod:Source can't be loaded.\"; fi; else sed -i '/added by Raptor (Metamod:Source)/d' \"$gi\"; fi; if [ \"{{COUNTERSTRIKESHARP}}\" = 1 ]; then [ ! -f \"$vdf.off\" ] || mv -f \"$vdf.off\" \"$vdf\"; elif [ -f game/csgo/addons/counterstrikesharp/.raptor ] && [ -f \"$vdf\" ]; then mv -f \"$vdf\" \"$vdf.off\"; fi; LD_LIBRARY_PATH=\"$HOME/game/bin/linuxsteamrt64:$LD_LIBRARY_PATH\" ./game/bin/linuxsteamrt64/cs2 -dedicated $([ \"{{VAC_ENABLED}}\" = 1 ] || echo -insecure) $([ \"{{RCON_ENABLED}}\" = 1 ] && echo -usercon) -ip 0.0.0.0 -port {{SERVER_PORT}} -tv_port {{TV_PORT}} -maxplayers {{MAX_PLAYERS}} +game_type {{GAME_TYPE}} +game_mode {{GAME_MODE}} +map {{SRCDS_MAP}} +hostname \"{{SERVER_NAME}}\" +sv_password \"{{SERVER_PASSWORD}}\" +rcon_password \"{{RCON_PASSWORD}}\" ${STEAM_GSLT:++sv_setsteamaccount $STEAM_GSLT} ${WORKSHOP_COLLECTION:++host_workshop_collection $WORKSHOP_COLLECTION}",
     "config": {
         "files": "{}",
         "startup": "{\"done\": \"Connection to Steam servers successful\"}",
@@ -21,7 +21,7 @@
     },
     "scripts": {
         "installation": {
-            "script": "#!/bin/bash\n# Counter-Strike 2. Installs or updates the dedicated server (Steam app 730)\n# with SteamCMD, signed in anonymously. Configs, maps and plugins are kept.\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-730}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\n\necho \"Installed Counter-Strike 2 build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}.\"\n",
+            "script": "#!/bin/bash\n# Counter-Strike 2. Installs or updates the dedicated server (Steam app 730)\n# with SteamCMD, signed in anonymously, then Metamod:Source and\n# CounterStrikeSharp when they're on. Configs, maps and plugins are kept.\nset -euo pipefail\ncd /mnt/server\nexport HOME=/mnt/server\napp=\"${SRCDS_APPID:-730}\"\nfail() { echo \"$1\"; exit 1; }\n\n# SteamCMD stays in the server folder, so the server can update itself at start.\nif [ ! -x steamcmd/steamcmd.sh ]; then\n    echo \"Downloading SteamCMD\"\n    mkdir -p steamcmd\n    curl -fsSL --retry 3 https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz | tar -xz -C steamcmd\nfi\nmkdir -p steamapps\nargs=(+force_install_dir /mnt/server +login anonymous +app_update \"$app\")\n[ -z \"${SRCDS_BETAID:-}\" ] || args+=(-beta \"$SRCDS_BETAID\")\n[ -z \"${SRCDS_BETAPASS:-}\" ] || args+=(-betapassword \"$SRCDS_BETAPASS\")\n[ \"${VALIDATE:-0}\" != 1 ] || args+=(validate)\n# SteamCMD often fails once for no lasting reason (Missing configuration,\n# state 0x202 or 0x602 after it updates itself): try again, up to 5 times.\nfor try in 1 2 3 4 5; do\n    ./steamcmd/steamcmd.sh \"${args[@]}\" +quit 2>&1 | tee /tmp/steamcmd.log || true\n    grep -aq \"Success! App '$app'\" /tmp/steamcmd.log && break\n    err=$(grep -aE '^(ERROR|Error)!' /tmp/steamcmd.log | tail -n 1) || true\n    case \"$err\" in\n    *\"No subscription\"*) fail \"Steam won't give this game to an anonymous account, so it can't be installed.\" ;;\n    *\"Invalid Password\"* | *\"Invalid beta\"*) fail \"Steam refused the beta branch or its password. Check Beta branch and Beta password, then reinstall.\" ;;\n    esac\n    [ \"$try\" = 5 ] && fail \"SteamCMD failed 5 times (${err:-no error given}). If it mentions 0x202, the server may be out of disk space. Reinstall to try again.\"\n    echo \"SteamCMD failed; trying again ($((try + 1)) of 5).\"\n    sleep 5\ndone\n# Steam's client library, where the game looks for it.\nmkdir -p .steam/sdk32 .steam/sdk64\ncp -f steamcmd/linux32/steamclient.so .steam/sdk32/\ncp -f steamcmd/linux64/steamclient.so .steam/sdk64/\nbuild=$(sed -n 's/^[[:space:]]*\"buildid\"[[:space:]]*\"\\([0-9]*\\)\".*/\\1/p' \"steamapps/appmanifest_$app.acf\" | head -n 1)\n\necho \"Installed Counter-Strike 2 build ${build:-unknown}${SRCDS_BETAID:+ from the $SRCDS_BETAID branch}.\"\n\n# Metamod:Source and CounterStrikeSharp, when turned on: the newest builds\n# (or the ones pinned) unpacked into game/csgo/addons. What the owner set up\n# is kept: metaplugins.ini, CounterStrikeSharp's configs and plugins. The\n# startup adds Metamod to gameinfo.gi at every start, since game updates\n# replace that file.\naddons=game/csgo/addons\nwork=/mnt/server/.raptor-build\ntrap 'rm -rf \"$work\"' EXIT\n# CounterStrikeSharp runs on Metamod, so it brings Metamod with it.\nif [ \"${METAMOD:-0}\" = 1 ] || [ \"${COUNTERSTRIKESHARP:-0}\" = 1 ]; then\n    rm -rf \"$work\" && mkdir -p \"$work/mms\" \"$addons\"\n    mms=https://mms.alliedmods.net/mmsdrop/2.0\n    want=${METAMOD_VERSION:-latest}\n    if [ \"$want\" = latest ]; then\n        file=$(curl -fsS --retry 3 \"$mms/mmsource-latest-linux\") || fail \"AlliedModders' downloads can't be reached right now, so Metamod:Source wasn't installed. Reinstall to try again.\"\n    else\n        file=$(curl -fsS --retry 3 \"$mms/\" | grep -oE \"mmsource-[0-9.]+-git${want}-linux\\.tar\\.gz\" | head -n 1) || true\n        [ -n \"$file\" ] || fail \"Metamod:Source has no build $want. Set Metamod version to latest or a build number from mms.alliedmods.net, then reinstall.\"\n    fi\n    [[ $file =~ ^mmsource-[0-9.]+-git[0-9]+-linux\\.tar\\.gz$ ]] || fail \"AlliedModders' downloads answered something unexpected, so Metamod:Source wasn't installed. Reinstall to try again.\"\n    echo \"Downloading Metamod:Source (${file%-linux.tar.gz})\"\n    curl -fsSL --retry 3 -o \"$work/mms.tar.gz\" \"$mms/$file\" || fail \"The Metamod:Source download failed. Reinstall to try again.\"\n    tar -xzf \"$work/mms.tar.gz\" -C \"$work/mms\" --no-same-owner\n    [ -f \"$work/mms/addons/metamod/bin/linuxsteamrt64/metamod.2.cs2.so\" ] || fail \"Metamod:Source build $file has no Counter-Strike 2 files. Choose another Metamod version, then reinstall.\"\n    [ ! -f \"$addons/metamod/metaplugins.ini\" ] || rm -f \"$work/mms/addons/metamod/metaplugins.ini\"\n    cp -rf \"$work/mms/addons/.\" \"$addons/\"\n    echo \"Installed Metamod:Source ${file#mmsource-}\" | sed 's/-linux\\.tar\\.gz$//'\nfi\nif [ \"${COUNTERSTRIKESHARP:-0}\" = 1 ]; then\n    repo=roflmuffin/CounterStrikeSharp\n    want=${CSS_VERSION:-latest}\n    [ \"$want\" = latest ] || want=\"v${want#v}\"\n    tag=$(gh-release tag \"$repo\" \"$want\") || fail \"CounterStrikeSharp has no release $want. Set CounterStrikeSharp version to latest or a release such as 1.0.380, then reinstall.\"\n    # The build with .NET in it, so the runtime always matches the release.\n    asset=\"counterstrikesharp-with-runtime-linux-${tag#v}.zip\"\n    gh-release assets \"$repo\" \"$tag\" | awk -v a=\"$asset\" '$1 == a && $2 ~ /^[0-9a-f]{64}$/ { f = 1 } END { exit !f }' || fail \"CounterStrikeSharp $tag has no $asset with a checksum, so it wasn't installed.\"\n    echo \"Downloading CounterStrikeSharp $tag\"\n    gh-release download \"$repo\" \"$tag\" \"$asset\" \"$work/css.zip\" || fail \"The CounterStrikeSharp download failed. Reinstall to try again.\"\n    mkdir -p \"$work/css\" && unzip -qo \"$work/css.zip\" -d \"$work/css\"\n    [ -f \"$work/css/addons/metamod/counterstrikesharp.vdf\" ] || fail \"CounterStrikeSharp $tag isn't laid out as expected, so it wasn't installed.\"\n    # Its own files are replaced whole (an old .NET left behind breaks it);\n    # configs, plugins and shared libraries stay.\n    rm -rf \"$addons/counterstrikesharp/api\" \"$addons/counterstrikesharp/bin\" \"$addons/counterstrikesharp/dotnet\"\n    cp -rf \"$work/css/addons/.\" \"$addons/\"\n    rm -f \"$addons/metamod/counterstrikesharp.vdf.off\"\n    # Raptor installed it, so turning it off may stop it loading.\n    echo \"$tag\" > \"$addons/counterstrikesharp/.raptor\"\n    echo \"Installed CounterStrikeSharp $tag\"\nfi\n",
             "container": "ghcr.io/xena-studios/yolks:installer@sha256:674301342f1471ac67f7d8a35e1708a7cb9ae2b399eb47fdeafe1d3505ceb910",
             "entrypoint": "bash"
         }
@@ -105,6 +105,46 @@
             "user_viewable": true,
             "user_editable": true,
             "rules": "nullable|string|regex:/^[0-9]+$/|max:20",
+            "field_type": "text"
+        },
+        {
+            "name": "Metamod:Source",
+            "description": "Install Metamod:Source, which server plugins load through, and load it at every start. Reinstall after turning it on; turned off, it stops loading at the next start.",
+            "env_variable": "METAMOD",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Metamod version",
+            "description": "The Metamod:Source build to install, such as 1491, or latest for the newest. Reinstall after changing it.",
+            "env_variable": "METAMOD_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:10|regex:/^(latest|[0-9]+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "CounterStrikeSharp",
+            "description": "Install CounterStrikeSharp, which runs C# plugins from addons/counterstrikesharp/plugins, with Metamod:Source. Reinstall after turning it on; turned off, it stops loading at the next start.",
+            "env_variable": "COUNTERSTRIKESHARP",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "CounterStrikeSharp version",
+            "description": "The CounterStrikeSharp release to install, such as 1.0.380, or latest for the newest. Reinstall after changing it.",
+            "env_variable": "CSS_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?[0-9]+(\\.[0-9]+)*)$/",
             "field_type": "text"
         },
         {
