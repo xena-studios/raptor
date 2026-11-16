@@ -386,7 +386,7 @@ func (s *Service) FinishSecondFactor(ctx context.Context, req *panelv1.FinishSec
 			good, recovered, method = n == 1, n == 1, "recovery_code"
 		case *panelv1.FinishSecondFactorRequest_PhoneApprovalId:
 			method = "phone"
-			good, err = usePhoneApproval(ctx, q, c.PhoneApprovalId, func(ap store.PhoneApproval) bool {
+			good, err = usePhoneApproval(ctx, q, s.now(), c.PhoneApprovalId, func(ap store.PhoneApproval) bool {
 				return ap.Purpose == "signin" && ap.PendingSigninID == p.ID
 			})
 		default:

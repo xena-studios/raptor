@@ -336,6 +336,28 @@ func TestAlerts(t *testing.T) {
 	if _, err := carol.alerts.MuteAlerts(ctx, &panelv1.MuteAlertsRequest{OrgId: acme, ServerId: "s2", Minutes: 60}); err == nil {
 		t.Error("someone outside the org muted its alerts")
 	}
+	// Nor through her own org: another org's server isn't hers to mute (and
+	// its name mustn't come back in her list).
+	own, err := carol.orgs.CreateOrg(ctx, &panelv1.CreateOrgRequest{Name: "Carol's"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, req := range []*panelv1.MuteAlertsRequest{
+		{OrgId: own.GetOrg().GetId(), ServerId: "s2", Minutes: 60},
+		{OrgId: own.GetOrg().GetId(), NodeId: nodeID, Minutes: 60},
+		{OrgId: acme, ServerId: "nope", Minutes: 60},
+	} {
+		c := carol
+		if req.GetOrgId() == acme {
+			c = bob
+		}
+		if _, err := c.alerts.MuteAlerts(ctx, req); connect.CodeOf(err) != connect.CodeNotFound {
+			t.Errorf("muted %v: %v", req, err)
+		}
+	}
+	if mutes, _ := carol.alerts.ListAlertMutes(ctx, &panelv1.ListAlertMutesRequest{}); len(mutes.GetMutes()) != 0 {
+		t.Errorf("carol's mutes: %v", mutes)
+	}
 	if _, err := bob.alerts.MuteAlerts(ctx, &panelv1.MuteAlertsRequest{OrgId: acme, ServerId: "s2", Minutes: 60}); err != nil {
 		t.Fatal(err)
 	}

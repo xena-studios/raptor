@@ -232,6 +232,9 @@ func (s *Service) reauthEmail(ctx context.Context, sess *Session, code string) (
 			return nil
 		}
 		key := "fail:email:" + sess.User.Email
+		if err := lockCodeChecks(ctx, tx, sess.User.Email); err != nil {
+			return err
+		}
 		if over, err := s.over(ctx, key, limitFailedCodesPerEmail); err != nil {
 			return err
 		} else if over {
@@ -296,7 +299,7 @@ func (s *Service) notify(ctx context.Context, user store.User, e mail.Email) {
 func (s *Service) reauthPhone(ctx context.Context, sess *Session, id string) (failure, err error) {
 	err = pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		ok, err := usePhoneApproval(ctx, q, id, func(ap store.PhoneApproval) bool {
+		ok, err := usePhoneApproval(ctx, q, s.now(), id, func(ap store.PhoneApproval) bool {
 			return ap.Purpose == "reauth" && ap.SessionID == sess.ID
 		})
 		if err != nil {

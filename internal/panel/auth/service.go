@@ -158,6 +158,9 @@ func (s *Service) FinishEmailSignIn(ctx context.Context, req *panelv1.FinishEmai
 			if err != nil {
 				return err
 			}
+			if err := lockCodeChecks(ctx, tx, email); err != nil {
+				return err
+			}
 			if over, err := s.over(ctx, "fail:email:"+email, limitFailedCodesPerEmail); err != nil {
 				return err
 			} else if over {

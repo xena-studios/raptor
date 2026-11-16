@@ -844,6 +844,22 @@ func (a *Alerts) MuteAlerts(ctx context.Context, req *panelv1.MuteAlertsRequest)
 	if err := a.Orgs.Auth.RateLimit(ctx, "alerts:user:"+idString(sess.UserID), alertChangesPerHour, time.Hour); err != nil {
 		return nil, err
 	}
+	// Only what's in the org can be muted (unmuting needn't check, so a
+	// mute about something since removed can still be lifted).
+	q := store.New(a.Orgs.DB)
+	var in bool
+	if id := req.GetServerId(); id != "" {
+		in, err = q.ServerInOrg(ctx, store.ServerInOrgParams{OrgID: org, ServerID: id})
+	} else {
+		node, _ := parseID(req.GetNodeId(), "node")
+		in, err = q.NodeInOrg(ctx, store.NodeInOrgParams{ID: node, OrgID: org})
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !in {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("no such server or node in this org"))
+	}
 	until := a.Orgs.Auth.Clock().Add(d)
 	if err := store.New(a.Orgs.DB).MuteAlerts(ctx, store.MuteAlertsParams{
 		UserID: sess.UserID, OrgID: org, Target: target, Until: pgtype.Timestamptz{Time: until, Valid: true},

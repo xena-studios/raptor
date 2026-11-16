@@ -299,8 +299,10 @@ DELETE FROM alert_mutes WHERE user_id = $1 AND org_id = $2 AND target = $3;
 -- name: UserAlertMutes :many
 -- A person's mutes still running, with what they're about.
 SELECT m.org_id, o.name AS org_name, m.target, m.until,
-    coalesce((SELECT s.name FROM m_servers s WHERE 'server:' || s.server_id = m.target LIMIT 1),
-             (SELECT n.name FROM nodes n WHERE 'node:' || n.id::text = m.target), '')::text AS name
+    -- Names only from the mute's own org.
+    coalesce((SELECT s.name FROM m_servers s JOIN nodes sn ON sn.id = s.node_id
+              WHERE sn.org_id = m.org_id AND 'server:' || s.server_id = m.target LIMIT 1),
+             (SELECT n.name FROM nodes n WHERE n.org_id = m.org_id AND 'node:' || n.id::text = m.target), '')::text AS name
 FROM alert_mutes m JOIN orgs o ON o.id = m.org_id
 WHERE m.user_id = $1 AND m.until > now() ORDER BY m.until;
 
@@ -311,3 +313,10 @@ WHERE org_id = $1 AND user_id = ANY (sqlc.arg(users)::uuid[]) AND target = ANY (
 
 -- name: PruneAlertMutes :exec
 DELETE FROM alert_mutes WHERE until < now();
+
+-- name: ServerInOrg :one
+-- Whether a server (by its ID on its node) is on one of the org's nodes.
+SELECT EXISTS (SELECT 1 FROM m_servers s JOIN nodes n ON n.id = s.node_id WHERE n.org_id = $1 AND s.server_id = $2);
+
+-- name: NodeInOrg :one
+SELECT EXISTS (SELECT 1 FROM nodes WHERE id = $1 AND org_id = $2);

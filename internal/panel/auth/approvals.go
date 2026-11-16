@@ -553,7 +553,9 @@ func (s *Service) DecidePhoneApproval(ctx context.Context, req *panelv1.DecidePh
 
 // usePhoneApproval checks an approval the phone approved for this sign-in
 // or session, and uses it up.
-func usePhoneApproval(ctx context.Context, q *store.Queries, id string, match func(store.PhoneApproval) bool) (bool, error) {
+// An approved request is used by the browser within moments; one more
+// ApprovalTTL is plenty, and after that it's no good.
+func usePhoneApproval(ctx context.Context, q *store.Queries, now time.Time, id string, match func(store.PhoneApproval) bool) (bool, error) {
 	aid, err := parseApprovalID(id)
 	if err != nil {
 		return false, nil //nolint:nilerr // a bad ID is a failed proof
@@ -565,7 +567,7 @@ func usePhoneApproval(ctx context.Context, q *store.Queries, id string, match fu
 	if err != nil {
 		return false, err
 	}
-	if !match(ap) || ap.Status != "approved" {
+	if !match(ap) || ap.Status != "approved" || !ap.ExpiresAt.Time.Add(ApprovalTTL).After(now) {
 		return false, nil
 	}
 	n, err := q.UsePhoneApproval(ctx, aid)

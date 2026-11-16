@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
 
@@ -90,4 +92,13 @@ func (s *Service) RunJanitor(ctx context.Context, every time.Duration) {
 		case <-t.C:
 		}
 	}
+}
+
+// lockCodeChecks makes one code check at a time for an email, until tx
+// ends: without it, guesses sent at once all pass the failed-codes limit
+// before any is counted, which matters most for the App Store review's
+// fixed code (ReviewSignIn).
+func lockCodeChecks(ctx context.Context, tx pgx.Tx, email string) error {
+	_, err := tx.Exec(ctx, "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", "code-check:"+email)
+	return err
 }

@@ -862,6 +862,22 @@ func (q *Queries) MutedUsers(ctx context.Context, arg MutedUsersParams) ([]pgtyp
 	return items, nil
 }
 
+const nodeInOrg = `-- name: NodeInOrg :one
+SELECT EXISTS (SELECT 1 FROM nodes WHERE id = $1 AND org_id = $2)
+`
+
+type NodeInOrgParams struct {
+	ID    pgtype.UUID
+	OrgID pgtype.UUID
+}
+
+func (q *Queries) NodeInOrg(ctx context.Context, arg NodeInOrgParams) (bool, error) {
+	row := q.db.QueryRow(ctx, nodeInOrg, arg.ID, arg.OrgID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const nodeThresholdRules = `-- name: NodeThresholdRules :many
 SELECT r.id, r.condition, r.server_id, r.threshold, r.for_minutes
 FROM alert_rules r JOIN nodes n ON n.org_id = r.org_id
@@ -1269,6 +1285,23 @@ func (q *Queries) SeeNotifications(ctx context.Context, userID pgtype.UUID) erro
 	return err
 }
 
+const serverInOrg = `-- name: ServerInOrg :one
+SELECT EXISTS (SELECT 1 FROM m_servers s JOIN nodes n ON n.id = s.node_id WHERE n.org_id = $1 AND s.server_id = $2)
+`
+
+type ServerInOrgParams struct {
+	OrgID    pgtype.UUID
+	ServerID string
+}
+
+// Whether a server (by its ID on its node) is on one of the org's nodes.
+func (q *Queries) ServerInOrg(ctx context.Context, arg ServerInOrgParams) (bool, error) {
+	row := q.db.QueryRow(ctx, serverInOrg, arg.OrgID, arg.ServerID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const setNodeAlerts = `-- name: SetNodeAlerts :exec
 UPDATE nodes SET alerts_hash = $2, alerts_error = $3 WHERE id = $1
 `
@@ -1507,8 +1540,10 @@ func (q *Queries) UserAlertChannels(ctx context.Context, userID pgtype.UUID) ([]
 
 const userAlertMutes = `-- name: UserAlertMutes :many
 SELECT m.org_id, o.name AS org_name, m.target, m.until,
-    coalesce((SELECT s.name FROM m_servers s WHERE 'server:' || s.server_id = m.target LIMIT 1),
-             (SELECT n.name FROM nodes n WHERE 'node:' || n.id::text = m.target), '')::text AS name
+    -- Names only from the mute's own org.
+    coalesce((SELECT s.name FROM m_servers s JOIN nodes sn ON sn.id = s.node_id
+              WHERE sn.org_id = m.org_id AND 'server:' || s.server_id = m.target LIMIT 1),
+             (SELECT n.name FROM nodes n WHERE n.org_id = m.org_id AND 'node:' || n.id::text = m.target), '')::text AS name
 FROM alert_mutes m JOIN orgs o ON o.id = m.org_id
 WHERE m.user_id = $1 AND m.until > now() ORDER BY m.until
 `
