@@ -74,6 +74,7 @@ function NetworkTab() {
             serverId={serverId}
             current={server.displayAddress}
             host={host}
+            ipv4={node?.publicIpv4 ?? ""}
             port={server.ports[0]}
           />
         )}
