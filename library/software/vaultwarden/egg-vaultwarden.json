@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Vaultwarden",
+    "author": "support@raptorpanel.net",
+    "description": "Vaultwarden is a lightweight password manager server that works with the Bitwarden apps and browser extensions. Sign-ups are off at first: turn them on to create your account, or set an admin token to invite users. The apps need HTTPS, so put it behind a proxy with a certificate.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "[ -n \"${ADMIN_TOKEN:-}\" ] || unset ADMIN_TOKEN; [ -n \"${DOMAIN:-}\" ] || unset DOMAIN; ROCKET_ADDRESS=0.0.0.0 ROCKET_PORT={{SERVER_PORT}} DATA_FOLDER=data WEB_VAULT_FOLDER=web-vault exec ./vaultwarden",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"Rocket has launched from\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Vaultwarden: Vaultwarden publishes no downloads besides its container\n# image, so this takes the binary and the web vault out of the official\n# image on ghcr.io (its Alpine build, a static binary), every layer\n# checked against its SHA-256. The data folder (the vault database,\n# attachments, keys) and .env are never touched.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\nua=\"raptor-installer (+https://raptorpanel.net)\"\nget() { curl -fsS --retry 3 -A \"$ua\" \"$@\"; }\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Vaultwarden has no build for this CPU ($(uname -m)).\" ;;\nesac\n\n# The release, from GitHub (gh-release says why when it doesn't exist).\nversion=$(gh-release tag dani-garcia/vaultwarden \"${VERSION:-latest}\") || exit 1\n\nif [ -x vaultwarden ] && [ -d web-vault ] && [ \"$(cat .vaultwarden-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"Vaultwarden $version is already installed.\"\nelse\n    echo \"Downloading Vaultwarden $version\"\n    repo=dani-garcia/vaultwarden\n    reg=https://ghcr.io/v2/$repo\n    token=$(get \"https://ghcr.io/token?scope=repository:$repo:pull&service=ghcr.io\" | jq -r .token) ||\n        fail \"ghcr.io can't be reached right now. Reinstall to try again.\"\n    auth=\"Authorization: Bearer $token\"\n    index=$(get -H \"$auth\" -H \"Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json\" \"$reg/manifests/$version-alpine\") ||\n        fail \"Vaultwarden's image for $version isn't on ghcr.io. Set Version to latest, or to another release, then reinstall.\"\n    digest=$(jq -r --arg a \"$arch\" 'first(.manifests[] | select(.platform.os == \"linux\" and .platform.architecture == $a) | .digest) // empty' <<<\"$index\")\n    [ -n \"$digest\" ] || fail \"Vaultwarden $version has no image for this CPU ($arch).\"\n    layers=$(get -H \"$auth\" -H \"Accept: application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json\" \"$reg/manifests/$digest\" | jq -r '.layers[].digest') ||\n        fail \"ghcr.io can't be reached right now. Reinstall to try again.\"\n    mkdir -p $work/root\n    for layer in $layers; do\n        get -L -H \"$auth\" -o $work/layer \"$reg/blobs/$layer\" || fail \"The download failed. Reinstall to try again.\"\n        [ \"sha256:$(sha256sum $work/layer | cut -d' ' -f1)\" = \"$layer\" ] || fail \"The download didn't match its checksum. Reinstall to try again.\"\n        tar -xf $work/layer -C $work/root --no-same-owner\n        rm -f $work/layer\n    done\n    [ -x $work/root/vaultwarden ] && [ -f $work/root/web-vault/index.html ] || fail \"Vaultwarden's image didn't have the files it should. Reinstall to try again.\"\n    install -m 0755 $work/root/vaultwarden vaultwarden.new\n    rm -rf web-vault.old\n    [ ! -d web-vault ] || mv web-vault web-vault.old\n    mv $work/root/web-vault web-vault\n    mv -f vaultwarden.new vaultwarden\n    rm -rf web-vault.old\n    echo \"$version\" > .vaultwarden-version\nfi\n\nmkdir -p data\nif [ ! -f .env ]; then\n    cat > .env <<'ENV'\n# Vaultwarden's settings: https://github.com/dani-garcia/vaultwarden/blob/main/.env.template\n# Add settings here as NAME=value lines (SMTP for emails, for example) and\n# restart. The server's settings (port, sign-ups, admin token, domain)\n# win over this file, and the admin page's saved settings win over both.\nENV\nfi\necho \"Installed Vaultwarden $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Vaultwarden version to install, such as 1.37.5, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Allow sign-ups",
+            "description": "Let anyone who can reach the server create an account. Turn it on to make yours, then off again.",
+            "env_variable": "SIGNUPS_ALLOWED",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin token",
+            "description": "The token for the admin page at /admin, where you invite users and change settings. Leave it empty to turn the admin page off.",
+            "env_variable": "ADMIN_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Domain",
+            "description": "The address people open Vaultwarden at, including https, used in emails and for passkeys.",
+            "env_variable": "DOMAIN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^https?:\\/\\/[^\\s\\/]+(\\/[^\\s]*)?$/",
+            "field_type": "text"
+        }
+    ]
+}

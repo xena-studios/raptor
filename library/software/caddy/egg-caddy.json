@@ -1,0 +1,41 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Caddy",
+    "author": "support@raptorpanel.net",
+    "description": "Caddy is a fast, modern web server. The egg serves a static website from the public folder: upload your files there, and change the Caddyfile for anything more.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "exec ./caddy run --config Caddyfile --adapter caddyfile",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"serving initial configuration\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Caddy: downloads Caddy from its GitHub releases, checked against\n# GitHub's SHA-256, and sets up a static website in the public folder.\n# The website's files and the Caddyfile are never touched once there.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) echo \"Caddy has no build for this CPU ($(uname -m)).\"; exit 1 ;;\nesac\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag caddyserver/caddy \"$version\") || exit 1\n\nif [ -x caddy ] && [ \"$(cat .caddy-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Caddy $tag is already installed.\"\nelse\n    echo \"Downloading Caddy $tag.\"\n    gh-release download caddyserver/caddy \"$tag\" \"caddy_${tag#v}_linux_${arch}.tar.gz\" $work/caddy.tar.gz\n    tar -xzf $work/caddy.tar.gz -C $work caddy\n    install -m 0755 $work/caddy caddy.new\n    mv -f caddy.new caddy\n    echo \"$tag\" > .caddy-version\nfi\n\nif [ ! -f Caddyfile ]; then\n    cat > Caddyfile <<'CADDY'\n# Caddy's settings: https://caddyserver.com/docs/caddyfile\n# Caddy listens on the server's port ({$SERVER_PORT}) and serves the files\n# in the public folder. Restart the server after changing this file.\n{\n\tadmin off\n\tlog {\n\t\tformat console\n\t}\n}\n\n:{$SERVER_PORT} {\n\troot * public\n\tencode\n\tfile_server\n}\nCADDY\nfi\nif [ ! -d public ]; then\n    mkdir -p public\n    cat > public/index.html <<'HTML'\n<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>It works</title>\n</head>\n<body>\n<h1>It works</h1>\n<p>Upload your website to the public folder to replace this page.</p>\n</body>\n</html>\nHTML\nfi\necho \"Installed Caddy $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Caddy version to install, such as 2.11.9, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.]+)?)$/",
+            "field_type": "text"
+        }
+    ]
+}

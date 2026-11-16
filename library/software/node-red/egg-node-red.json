@@ -1,0 +1,73 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Node-RED",
+    "author": "support@raptorpanel.net",
+    "description": "Node-RED is a low-code tool for wiring together devices, APIs and online services in flows, edited in the browser. The editor always needs a login: your admin password, or a random one shown in the console.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:d0378084b323d05e146b21d85cd8243b660ecf9dc17ccf967d09ec0347896307",
+        "Node.js 26": "ghcr.io/xena-studios/yolks:nodejs_26@sha256:887afaa41d8937a5c664a887d55b730b4078f05610137705f918d423f78f90f3",
+        "Node.js 22": "ghcr.io/xena-studios/yolks:nodejs_22@sha256:78b7b07924320324d3181eb51d83df41d42774d988e1e084b246dcb0e4c58405"
+    },
+    "file_denylist": [],
+    "startup": "h=$( (node --version; cat package.json) | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat node_modules/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing Node-RED\"; npm install --omit=dev --no-audit --no-fund --loglevel=error && npm cache clean --force --loglevel=error && echo \"$h\" > node_modules/.raptor-installed || exit 1; fi; exec node node_modules/node-red/red.js --userDir data --settings data/settings.js --port {{SERVER_PORT}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"Server now running at\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Node-RED: picks the Node-RED version from the npm registry and writes it\n# to package.json; the server installs it with npm when it starts, for the\n# Node.js version it runs. The data folder (flows, credentials, nodes\n# added from the palette, settings.js) is never touched once there.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n\nmeta=$(curl -fsS --retry 3 -A \"raptor-installer (+https://raptorpanel.net)\" https://registry.npmjs.org/node-red) ||\n    fail \"The npm registry can't be reached right now. Reinstall to try again.\"\nlatest=$(jq -r '.\"dist-tags\".latest' <<<\"$meta\")\nversion=\"${VERSION:-latest}\"\nversion=\"${version#v}\"\n[ \"$version\" = latest ] && version=\"$latest\"\njq -e --arg v \"$version\" '.versions[$v]' <<<\"$meta\" >/dev/null ||\n    fail \"Node-RED has no version $version. Set Version to latest, or to a release such as $latest, then reinstall.\"\nnode=$(jq -r --arg v \"$version\" '.versions[$v].engines.node // \"\"' <<<\"$meta\")\n\n# package.json lists only Node-RED; nodes added in the editor go in data/.\nif [ -f package.json ]; then\n    jq --arg v \"$version\" '.dependencies[\"node-red\"] = $v' package.json > package.json.new\nelse\n    jq -n --arg v \"$version\" '{name: \"node-red-server\", private: true, dependencies: {\"node-red\": $v}}' > package.json.new\nfi\nmv -f package.json.new package.json\n\nmkdir -p data\nif [ ! -f data/settings.js ]; then\n    cat > data/settings.js <<'JS'\n// Node-RED's settings: https://nodered.org/docs/user-guide/runtime/settings-file\n// The port and the editor's login come from the server's settings. Restart\n// the server after changing this file.\nconst crypto = require(\"crypto\");\nconst fs = require(\"fs\");\nconst path = require(\"path\");\n\n// The editor runs any code a flow holds, so it always needs a login: the\n// server's Admin password, or a random one kept in admin-password.txt.\nconst user = process.env.ADMIN_USERNAME || \"admin\";\nlet password = process.env.ADMIN_PASSWORD || \"\";\nif (!password) {\n    const file = path.join(__dirname, \"admin-password.txt\");\n    try {\n        password = fs.readFileSync(file, \"utf8\").trim();\n    } catch {\n        password = crypto.randomBytes(15).toString(\"base64url\");\n        fs.writeFileSync(file, password + \"\\n\", { mode: 0o600 });\n    }\n    console.log(`Log in to the editor as ${user}, with the password in data/admin-password.txt (${password}).`);\n}\nconst same = (a, b) => {\n    const x = crypto.createHash(\"sha256\").update(String(a)).digest();\n    const y = crypto.createHash(\"sha256\").update(String(b)).digest();\n    return crypto.timingSafeEqual(x, y);\n};\n\nmodule.exports = {\n    uiHost: \"0.0.0.0\",\n    uiPort: Number(process.env.SERVER_PORT) || 1880,\n    flowFile: \"flows.json\",\n    adminAuth: {\n        type: \"credentials\",\n        users: (name) => Promise.resolve(name === user ? { username: user, permissions: \"*\" } : null),\n        authenticate: (name, pass) => Promise.resolve(same(name, user) && same(pass, password) ? { username: user, permissions: \"*\" } : null),\n    },\n    // Node-RED's update check asks nodered.org for new versions.\n    telemetry: { enabled: process.env.UPDATE_CHECK === \"1\" },\n    diagnostics: { enabled: true, ui: true },\n    logging: { console: { level: \"info\", metrics: false, audit: false } },\n    editorTheme: { projects: { enabled: false } },\n    functionExternalModules: true,\n};\nJS\nfi\necho \"Installed Node-RED $version${node:+ (it needs Node.js $node)}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Node-RED version to install, such as 5.0.9, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.]+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin username",
+            "description": "The username to log in to the editor with.",
+            "env_variable": "ADMIN_USERNAME",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9._@-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The editor's password. Leave it empty for a random one, kept in data/admin-password.txt and shown in the console.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Update check",
+            "description": "Let the editor ask nodered.org whether a new version is out.",
+            "env_variable": "UPDATE_CHECK",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,81 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "ntfy",
+    "author": "support@raptorpanel.net",
+    "description": "ntfy sends push notifications to your phone or desktop from scripts with a simple HTTP request. Set an admin login and a default access to make topics private.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "if [ -n \"${ADMIN_PASSWORD:-}\" ]; then h=$(printf '%s\\n%s\\n' \"$ADMIN_PASSWORD\" \"$ADMIN_PASSWORD\" | ./ntfy user hash 2>/dev/null | grep -o '\\$2[aby]\\$[^ ]*') && export NTFY_AUTH_USERS=\"{{ADMIN_USERNAME}}:$h:admin\" || { echo \"Couldn't set up the admin login.\"; exit 1; }; fi; if [ -n \"${NTFY_BASE_URL:-}\" ]; then export NTFY_ATTACHMENT_CACHE_DIR=attachments; else unset NTFY_BASE_URL; fi; exec ./ntfy serve --config server.yml --listen-http :{{SERVER_PORT}} --cache-file cache.db --auth-file user.db --auth-default-access {{NTFY_AUTH_DEFAULT_ACCESS}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"Listening on :\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# ntfy: downloads the ntfy server from its GitHub releases, checked\n# against GitHub's SHA-256. server.yml, the users, the message cache and\n# attachments are never touched.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) echo \"ntfy has no build for this CPU ($(uname -m)).\"; exit 1 ;;\nesac\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag binwiederhier/ntfy \"$version\") || exit 1\nname=\"ntfy_${tag#v}_linux_${arch}\"\n\nif [ -x ntfy ] && [ \"$(cat .ntfy-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"ntfy $tag is already installed.\"\nelse\n    echo \"Downloading ntfy $tag.\"\n    gh-release download binwiederhier/ntfy \"$tag\" \"$name.tar.gz\" $work/ntfy.tar.gz\n    tar -xzf $work/ntfy.tar.gz -C $work \"$name/ntfy\"\n    install -m 0755 \"$work/$name/ntfy\" ntfy.new\n    mv -f ntfy.new ntfy\n    echo \"$tag\" > .ntfy-version\nfi\n\nif [ ! -f server.yml ]; then\n    cat > server.yml <<'YML'\n# ntfy's settings: https://docs.ntfy.sh/config/\n# The port, address, default access, admin login and the files below are\n# set by the server's settings, which win over this file.\nbehind-proxy: false\nYML\nfi\necho \"Installed ntfy $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The ntfy version to install, such as 2.38.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Default access",
+            "description": "What people without a login may do with topics: read-write, read-only, write-only, or deny-all.",
+            "env_variable": "NTFY_AUTH_DEFAULT_ACCESS",
+            "default_value": "read-write",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:read-write,read-only,write-only,deny-all",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin username",
+            "description": "The admin's username, used when Admin password is set.",
+            "env_variable": "ADMIN_USERNAME",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9._-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "A password for an admin who can use every topic. Leave it empty for no admin login.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Base URL",
+            "description": "The address the server is reached at, including http or https. Needed for attachments and the web app's notifications.",
+            "env_variable": "NTFY_BASE_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^https?:\\/\\/[^\\s\\/]+$/",
+            "field_type": "text"
+        }
+    ]
+}

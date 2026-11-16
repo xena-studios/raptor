@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "PocketBase",
+    "author": "support@raptorpanel.net",
+    "description": "PocketBase is an open source backend in one file, with a database, authentication, file storage and an admin dashboard. Open the link it prints on the first start to create your superuser, or set one below.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "if [ -n \"${SUPERUSER_EMAIL:-}\" ] && [ -n \"${SUPERUSER_PASSWORD:-}\" ]; then ./pocketbase superuser upsert \"$SUPERUSER_EMAIL\" \"$SUPERUSER_PASSWORD\" --dir pb_data || exit 1; fi; exec ./pocketbase serve --http 0.0.0.0:{{SERVER_PORT}} --dir pb_data",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"Server started at\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# PocketBase: downloads PocketBase from its GitHub releases, checked\n# against GitHub's SHA-256. pb_data (the database and uploaded files),\n# pb_public, pb_hooks and pb_migrations are never touched.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) echo \"PocketBase has no build for this CPU ($(uname -m)).\"; exit 1 ;;\nesac\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag pocketbase/pocketbase \"$version\") || exit 1\n\nif [ -x pocketbase ] && [ \"$(cat .pocketbase-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"PocketBase $tag is already installed.\"\nelse\n    echo \"Downloading PocketBase $tag.\"\n    gh-release download pocketbase/pocketbase \"$tag\" \"pocketbase_${tag#v}_linux_${arch}.zip\" $work/pb.zip\n    unzip -qo $work/pb.zip pocketbase -d $work\n    install -m 0755 $work/pocketbase pocketbase.new\n    mv -f pocketbase.new pocketbase\n    echo \"$tag\" > .pocketbase-version\nfi\necho \"Installed PocketBase $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The PocketBase version to install, such as 0.40.6, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.]+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Superuser email",
+            "description": "With a password, creates this superuser at every start, or resets its password to the one below.",
+            "env_variable": "SUPERUSER_EMAIL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^[^\\s@]+@[^\\s@]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Superuser password",
+            "description": "The superuser's password, at least 8 characters. Leave both empty to set the superuser up in the browser.",
+            "env_variable": "SUPERUSER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:128",
+            "field_type": "text"
+        }
+    ]
+}

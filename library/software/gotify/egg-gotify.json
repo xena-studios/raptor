@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Gotify",
+    "author": "support@raptorpanel.net",
+    "description": "Gotify is a simple server for sending and receiving push notifications over a REST API and WebSocket. The first user's password is the one you set, or a random one shown in the console on the first start.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "if [ ! -f data/gotify.db ] && [ -z \"${ADMIN_PASSWORD:-}\" ]; then ADMIN_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20); echo \"Gotify's first user is {{ADMIN_USERNAME}}, with the password $ADMIN_PASSWORD. Log in and change it.\"; fi; GOTIFY_SERVER_PORT={{SERVER_PORT}} GOTIFY_DEFAULTUSER_NAME=\"{{ADMIN_USERNAME}}\" GOTIFY_DEFAULTUSER_PASS=\"$ADMIN_PASSWORD\" GOTIFY_REGISTRATION=false exec ./gotify",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"regex:Listen.*address=\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Gotify: downloads the Gotify server from its GitHub releases, checked\n# against GitHub's SHA-256. The data folder (database, images, plugins)\n# and config.yml are never touched.\nset -euo pipefail\ncd /mnt/server\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) echo \"Gotify has no build for this CPU ($(uname -m)).\"; exit 1 ;;\nesac\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag gotify/server \"$version\") || exit 1\n\nif [ -x gotify ] && [ \"$(cat .gotify-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Gotify $tag is already installed.\"\nelse\n    echo \"Downloading Gotify $tag.\"\n    gh-release download gotify/server \"$tag\" \"gotify-linux-${arch}.zip\" $work/gotify.zip\n    unzip -qo $work/gotify.zip -d $work/gotify\n    install -m 0755 \"$work/gotify/gotify-linux-${arch}\" gotify.new\n    mv -f gotify.new gotify\n    echo \"$tag\" > .gotify-version\nfi\nmkdir -p data\necho \"Installed Gotify $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Gotify version to install, such as 3.1.1, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin username",
+            "description": "The name of the first user, created when the database is.",
+            "env_variable": "ADMIN_USERNAME",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9._@-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The first user's password, used only when the database is created. Leave it empty for a random one shown in the console.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128",
+            "field_type": "text"
+        }
+    ]
+}
