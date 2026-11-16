@@ -69,6 +69,9 @@ type Meta struct {
 	// Web is a web dashboard the server serves (the egg's x-raptor.web),
 	// for the app's link to it.
 	Web *eggs.Web `yaml:"web"`
+	// Modpack says which variables pick a modpack (the egg's
+	// x-raptor.modpack), for the app's pack picker.
+	Modpack *eggs.Modpack `yaml:"modpack"`
 	// Backup is what's sent to the game's console around a backup (the
 	// egg's x-raptor.backup, docs/EGGS.md#backup-hooks), added like
 	// Players: save-off and save-all flush, then save-on, for Minecraft.
@@ -260,6 +263,9 @@ func (e *Entry) validate() error {
 	if err := eggs.CheckWeb(e.Web, egg.Variables); err != nil {
 		return err
 	}
+	if err := eggs.CheckModpack(e.Modpack, egg.Variables); err != nil {
+		return err
+	}
 	if err := eggs.CheckWorkshop(e.Workshop, egg.Variables); err != nil {
 		return err
 	}
@@ -377,6 +383,16 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 			set(n, "enabled", str(w.Enabled))
 		}
 		set(ext, "web", n)
+	}
+	if m := e.Modpack; m != nil {
+		n := &yaml.Node{Kind: yaml.MappingNode}
+		set(n, "source", str(m.Source))
+		set(n, "project", str(m.Project))
+		set(n, "version", str(m.Version))
+		if m.GameVersion != "" {
+			set(n, "game_version", str(m.GameVersion))
+		}
+		set(ext, "modpack", n)
 	}
 	if b := e.Backup; b != nil {
 		n := &yaml.Node{Kind: yaml.MappingNode}

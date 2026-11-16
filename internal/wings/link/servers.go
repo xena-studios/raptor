@@ -107,9 +107,18 @@ type eggInfo struct {
 	Workshop *eggWorkshop `json:"workshop,omitempty"`
 	// Web is a web dashboard the server serves (#428).
 	Web *eggWeb `json:"web,omitempty"`
+	// Modpack names the variables that pick a modpack (#413).
+	Modpack *eggModpack `json:"modpack,omitempty"`
 	// Players is how the game answers player queries ("minecraft" for the
 	// Java edition), so the Panel knows which servers get an SRV record.
 	Players string `json:"players,omitempty"`
+}
+
+type eggModpack struct {
+	Source      string `json:"source"`
+	Project     string `json:"project"`
+	Version     string `json:"version"`
+	GameVersion string `json:"game_version,omitempty"`
 }
 
 type eggWeb struct {
@@ -160,6 +169,9 @@ func describeEgg(s *server.Server) *eggInfo {
 	}
 	if w := e.Raptor.Web; w != nil {
 		out.Web = &eggWeb{Name: w.Name, Port: w.Port, Enabled: w.Enabled}
+	}
+	if m := e.Raptor.Modpack; m != nil {
+		out.Modpack = &eggModpack{Source: m.Source, Project: m.Project, Version: m.Version, GameVersion: m.GameVersion}
 	}
 	if w := e.Raptor.Workshop; w != nil {
 		apply := w.Apply

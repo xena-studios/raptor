@@ -38,7 +38,7 @@ func IsRaptor(format string) bool { return strings.HasPrefix(format, "RPTR_") }
 
 // RaptorKeys are Raptor's settings: top-level fields in Raptor's eggs, and
 // the keys of "x-raptor" in other formats.
-var RaptorKeys = []string{"arch", "category", "library", "install", "backup", "health", "players", "addons", "workshop", "web"}
+var RaptorKeys = []string{"arch", "category", "library", "install", "backup", "health", "players", "addons", "workshop", "web", "modpack"}
 
 // Egg is the normalized form of every supported egg format.
 type Egg struct {
@@ -158,6 +158,41 @@ type Extension struct {
 	// Web is a web dashboard the server serves (txAdmin, Grafana), so the
 	// app can link to it (#428); nil if it has none.
 	Web *Web `yaml:"web"`
+	// Modpack says which variables pick a modpack, so the app can offer a
+	// pack picker (#413); nil if the egg has none.
+	Modpack *Modpack `yaml:"modpack"`
+}
+
+// Modpack is where a modpack egg takes its pack: the variables holding
+// the pack, its version, and the game version, which the egg's install
+// script reads. Raptor downloads nothing; the picker fills them.
+type Modpack struct {
+	// Source is where packs are found: "modrinth".
+	Source string `yaml:"source"`
+	// Project holds the pack (its slug or ID), Version its version (an ID,
+	// or "latest"), GameVersion the game version (optional).
+	Project     string `yaml:"project"`
+	Version     string `yaml:"version"`
+	GameVersion string `yaml:"game_version"`
+}
+
+// CheckModpack validates x-raptor.modpack against the egg's variables.
+func CheckModpack(m *Modpack, vars []Variable) error {
+	if m == nil {
+		return nil
+	}
+	if m.Source != "modrinth" {
+		return fmt.Errorf("egg: x-raptor.modpack.source %q: want modrinth", m.Source)
+	}
+	for key, v := range map[string]string{"project": m.Project, "version": m.Version, "game_version": m.GameVersion} {
+		if v == "" && key == "game_version" {
+			continue
+		}
+		if !slices.ContainsFunc(vars, func(x Variable) bool { return x.Env == v }) {
+			return fmt.Errorf("egg: x-raptor.modpack.%s %q: not one of the egg's variables", key, v)
+		}
+	}
+	return nil
 }
 
 // Web is a web page a server serves on one of its ports.
@@ -546,6 +581,9 @@ func (e *Egg) parseRaptor(n *yaml.Node) error {
 			return err
 		}
 		if err := CheckWeb(e.Raptor.Web, e.Variables); err != nil {
+			return err
+		}
+		if err := CheckModpack(e.Raptor.Modpack, e.Variables); err != nil {
 			return err
 		}
 	}

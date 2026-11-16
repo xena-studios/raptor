@@ -260,6 +260,9 @@ func name(e *eggs.Egg) string {
 // server from it; the caller fills in the library's fields.
 func Proto(egg *eggs.Egg) *panelv1.CatalogEgg {
 	out := &panelv1.CatalogEgg{Name: egg.Name, Description: egg.Description, Features: egg.Features, Arch: egg.Raptor.Arch}
+	if m := egg.Raptor.Modpack; m != nil {
+		out.Modpack = &panelv1.EggModpack{Source: m.Source, Project: m.Project, Version: m.Version, GameVersion: m.GameVersion}
+	}
 	for _, i := range egg.Images {
 		out.Images = append(out.Images, &panelv1.EggImage{Name: i.Name, Ref: i.Ref})
 	}

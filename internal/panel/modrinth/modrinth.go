@@ -142,6 +142,8 @@ func projectType(kind string) string {
 		return "plugin"
 	case "datapacks":
 		return "datapack"
+	case "modpacks":
+		return "modpack"
 	}
 	return "mod"
 }
@@ -162,7 +164,9 @@ func (c *Client) Search(ctx context.Context, kind string, loaders []string, game
 	for _, l := range loaders {
 		cats = append(cats, "categories:"+l)
 	}
-	facets = append(facets, cats)
+	if len(cats) > 0 {
+		facets = append(facets, cats)
+	}
 	if gameVersion != "" {
 		facets = append(facets, []string{"versions:" + gameVersion})
 	}
@@ -187,7 +191,10 @@ func (c *Client) Search(ctx context.Context, kind string, loaders []string, game
 // Versions lists a project's versions for loaders and a game version (if
 // given), newest first.
 func (c *Client) Versions(ctx context.Context, project string, loaders []string, gameVersion string) ([]Version, error) {
-	q := url.Values{"loaders": {jsonList(loaders)}}
+	q := url.Values{}
+	if len(loaders) > 0 {
+		q.Set("loaders", jsonList(loaders))
+	}
 	if gameVersion != "" {
 		q.Set("game_versions", jsonList([]string{gameVersion}))
 	}

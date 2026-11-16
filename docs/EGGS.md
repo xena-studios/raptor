@@ -223,7 +223,7 @@ Checked against reality: of the 606 eggs, the defaults that fail their own rules
 }
 ```
 
-The fields are those of [Raptor extensions](#raptor-extensions) below (`arch`, `category`, `install`, `backup`, `health`, `players`, `addons`, `workshop`, `web`), validated the same way, plus `library`, the egg's ID in the egg library. Errors name them without the `x-raptor.` prefix. An `x-raptor` block in a Raptor egg is ignored.
+The fields are those of [Raptor extensions](#raptor-extensions) below (`arch`, `category`, `install`, `backup`, `health`, `players`, `addons`, `workshop`, `web`, `modpack`), validated the same way, plus `library`, the egg's ID in the egg library. Errors name them without the `x-raptor.` prefix. An `x-raptor` block in a Raptor egg is ignored.
 
 - **Nodes:** Wings lists the `raptor-eggs` capability when it reads the format. The Panel refuses a `server.create` or `server.update` with a Raptor egg for a node without it, saying to update Wings, rather than letting the node fail with "unsupported format" (DECISIONS #353).
 - **Other panels** don't read `RPTR_v1`. Eggs imported from Pterodactyl or Pelican keep their format (and Raptor's settings for them stay under `x-raptor`, which those panels ignore); re-importing one over a Raptor egg keeps the Raptor egg's settings, moved under `x-raptor` (`spec.KeepRaptor`).
@@ -312,6 +312,22 @@ web:
 - The link is `http://<the server's address>:<port>/`: the shown address's host if it has one, else the node's hostname. A port variable that's empty means it's off. If the port isn't one of the server's ports, Overview says to add it on Network instead of linking.
 - Both variables must be the egg's. The library sets it for FiveM's txAdmin and the software eggs with a web page (code-server, Grafana, Uptime Kuma, Forgejo, Gitea, Owncast, yarr, Reposilite, Prometheus, RabbitMQ's management page, Game Server Watcher, TS3 Manager).
 - Wings reports it in the egg summary (`web`), so servers on older Wings show no link until they update.
+
+## Modpacks
+
+Modpack eggs name the variables that pick their pack under `x-raptor.modpack` (#413), so the app can offer a pack picker instead of IDs typed by hand:
+
+```yaml
+modpack:
+  source: modrinth          # where packs are found (Modrinth only, for now)
+  project: PROJECT_ID       # the pack's slug or ID
+  version: VERSION_ID       # a version's ID, or latest
+  game_version: MINECRAFT_VERSION   # optional: a game version the chosen version is for
+```
+
+- **Raptor downloads nothing:** the picker fills the variables, and the egg's install script fetches the pack, as with IDs typed in. The variables must be the egg's; `source` must be `modrinth`.
+- The picker (`web/src/components/modpack-picker.tsx`) is on the new-server form and on Startup (for whoever may edit the pack's variable). It searches Modrinth's modpacks (`AddonService.SearchAddons` and `ListAddonVersions` with kind `modpacks`, which need no loader) and offers **the newest** (`latest`, updated at each reinstall) or a version, which sets the game version to one it's for, since the Modrinth egg filters versions by it. On Startup it says to save and reinstall, with a backup first.
+- The library's Modrinth modpack egg sets it. FTB, Technic, and CurseForge (#412) packs come later. The summary Wings reports carries it (`modpack`), so servers on older Wings show no picker on Startup until they update; the new-server form reads it from the catalog.
 
 ## Steam Workshop
 

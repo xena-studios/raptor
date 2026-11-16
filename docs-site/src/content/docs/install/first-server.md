@@ -16,6 +16,7 @@ Once your node is [connected](/install/first-node/), deploying a server takes a 
    - **Memory:** how much the server may use. The app starts at 2 GB for Minecraft and 4 GB for Steam games, never more than three quarters of the node's.
    - **Disk limit:** how much space its files may take. Leave it empty for no limit.
    - **Game settings:** versions, jar names, and the like. They work as they are, so they're folded away. Anything the game can't start without is shown above them.
+   - **Modpack** (Modrinth modpack servers): **Browse modpacks** searches Modrinth's packs; pick one and a version, and the pack's settings are filled in for you.
 5. For Minecraft and other games with one, accept the game's EULA.
 6. Choose **Create with a passkey**. Your passkey signs exactly this server, so the node knows it's you.
 

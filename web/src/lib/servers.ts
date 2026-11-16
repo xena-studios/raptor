@@ -199,6 +199,8 @@ export type ServerConfig = {
     // A web dashboard the server serves (#428): its name, the variable
     // with its port (none: the primary port), and one that turns it on.
     web?: { name: string; port?: string; enabled?: string };
+    // Which variables pick a modpack, for the pack picker (#413).
+    modpack?: { source: string; project: string; version: string; game_version?: string };
     // How the game answers player queries ("minecraft": Java edition).
     players?: string;
   };

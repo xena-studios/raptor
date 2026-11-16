@@ -32,6 +32,10 @@ type Addons struct {
 	Steam    *steam.Client
 }
 
+// kindModpacks is the pack picker's kind (#413): Modrinth's modpacks,
+// which a modpack egg's install script downloads itself.
+const kindModpacks = "modpacks"
+
 // Add-on sources.
 const (
 	sourceModrinth = "modrinth"
@@ -55,12 +59,13 @@ func (s *Addons) check(ctx context.Context, orgID, kind string, loaders []string
 	if err := s.allow(ctx, orgID); err != nil {
 		return err
 	}
-	if kind != "" {
+	if kind != "" && kind != kindModpacks {
 		if _, ok := eggs.AddonKinds[kind]; !ok {
 			return invalid(errors.New("the kind is plugins, mods, or datapacks"))
 		}
 	}
-	if len(loaders) == 0 {
+	// Modpacks bring their own loader, so the picker needn't name one.
+	if len(loaders) == 0 && kind != kindModpacks {
 		return invalid(errors.New("name the loaders"))
 	}
 	for _, l := range loaders {
@@ -190,6 +195,9 @@ func (s *Addons) SearchAddons(ctx context.Context, req *panelv1.SearchAddonsRequ
 		query = query[:100]
 	}
 	offset := int(min(max(req.GetOffset(), 0), 10_000))
+	if req.GetKind() == kindModpacks && req.GetSource() != "" && req.GetSource() != sourceModrinth {
+		return nil, invalid(errors.New("modpacks come from Modrinth"))
+	}
 	if req.GetSource() == sourceHangar {
 		platform, err := hangarPlatform(req.GetKind(), req.GetLoaders())
 		if err != nil {
@@ -218,11 +226,17 @@ func (s *Addons) SearchAddons(ctx context.Context, req *panelv1.SearchAddonsRequ
 
 // ListAddonVersions implements AddonService.
 func (s *Addons) ListAddonVersions(ctx context.Context, req *panelv1.ListAddonVersionsRequest) (*panelv1.ListAddonVersionsResponse, error) {
-	if err := s.check(ctx, req.GetOrgId(), "", req.GetLoaders(), req.GetGameVersion()); err != nil {
+	if req.GetKind() != "" && req.GetKind() != kindModpacks {
+		return nil, invalid(errors.New("the kind is modpacks, or empty"))
+	}
+	if err := s.check(ctx, req.GetOrgId(), req.GetKind(), req.GetLoaders(), req.GetGameVersion()); err != nil {
 		return nil, err
 	}
 	if err := checkSource(req.GetSource()); err != nil {
 		return nil, err
+	}
+	if req.GetKind() == kindModpacks && req.GetSource() != "" && req.GetSource() != sourceModrinth {
+		return nil, invalid(errors.New("modpacks come from Modrinth"))
 	}
 	if !projectRef.MatchString(req.GetProjectId()) {
 		return nil, invalid(errors.New("that isn't a project"))
