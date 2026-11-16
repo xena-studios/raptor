@@ -1,16 +1,15 @@
-import { useQuery } from "@connectrpc/connect-query";
 import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { NotFound } from "@/components/error-screen";
 import { PageHeader, RouteTabs, tabClass } from "@/components/page";
 import { PowerButtons } from "@/components/power-buttons";
 import { StatusBadge, StatusDetail } from "@/components/server-status";
-import { OrgService, type Server } from "@/gen/raptor/panel/v1/org_pb";
-import { addonKinds } from "@/lib/eggs";
+import type { Server } from "@/gen/raptor/panel/v1/org_pb";
+import { useAddonSections } from "@/lib/addon-sections";
 import { canonical, resolveServer, shortId, useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
-import { type ServerConfig, serverStatus } from "@/lib/servers";
+import { serverStatus } from "@/lib/servers";
 
 // A server's tabs, each shown to those who may use it.
 const base = "/orgs/$orgId/servers/$serverId";
@@ -58,24 +57,9 @@ export const Route = createFileRoute("/orgs/$orgId/servers/$serverId")({
 function ServerLayout() {
   const { orgId, nodeId, serverId } = useIds();
   const { node, server, loaded } = useServer(orgId, nodeId, serverId);
-  // The egg's add-ons (plugins, mods) get a tab each after Files, and
-  // Steam Workshop items one for those who change its startup.
-  const details = useQuery(
-    OrgService.method.getServer,
-    { orgId, nodeId, serverId },
-    { enabled: can(server, "files.read") || can(server, "startup") },
-  );
-  const { addonTabs, workshop } = useMemo(() => {
-    const cfg = details.data?.configJson
-      ? (JSON.parse(details.data.configJson) as ServerConfig)
-      : undefined;
-    return {
-      addonTabs: can(server, "files.read")
-        ? Object.keys(cfg?.egg?.addons ?? {}).filter((k) => addonKinds[k])
-        : [],
-      workshop: !!cfg?.egg?.workshop && can(server, "startup"),
-    };
-  }, [details.data?.configJson, server]);
+  // The egg's add-ons (plugins, mods, datapacks) and Steam Workshop items
+  // share one Add-ons tab after Files, with a section each (#436).
+  const { sections } = useAddonSections(orgId, nodeId, serverId, server, node?.capabilities);
   const [error, setError] = useState("");
   const status = server && serverStatus(server, node?.connected ?? false);
   const params = { orgId, serverId };
@@ -124,27 +108,15 @@ function ServerLayout() {
               >
                 {t.label}
               </Link>,
-              ...(t.label === "Files"
-                ? addonTabs.map((kind) => (
-                    <Link
-                      key={kind}
-                      to="/orgs/$orgId/servers/$serverId/addons/$kind"
-                      params={{ ...params, kind }}
-                      className={tabClass}
-                    >
-                      {addonKinds[kind]?.tab}
-                    </Link>
-                  ))
-                : []),
-              ...(t.label === "Files" && workshop
+              ...(t.label === "Files" && sections.length > 0
                 ? [
                     <Link
-                      key="workshop"
-                      to="/orgs/$orgId/servers/$serverId/workshop"
+                      key="addons"
+                      to="/orgs/$orgId/servers/$serverId/addons"
                       params={params}
                       className={tabClass}
                     >
-                      Workshop
+                      Add-ons
                     </Link>,
                   ]
                 : []),

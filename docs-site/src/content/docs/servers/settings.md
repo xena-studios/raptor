@@ -41,7 +41,7 @@ On **Startup**:
 
 Minecraft Java servers also get **In the server list** on Settings: the icon and message (MOTD) players see before they join, with a preview. Upload any image for the icon (it's cropped square and made 64×64, saved as `server-icon.png`), and use the colour and style buttons for the message instead of typing § codes. It saves to `server.properties`; restart the server to show it. It needs the **Change files** permission.
 
-Games with Steam Workshop support get a **Workshop** tab, and Minecraft servers a **Plugins**, **Mods**, or **Datapacks** tab: see [Plugins, mods, and the Workshop](/servers/addons/).
+Games with plugins, mods, datapacks, or Steam Workshop support get an **Add-ons** tab, with a section for each: see [Plugins, mods, and the Workshop](/servers/addons/).
 
 ## Ports and address
 
