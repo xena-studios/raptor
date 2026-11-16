@@ -94,6 +94,7 @@ import { Route as OrgsOrgIdServersNodeIdServerIdSplatRouteImport } from './route
 import { Route as OrgsOrgIdServersServerIdAddonsIndexRouteImport } from './routes/orgs.$orgId.servers.$serverId.addons.index'
 import { Route as OrgsOrgIdServersServerIdAddonsKindRouteImport } from './routes/orgs.$orgId.servers.$serverId.addons.$kind'
 import { Route as OrgsOrgIdServersServerIdAddonsBedrockRouteImport } from './routes/orgs.$orgId.servers.$serverId.addons.bedrock'
+import { Route as OrgsOrgIdServersServerIdAddonsFrameworksRouteImport } from './routes/orgs.$orgId.servers.$serverId.addons.frameworks'
 import { Route as OrgsOrgIdServersServerIdAddonsWorkshopRouteImport } from './routes/orgs.$orgId.servers.$serverId.addons.workshop'
 import { Route as OrgsOrgIdServersServerIdDatabasesIndexRouteImport } from './routes/orgs.$orgId.servers.$serverId.databases.index'
 import { Route as OrgsOrgIdServersServerIdDatabasesDatabaseIdRouteImport } from './routes/orgs.$orgId.servers.$serverId.databases.$databaseId'
@@ -563,6 +564,12 @@ const OrgsOrgIdServersServerIdAddonsBedrockRoute =
     path: '/bedrock',
     getParentRoute: () => OrgsOrgIdServersServerIdAddonsRoute,
   } as any)
+const OrgsOrgIdServersServerIdAddonsFrameworksRoute =
+  OrgsOrgIdServersServerIdAddonsFrameworksRouteImport.update({
+    id: '/frameworks',
+    path: '/frameworks',
+    getParentRoute: () => OrgsOrgIdServersServerIdAddonsRoute,
+  } as any)
 const OrgsOrgIdServersServerIdAddonsWorkshopRoute =
   OrgsOrgIdServersServerIdAddonsWorkshopRouteImport.update({
     id: '/workshop',
@@ -666,6 +673,7 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/servers/$nodeId/$serverId/$': typeof OrgsOrgIdServersNodeIdServerIdSplatRoute
   '/orgs/$orgId/servers/$serverId/addons/$kind': typeof OrgsOrgIdServersServerIdAddonsKindRoute
   '/orgs/$orgId/servers/$serverId/addons/bedrock': typeof OrgsOrgIdServersServerIdAddonsBedrockRoute
+  '/orgs/$orgId/servers/$serverId/addons/frameworks': typeof OrgsOrgIdServersServerIdAddonsFrameworksRoute
   '/orgs/$orgId/servers/$serverId/addons/workshop': typeof OrgsOrgIdServersServerIdAddonsWorkshopRoute
   '/orgs/$orgId/servers/$serverId/databases/$databaseId': typeof OrgsOrgIdServersServerIdDatabasesDatabaseIdRoute
   '/orgs/$orgId/nodes/$nodeId/databases/': typeof OrgsOrgIdNodesNodeIdDatabasesIndexRoute
@@ -749,6 +757,7 @@ export interface FileRoutesByTo {
   '/orgs/$orgId/servers/$nodeId/$serverId/$': typeof OrgsOrgIdServersNodeIdServerIdSplatRoute
   '/orgs/$orgId/servers/$serverId/addons/$kind': typeof OrgsOrgIdServersServerIdAddonsKindRoute
   '/orgs/$orgId/servers/$serverId/addons/bedrock': typeof OrgsOrgIdServersServerIdAddonsBedrockRoute
+  '/orgs/$orgId/servers/$serverId/addons/frameworks': typeof OrgsOrgIdServersServerIdAddonsFrameworksRoute
   '/orgs/$orgId/servers/$serverId/addons/workshop': typeof OrgsOrgIdServersServerIdAddonsWorkshopRoute
   '/orgs/$orgId/servers/$serverId/databases/$databaseId': typeof OrgsOrgIdServersServerIdDatabasesDatabaseIdRoute
   '/orgs/$orgId/nodes/$nodeId/databases': typeof OrgsOrgIdNodesNodeIdDatabasesIndexRoute
@@ -840,6 +849,7 @@ export interface FileRoutesById {
   '/orgs/$orgId/servers/$nodeId/$serverId/$': typeof OrgsOrgIdServersNodeIdServerIdSplatRoute
   '/orgs/$orgId/servers/$serverId/addons/$kind': typeof OrgsOrgIdServersServerIdAddonsKindRoute
   '/orgs/$orgId/servers/$serverId/addons/bedrock': typeof OrgsOrgIdServersServerIdAddonsBedrockRoute
+  '/orgs/$orgId/servers/$serverId/addons/frameworks': typeof OrgsOrgIdServersServerIdAddonsFrameworksRoute
   '/orgs/$orgId/servers/$serverId/addons/workshop': typeof OrgsOrgIdServersServerIdAddonsWorkshopRoute
   '/orgs/$orgId/servers/$serverId/databases/$databaseId': typeof OrgsOrgIdServersServerIdDatabasesDatabaseIdRoute
   '/orgs/$orgId/nodes/$nodeId/databases/': typeof OrgsOrgIdNodesNodeIdDatabasesIndexRoute
@@ -932,6 +942,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$nodeId/$serverId/$'
     | '/orgs/$orgId/servers/$serverId/addons/$kind'
     | '/orgs/$orgId/servers/$serverId/addons/bedrock'
+    | '/orgs/$orgId/servers/$serverId/addons/frameworks'
     | '/orgs/$orgId/servers/$serverId/addons/workshop'
     | '/orgs/$orgId/servers/$serverId/databases/$databaseId'
     | '/orgs/$orgId/nodes/$nodeId/databases/'
@@ -1015,6 +1026,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$nodeId/$serverId/$'
     | '/orgs/$orgId/servers/$serverId/addons/$kind'
     | '/orgs/$orgId/servers/$serverId/addons/bedrock'
+    | '/orgs/$orgId/servers/$serverId/addons/frameworks'
     | '/orgs/$orgId/servers/$serverId/addons/workshop'
     | '/orgs/$orgId/servers/$serverId/databases/$databaseId'
     | '/orgs/$orgId/nodes/$nodeId/databases'
@@ -1105,6 +1117,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$nodeId/$serverId/$'
     | '/orgs/$orgId/servers/$serverId/addons/$kind'
     | '/orgs/$orgId/servers/$serverId/addons/bedrock'
+    | '/orgs/$orgId/servers/$serverId/addons/frameworks'
     | '/orgs/$orgId/servers/$serverId/addons/workshop'
     | '/orgs/$orgId/servers/$serverId/databases/$databaseId'
     | '/orgs/$orgId/nodes/$nodeId/databases/'
@@ -1722,6 +1735,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdServersServerIdAddonsBedrockRouteImport
       parentRoute: typeof OrgsOrgIdServersServerIdAddonsRoute
     }
+    '/orgs/$orgId/servers/$serverId/addons/frameworks': {
+      id: '/orgs/$orgId/servers/$serverId/addons/frameworks'
+      path: '/frameworks'
+      fullPath: '/orgs/$orgId/servers/$serverId/addons/frameworks'
+      preLoaderRoute: typeof OrgsOrgIdServersServerIdAddonsFrameworksRouteImport
+      parentRoute: typeof OrgsOrgIdServersServerIdAddonsRoute
+    }
     '/orgs/$orgId/servers/$serverId/addons/workshop': {
       id: '/orgs/$orgId/servers/$serverId/addons/workshop'
       path: '/workshop'
@@ -1917,6 +1937,7 @@ const OrgsOrgIdNodesNodeIdRouteWithChildren =
 interface OrgsOrgIdServersServerIdAddonsRouteChildren {
   OrgsOrgIdServersServerIdAddonsKindRoute: typeof OrgsOrgIdServersServerIdAddonsKindRoute
   OrgsOrgIdServersServerIdAddonsBedrockRoute: typeof OrgsOrgIdServersServerIdAddonsBedrockRoute
+  OrgsOrgIdServersServerIdAddonsFrameworksRoute: typeof OrgsOrgIdServersServerIdAddonsFrameworksRoute
   OrgsOrgIdServersServerIdAddonsWorkshopRoute: typeof OrgsOrgIdServersServerIdAddonsWorkshopRoute
   OrgsOrgIdServersServerIdAddonsIndexRoute: typeof OrgsOrgIdServersServerIdAddonsIndexRoute
 }
@@ -1927,6 +1948,8 @@ const OrgsOrgIdServersServerIdAddonsRouteChildren: OrgsOrgIdServersServerIdAddon
       OrgsOrgIdServersServerIdAddonsKindRoute,
     OrgsOrgIdServersServerIdAddonsBedrockRoute:
       OrgsOrgIdServersServerIdAddonsBedrockRoute,
+    OrgsOrgIdServersServerIdAddonsFrameworksRoute:
+      OrgsOrgIdServersServerIdAddonsFrameworksRoute,
     OrgsOrgIdServersServerIdAddonsWorkshopRoute:
       OrgsOrgIdServersServerIdAddonsWorkshopRoute,
     OrgsOrgIdServersServerIdAddonsIndexRoute:

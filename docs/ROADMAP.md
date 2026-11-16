@@ -132,14 +132,14 @@ Bigger work, unordered.
 
 Planned in [#432](https://github.com/xena-studios/raptor/issues/432): what Pterodactyl owners buy as paid add-ons, built in. Phases are in order; each phase's items can go in parallel.
 
-**Built** (Nov 16): add-on update status and Update all, dependencies and client-only filtering, the Java switch, console problems with a fix, log sharing (mclo.gs), the server icon and MOTD, the own-domain guide, the modpack picker (Modrinth), web dashboard links, Rust plugins (uMod), one Add-ons tab, and add-on lists (export and import, #437).
+**Built** (Nov 16): add-on update status and Update all, dependencies and client-only filtering, the Java switch, console problems with a fix, log sharing (mclo.gs), the server icon and MOTD, the own-domain guide, the modpack picker (Modrinth), web dashboard links, Rust plugins (uMod), CS2's Metamod:Source and CounterStrikeSharp (#414, the egg installs them; its plugins as an add-on source later), one Add-ons tab, and add-on lists (export and import, #437).
 
 1. **The frame** (#436, #435): the tab groups (Game, Add-ons, Players, Worlds) and the Needs attention card on Overview, which collects console problems, updates, an out-of-date egg, missing dependencies, and failed connection tests. Every later page lands in these.
 2. **More add-on sources:** Factorio's mod portal (#411; Wings adds the owner's token from the server's variables), Geyser and Floodgate for Bedrock players (#419; admins add the UDP port in one click), Thunderstore (#410; the Panel hashes downloads, Wings unpacks zips). Then FTB and Technic packs for the picker (#413).
 3. **Game pages:** a settings schema and form (#424), then worlds and saves (#426) on it; the version switcher (#420) on shared version lookups, then updates in one place with alerts and a schedule step (#418).
 4. **Players** (#422, #423): a `players` permission, then Minecraft's whitelist, ops, and bans, then RCON for Steam games.
 5. **Networks-dependent and power-user:** proxy backends (#427, after #405/#406), applying an add-on list to several servers at once (the rest of #437, with #374).
-6. **Needs the game run to verify** (each 20–40 minutes in CI): Workshop for games that list mods in config files (#408), CS2's Metamod and CounterStrikeSharp (#414). Low priority: OpenMod (#415), Arma Reforger mods (#417), the FiveM backdoor scan (#428).
+6. **Needs the game run to verify** (each 20–40 minutes in CI): Workshop for games that list mods in config files (#408). Low priority: OpenMod (#415), Arma Reforger mods (#417), the FiveM backdoor scan (#428).
 
 A public demo to try Raptor and its eggs without an account is planned in [#449](https://github.com/xena-studios/raptor/issues/449), on a node of its own.
 
