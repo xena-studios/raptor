@@ -65,7 +65,7 @@ The docs for owners (`docs.raptorpanel.net`) are an **Astro Starlight** site in 
 | `docs.raptorpanel.net` | Docs for owners (`docs-site/`) | Static (Cloudflare Worker) |
 | `get.raptorpanel.net` | Install script | Static |
 | `verify.raptorpanel.net` | The Turnstile page the sign-in form embeds (`web/verify`), apart from the app's origin | Static |
-| `status.raptorpanel.net` | Status page | Another provider, DNS not on Cloudflare |
+| `status.raptorpanel.net` | Status page | Microsoft Azure ([raptor-status](https://github.com/xena-studios/raptor-status)); a DNS-only record on Cloudflare (DECISIONS #359) |
 | Mail sending subdomain | SPF/DKIM for transactional email | Resend |
 | `<short-id>.raptornodes.net` | Node hostnames, nothing else (#279) | In Route 53, DNS-only; the apex explains the domain, and names that aren't nodes get a 404 |
 
