@@ -2696,7 +2696,7 @@ type Server struct {
 	PlayerLists bool `protobuf:"varint,11,opt,name=player_lists,json=playerLists,proto3" json:"player_lists,omitempty"`
 	// Its scripts can be scanned for backdoors (#428): the egg has
 	// x-raptor.scan (FiveM). For members with files.read but no config.
-	ResourceScan  bool `protobuf:"varint,12,opt,name=resource_scan,json=resourceScan,proto3" json:"resource_scan,omitempty"`
+	ResourceScan  bool `protobuf:"varint,13,opt,name=resource_scan,json=resourceScan,proto3" json:"resource_scan,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6232,7 +6232,7 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"egg_source\x18\n" +
 	" \x01(\tR\teggSource\x12!\n" +
 	"\fplayer_lists\x18\v \x01(\bR\vplayerLists\x12#\n" +
-	"\rresource_scan\x18\f \x01(\bR\fresourceScan\"H\n" +
+	"\rresource_scan\x18\r \x01(\bR\fresourceScan\"H\n" +
 	"\x13ListServersResponse\x121\n" +
 	"\aservers\x18\x01 \x03(\v2\x17.raptor.panel.v1.ServerR\aservers\"_\n" +
 	"\x10GetServerRequest\x12\x15\n" +

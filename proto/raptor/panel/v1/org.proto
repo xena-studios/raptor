@@ -564,7 +564,7 @@ message Server {
   bool player_lists = 11;
   // Its scripts can be scanned for backdoors (#428): the egg has
   // x-raptor.scan (FiveM). For members with files.read but no config.
-  bool resource_scan = 12;
+  bool resource_scan = 13;
 }
 
 message ListServersResponse {
