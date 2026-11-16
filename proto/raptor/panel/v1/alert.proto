@@ -76,6 +76,19 @@ service AlertService {
   // UnregisterPushDevice stops push notifications to this phone (the app's
   // own session), without signing it out.
   rpc UnregisterPushDevice(UnregisterPushDeviceRequest) returns (UnregisterPushDeviceResponse) {}
+
+  // MuteAlerts quiets the signed-in user's own channels about one server
+  // or node for a while: alerts about it still land in their inbox, and
+  // team channels still get them. Muting again replaces the time.
+  rpc MuteAlerts(MuteAlertsRequest) returns (MuteAlertsResponse) {}
+
+  // UnmuteAlerts ends a mute early.
+  rpc UnmuteAlerts(UnmuteAlertsRequest) returns (UnmuteAlertsResponse) {}
+
+  // ListAlertMutes lists the user's mutes still running.
+  rpc ListAlertMutes(ListAlertMutesRequest) returns (ListAlertMutesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
 }
 
 message AlertChannel {
@@ -346,3 +359,41 @@ message RegisterPushDeviceResponse {
 message UnregisterPushDeviceRequest {}
 
 message UnregisterPushDeviceResponse {}
+
+message MuteAlertsRequest {
+  string org_id = 1;
+  // A server (with its node), or a whole node.
+  string node_id = 2;
+  string server_id = 3;
+  // How long: 1 minute to 7 days.
+  int32 minutes = 4;
+}
+
+message MuteAlertsResponse {
+  google.protobuf.Timestamp until = 1;
+}
+
+message UnmuteAlertsRequest {
+  string org_id = 1;
+  string node_id = 2;
+  string server_id = 3;
+}
+
+message UnmuteAlertsResponse {}
+
+message ListAlertMutesRequest {}
+
+message AlertMute {
+  string org_id = 1;
+  string org_name = 2;
+  // One of these: the server, or the node.
+  string node_id = 3;
+  string server_id = 4;
+  // The server's or node's name.
+  string name = 5;
+  google.protobuf.Timestamp until = 6;
+}
+
+message ListAlertMutesResponse {
+  repeated AlertMute mutes = 1;
+}

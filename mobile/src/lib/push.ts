@@ -82,19 +82,46 @@ export async function unregister() {
   await alertClient.unregisterPushDevice({});
 }
 
-// open goes to what a tapped notification was about.
-function open(data: Record<string, unknown> | undefined) {
+// The buttons on alerts (iOS; the Panel names the category): Restart on a
+// server's, and Mute 1 hour on a server's or a node's. They open the app
+// (unlocking it first if it's locked), which then does it on the server's
+// page, where the person sees it happen.
+export const MUTE_MINUTES = 60;
+
+export async function categories() {
+  if (Platform.OS !== "ios") return;
+  const mute = {
+    identifier: "mute",
+    buttonTitle: "Mute 1 hour",
+    options: { opensAppToForeground: true },
+  };
+  await Notifications.setNotificationCategoryAsync("server", [
+    { identifier: "restart", buttonTitle: "Restart", options: { opensAppToForeground: true } },
+    mute,
+  ]);
+  await Notifications.setNotificationCategoryAsync("node", [mute]);
+}
+
+// open goes to what a notification was about, and does what its button
+// asked for: action is "restart", "mute", or the default (a tap).
+function open(data: Record<string, unknown> | undefined, action: string) {
   const s = (k: string) => (typeof data?.[k] === "string" ? (data[k] as string) : "");
   if (s("kind") === "approval") {
     router.push("/approve");
     return;
   }
+  const act = action === "restart" || action === "mute" ? action : undefined;
   if (s("org_id") && s("node_id") && s("server_id")) {
     router.push({
       pathname: "/server/[orgId]/[nodeId]/[serverId]",
-      params: { orgId: s("org_id"), nodeId: s("node_id"), serverId: s("server_id") },
+      params: { orgId: s("org_id"), nodeId: s("node_id"), serverId: s("server_id"), do: act },
     });
     return;
+  }
+  if (act === "mute" && s("org_id") && s("node_id")) {
+    alertClient
+      .muteAlerts({ orgId: s("org_id"), nodeId: s("node_id"), minutes: MUTE_MINUTES })
+      .catch(() => {});
   }
   router.navigate("/");
 }
@@ -107,15 +134,14 @@ export function listen(): () => void {
       send(t).catch(() => {});
     }),
     Notifications.addNotificationResponseReceivedListener((r) => {
-      if (r.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
-        open(r.notification.request.content.data as Record<string, unknown>);
-      }
+      open(r.notification.request.content.data as Record<string, unknown>, r.actionIdentifier);
     }),
   ];
-  // A tap that opened the app from closed.
+  categories().catch(() => {});
+  // A tap (or a button) that opened the app from closed.
   const last = Notifications.getLastNotificationResponse();
-  if (last && last.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
-    open(last.notification.request.content.data as Record<string, unknown>);
+  if (last) {
+    open(last.notification.request.content.data as Record<string, unknown>, last.actionIdentifier);
     Notifications.clearLastNotificationResponse();
   }
   return () => {

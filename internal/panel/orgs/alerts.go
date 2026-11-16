@@ -795,3 +795,95 @@ func (a *Alerts) UnregisterPushDevice(ctx context.Context, _ *panelv1.Unregister
 	}
 	return &panelv1.UnregisterPushDeviceResponse{}, nil
 }
+
+// MaxMute is the longest a mute lasts.
+const MaxMute = 7 * 24 * time.Hour
+
+// muteTarget checks the user is in the org and says what's being muted.
+func (a *Alerts) muteTarget(ctx context.Context, orgID, nodeID, serverID string) (*auth.Session, pgtype.UUID, string, error) {
+	var sess *auth.Session
+	var org pgtype.UUID
+	err := a.Orgs.asUser(ctx, func(se *auth.Session, q *store.Queries) error {
+		sess = se
+		var err error
+		org, _, err = member(ctx, q, se, orgID, "member")
+		return err
+	})
+	if err != nil {
+		return nil, org, "", err
+	}
+	var targets []string
+	switch {
+	case serverID != "":
+		if len(serverID) > 64 {
+			return nil, org, "", connect.NewError(connect.CodeInvalidArgument, errors.New("bad server ID"))
+		}
+		targets = alerts.MuteTargets("", serverID)
+	case nodeID != "":
+		node, err := parseID(nodeID, "node")
+		if err != nil {
+			return nil, org, "", err
+		}
+		targets = alerts.MuteTargets(idString(node), "")
+	default:
+		return nil, org, "", connect.NewError(connect.CodeInvalidArgument, errors.New("which server or node?"))
+	}
+	return sess, org, targets[0], nil
+}
+
+// MuteAlerts implements AlertService.
+func (a *Alerts) MuteAlerts(ctx context.Context, req *panelv1.MuteAlertsRequest) (*panelv1.MuteAlertsResponse, error) {
+	d := time.Duration(req.GetMinutes()) * time.Minute
+	if d < time.Minute || d > MaxMute {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("mute for 1 minute to 7 days"))
+	}
+	sess, org, target, err := a.muteTarget(ctx, req.GetOrgId(), req.GetNodeId(), req.GetServerId())
+	if err != nil {
+		return nil, err
+	}
+	if err := a.Orgs.Auth.RateLimit(ctx, "alerts:user:"+idString(sess.UserID), alertChangesPerHour, time.Hour); err != nil {
+		return nil, err
+	}
+	until := a.Orgs.Auth.Clock().Add(d)
+	if err := store.New(a.Orgs.DB).MuteAlerts(ctx, store.MuteAlertsParams{
+		UserID: sess.UserID, OrgID: org, Target: target, Until: pgtype.Timestamptz{Time: until, Valid: true},
+	}); err != nil {
+		return nil, err
+	}
+	return &panelv1.MuteAlertsResponse{Until: timestamppb.New(until)}, nil
+}
+
+// UnmuteAlerts implements AlertService.
+func (a *Alerts) UnmuteAlerts(ctx context.Context, req *panelv1.UnmuteAlertsRequest) (*panelv1.UnmuteAlertsResponse, error) {
+	sess, org, target, err := a.muteTarget(ctx, req.GetOrgId(), req.GetNodeId(), req.GetServerId())
+	if err != nil {
+		return nil, err
+	}
+	if err := store.New(a.Orgs.DB).UnmuteAlerts(ctx, store.UnmuteAlertsParams{UserID: sess.UserID, OrgID: org, Target: target}); err != nil {
+		return nil, err
+	}
+	return &panelv1.UnmuteAlertsResponse{}, nil
+}
+
+// ListAlertMutes implements AlertService.
+func (a *Alerts) ListAlertMutes(ctx context.Context, _ *panelv1.ListAlertMutesRequest) (*panelv1.ListAlertMutesResponse, error) {
+	sess, err := a.Orgs.Auth.Current(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := store.New(a.Orgs.DB).UserAlertMutes(ctx, sess.UserID)
+	if err != nil {
+		return nil, err
+	}
+	out := &panelv1.ListAlertMutesResponse{}
+	for _, r := range rows {
+		m := &panelv1.AlertMute{OrgId: idString(r.OrgID), OrgName: r.OrgName, Name: r.Name, Until: stampOf(r.Until)}
+		if id, ok := strings.CutPrefix(r.Target, "server:"); ok {
+			m.ServerId = id
+		} else if id, ok := strings.CutPrefix(r.Target, "node:"); ok {
+			m.NodeId = id
+		}
+		out.Mutes = append(out.Mutes, m)
+	}
+	return out, nil
+}

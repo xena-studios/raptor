@@ -288,3 +288,26 @@ SELECT * FROM alert_channels WHERE session_id = $1 AND type = 'phone';
 -- name: PhoneSessionLive :one
 SELECT EXISTS (SELECT 1 FROM alert_channels c JOIN sessions s ON s.id = c.session_id
     WHERE c.id = $1 AND s.revoked_at IS NULL AND s.expires_at > now());
+
+-- name: MuteAlerts :exec
+INSERT INTO alert_mutes (user_id, org_id, target, until) VALUES ($1, $2, $3, $4)
+ON CONFLICT (user_id, org_id, target) DO UPDATE SET until = EXCLUDED.until;
+
+-- name: UnmuteAlerts :exec
+DELETE FROM alert_mutes WHERE user_id = $1 AND org_id = $2 AND target = $3;
+
+-- name: UserAlertMutes :many
+-- A person's mutes still running, with what they're about.
+SELECT m.org_id, o.name AS org_name, m.target, m.until,
+    coalesce((SELECT s.name FROM m_servers s WHERE 'server:' || s.server_id = m.target LIMIT 1),
+             (SELECT n.name FROM nodes n WHERE 'node:' || n.id::text = m.target), '')::text AS name
+FROM alert_mutes m JOIN orgs o ON o.id = m.org_id
+WHERE m.user_id = $1 AND m.until > now() ORDER BY m.until;
+
+-- name: MutedUsers :many
+-- Of these people, who muted alerts about any of these targets.
+SELECT DISTINCT user_id FROM alert_mutes
+WHERE org_id = $1 AND user_id = ANY (sqlc.arg(users)::uuid[]) AND target = ANY (sqlc.arg(targets)::text[]) AND until > now();
+
+-- name: PruneAlertMutes :exec
+DELETE FROM alert_mutes WHERE until < now();

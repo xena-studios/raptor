@@ -39,6 +39,27 @@ export function AlertsBell() {
     await list.refetch();
   }
 
+  // Muting a server or node for an hour: its alerts still come here, but
+  // not to the person's own channels (their phone, email, ...).
+  const mutes = useQuery(AlertService.method.listAlertMutes, {});
+  const mute = useMutation(AlertService.method.muteAlerts);
+  const unmute = useMutation(AlertService.method.unmuteAlerts);
+  const isMuted = (n: Notification) =>
+    (mutes.data?.mutes ?? []).some((m) =>
+      n.serverId ? m.serverId === n.serverId : !!n.nodeId && m.nodeId === n.nodeId,
+    );
+  async function toggleMute(n: Notification) {
+    setError("");
+    const target = { orgId: n.orgId, serverId: n.serverId, nodeId: n.serverId ? "" : n.nodeId };
+    try {
+      if (isMuted(n)) await unmute.mutateAsync(target);
+      else await mute.mutateAsync({ ...target, minutes: 60 });
+      await mutes.refetch();
+    } catch (err) {
+      setError(message(err));
+    }
+  }
+
   async function clear(ids: string[]) {
     setError("");
     try {
@@ -125,6 +146,10 @@ export function AlertsBell() {
                   fresh={fresh.has(n.id)}
                   onOpen={() => setOpen(false)}
                   onDismiss={() => void clear([n.id])}
+                  muted={isMuted(n)}
+                  onMute={
+                    n.orgId && (n.serverId || n.nodeId) ? () => void toggleMute(n) : undefined
+                  }
                 />
               ))}
             </ul>
@@ -161,12 +186,17 @@ function Item({
   fresh,
   onOpen,
   onDismiss,
+  muted,
+  onMute,
 }: {
   n: Notification;
   fresh: boolean;
   onOpen: () => void;
   onDismiss: () => void;
+  muted: boolean;
+  onMute?: () => void;
 }) {
+  const what = n.serverName || n.nodeName || "this";
   const where = [n.serverName, n.nodeName].filter(Boolean).join(" on ");
   const body = (
     <>
@@ -212,6 +242,21 @@ function Item({
         </Link>
       ) : (
         <div className={cls}>{body}</div>
+      )}
+      {onMute && (
+        <Button
+          size="icon-xs"
+          variant="ghost"
+          className={cn("mt-2 text-muted-foreground", muted && "text-foreground")}
+          aria-label={
+            muted ? `Unmute alerts about ${what}` : `Mute alerts about ${what} for an hour`
+          }
+          aria-pressed={muted}
+          title={muted ? "Muted: unmute" : "Mute for an hour"}
+          onClick={onMute}
+        >
+          {muted ? <BellOff /> : <Bell />}
+        </Button>
       )}
       <Button
         size="icon-xs"
