@@ -21,7 +21,7 @@ On the tab:
 
 - **Search** shows what works with your server's Minecraft version (or any version, when it's set to `latest`).
 - **Install** a version: the machine downloads it straight from Modrinth's or Hangar's servers and checks it against the hash they publish, so a file swapped on the way is refused.
-- **Installed** lists what's there, named from Modrinth or Hangar, with an **Update** button when there's a newer version. Files neither knows show as added by hand.
+- **Installed** lists what's there, named from Modrinth or Hangar. Each one says whether it's **up to date** for your server's game version, or has an **update available** with a button to install it. The top of the list counts the updates, and **Update all** installs every one after showing you each change. Files neither knows show as added by hand.
 - **Remove** moves a file to the server's [trash](/servers/files/#the-trash).
 
 Restart the server for changes to take effect. Installing needs the **Change files** permission.

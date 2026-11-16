@@ -3,6 +3,7 @@ import { useInfiniteQuery, useQuery } from "@connectrpc/connect-query";
 import { useQueryClient, useQuery as useTanQuery } from "@tanstack/react-query";
 import {
   ArrowUpCircle,
+  CheckCircle2,
   Download,
   ExternalLink,
   Loader2,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
 
+import { useConfirm } from "@/components/confirm";
 import { useFilesApi } from "@/components/file-manager/data";
 import { EmptyState } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +29,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { type AddonProject, AddonService } from "@/gen/raptor/panel/v1/addon_pb";
+import {
+  type AddonProject,
+  AddonService,
+  type IdentifiedAddon,
+} from "@/gen/raptor/panel/v1/addon_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { addonKinds, loaderName, onHangar, sourceNames } from "@/lib/eggs";
 import { message } from "@/lib/errors";
@@ -161,7 +167,65 @@ function Addons({
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
+  const { confirm } = useConfirm();
   const refresh = () => client.invalidateQueries({ queryKey: key });
+  type Row = Listing["files"][number];
+  // Installed files with a newer version for this server's loaders and
+  // game version.
+  const outdated = files.flatMap((f) => {
+    const a = f.sha512 ? byHash.get(f.sha512) : undefined;
+    return a?.latest?.file ? [{ f, a }] : [];
+  });
+
+  function update(f: Row, a: IdentifiedAddon) {
+    const latest = a.latest?.file;
+    if (!latest) return Promise.resolve();
+    return api.run("addons.install", {
+      kind,
+      url: latest.url,
+      sha512: latest.sha512 || undefined,
+      sha256: latest.sha256 || undefined,
+      filename: latest.filename,
+      replace: f.name,
+    });
+  }
+
+  async function updateAll() {
+    const ok = await confirm({
+      title: `Update ${outdated.length} ${meta?.noun}${outdated.length === 1 ? "" : "s"}?`,
+      description: (
+        <ul className="flex flex-col gap-1 text-sm">
+          {outdated.map(({ f, a }) => (
+            <li key={f.name}>
+              {a.project?.title ?? f.name}:{" "}
+              <span className="font-mono text-xs">
+                {a.version?.versionNumber ?? "?"} → {a.latest?.versionNumber}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ),
+      confirm: "Update all",
+    });
+    if (!ok) return;
+    setBusy("update-all");
+    setError("");
+    setNote("");
+    let done = 0;
+    const failed: string[] = [];
+    for (const { f, a } of outdated) {
+      try {
+        await update(f, a);
+        done++;
+      } catch (err) {
+        failed.push(`${a.project?.title ?? f.name}: ${message(err)}`);
+      }
+    }
+    await refresh();
+    setBusy("");
+    if (done > 0) setNote(`Updated ${done}. Restart the server to load them.`);
+    if (failed.length > 0) setError(`Not updated: ${failed.join("; ")}`);
+  }
 
   async function act(what: string, fn: () => Promise<unknown>, done: string) {
     setBusy(what);
@@ -182,12 +246,35 @@ function Addons({
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Installed {meta?.noun}s</CardTitle>
-          <CardDescription>
-            In <code>{list.data?.dir ?? "…"}</code>
-            {kind === "datapacks" ? "" : `, for ${loaders.map(loaderName).join(", ")}`}
-            {version ? ` on ${version}` : ""}. Restart the server to load changes.
-          </CardDescription>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-col gap-1.5">
+              <CardTitle>Installed {meta?.noun}s</CardTitle>
+              <CardDescription>
+                In <code>{list.data?.dir ?? "…"}</code>
+                {kind === "datapacks" ? "" : `, for ${loaders.map(loaderName).join(", ")}`}
+                {version ? ` on ${version}` : ""}. Restart the server to load changes.
+              </CardDescription>
+            </div>
+            {known.data && files.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {outdated.length === 0
+                    ? "All up to date"
+                    : `${outdated.length} update${outdated.length === 1 ? "" : "s"} available`}
+                </span>
+                {canWrite && outdated.length > 1 && (
+                  <Button size="sm" disabled={!!busy} onClick={updateAll}>
+                    {busy === "update-all" ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      <ArrowUpCircle />
+                    )}
+                    Update all
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {list.error && <p className="text-sm text-destructive">{message(list.error)}</p>}
@@ -213,6 +300,19 @@ function Addons({
                           </span>
                         )}
                         {f.disabled && <Badge variant="outline">Disabled</Badge>}
+                        {a?.latest ? (
+                          <Badge>Update available</Badge>
+                        ) : (
+                          a?.version && (
+                            <Badge
+                              variant="secondary"
+                              title={`No newer version${version ? ` for ${version}` : ""}`}
+                            >
+                              <CheckCircle2 />
+                              Up to date
+                            </Badge>
+                          )
+                        )}
                         {!a && f.sha512 && known.data && (
                           <Badge variant="outline">Added by hand</Badge>
                         )}
@@ -228,15 +328,7 @@ function Addons({
                         onClick={() =>
                           act(
                             `update:${f.name}`,
-                            () =>
-                              api.run("addons.install", {
-                                kind,
-                                url: latest.url,
-                                sha512: latest.sha512 || undefined,
-                                sha256: latest.sha256 || undefined,
-                                filename: latest.filename,
-                                replace: f.name,
-                              }),
+                            () => update(f, a),
                             `Updated to ${a.latest?.versionNumber}. Restart the server to load it.`,
                           )
                         }
