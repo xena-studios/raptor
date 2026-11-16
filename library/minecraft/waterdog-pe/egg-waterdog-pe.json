@@ -17,7 +17,7 @@
         "Java 17": "ghcr.io/xena-studios/yolks:java_17@sha256:7a5b1ac997e38e0aed488d1d177b3e5c46c5168ea23eb6866d2696581fd673f1"
     },
     "file_denylist": [],
-    "startup": "read -r need 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This server needs Java %s or newer, but Java %s is chosen. Choose Java %s or newer in Startup, then start the server again.\\n\", need, have, need; exit 1 } exit }' && exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseG1GC -Dterminal.ansi=true -jar {{SERVER_JARFILE}}",
+    "startup": "mkdir -p plugins/bStats; b=plugins/bStats/config.txt; touch $b; if ! grep -q \"^server-uuid=\" $b; then read -r u < /proc/sys/kernel/random/uuid; echo \"server-uuid=$u\" >> $b; fi; if grep -q \"^enabled=\" $b; then sed -i \"s/^enabled=.*/enabled={{BSTATS}}/\" $b; else echo \"enabled={{BSTATS}}\" >> $b; fi; touch config.yml; for kv in enable_statistics={{BSTATS}} enable_error_reporting={{ERROR_REPORTS}}; do k=${kv%%=*}; v=${kv#*=}; if grep -q \"^$k:\" config.yml; then sed -i \"s/^$k:.*/$k: $v/\" config.yml; else echo \"$k: $v\" >> config.yml; fi; done; read -r need 2>/dev/null < .raptor-java || need=8; java -version 2>&1 | awk -F'\"' -v need=\"$need\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This server needs Java %s or newer, but Java %s is chosen. Choose Java %s or newer in Startup, then start the server again.\\n\", need, have, need; exit 1 } exit }' && exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseG1GC -Dterminal.ansi=true -jar {{SERVER_JARFILE}}",
     "config": {
         "files": "{\"config.yml\": {\"parser\": \"yaml\", \"find\": {\"listener.host\": \"0.0.0.0:{{server.build.default.port}}\"}}}",
         "startup": "{\"done\": [\"Started query on\", \"NetherNet signaling listening\"]}",
@@ -50,6 +50,26 @@
             "user_viewable": true,
             "user_editable": true,
             "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Usage statistics",
+            "description": "Send anonymous statistics about the proxy and its plugins to bStats.org, where plugin authors see them (true or false).",
+            "env_variable": "BSTATS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Error reports",
+            "description": "Send WaterdogPE's developers anonymous reports of errors the proxy hits, through Bugsnag (true or false).",
+            "env_variable": "ERROR_REPORTS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
             "field_type": "text"
         }
     ]

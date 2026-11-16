@@ -13,7 +13,7 @@
         "Dart 3.3": "ghcr.io/pelican-eggs/yolks:dart_3.3@sha256:3500e3daa7e3f621f1886b763944541e6effac3597b2f57b75b34d3de4756742"
     },
     "file_denylist": [],
-    "startup": "if [ -d .git ] && [ \"{{AUTO_UPDATE}}\" = \"1\" ]; then git pull --ff-only || echo \"git pull failed: starting what is here\"; fi; exec dart run {{DART_FILE}} {{DART_ARGS}}",
+    "startup": "if [ -d .git ] && [ \"{{AUTO_UPDATE}}\" = \"1\" ]; then git pull --ff-only || echo \"git pull failed: starting what is here\"; fi; dart --disable-analytics >/dev/null 2>&1; exec dart run {{DART_FILE}} {{DART_ARGS}}",
     "config": {
         "files": "{}",
         "startup": "{\"done\": []}",

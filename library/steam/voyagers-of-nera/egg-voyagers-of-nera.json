@@ -12,7 +12,7 @@
         "Wine": "ghcr.io/pelican-eggs/yolks:wine_latest@sha256:1d4cc591785abceb9faae159dcf6ce686d5327d4abfa4ba40db74937aa9a3b7b"
     },
     "file_denylist": [],
-    "startup": "rm -f BoatGame/Saved/Logs/BoatGame.log; wine BoatGame/Binaries/Win64/BoatGameServer-Win64-Shipping.exe -Port={{SERVER_PORT}} -log -LoggingInShippingEnabled=true & pid=$!; tail -n +1 -F BoatGame/Saved/Logs/BoatGame.log --pid=$pid 2>/dev/null; wait $pid",
+    "startup": "rm -f BoatGame/Saved/Logs/BoatGame.log; tail -n +1 -F BoatGame/Saved/Logs/BoatGame.log 2>/dev/null & (trap - INT TERM; exec wine BoatGame/Binaries/Win64/BoatGameServer-Win64-Shipping.exe -Port={{SERVER_PORT}} -log -LoggingInShippingEnabled=true) & pid=$!; trap '(sleep 60; kill -TERM $pid 2>/dev/null) &' INT TERM; wait $pid; r=$?; while kill -0 $pid 2>/dev/null; do wait $pid; r=$?; done; wineserver -w 2>/dev/null; sleep 1; exit $r",
     "config": {
         "files": "{\"BoatGame/Saved/PersistedData/CustomConfig/CustomHostServerUserSettings.ini\": {\"parser\": \"ini\", \"find\": {\"[/Script/BoatGame.BGCustomHostServerSettings].HostServerDisplayName\": \"{{server.build.env.SERVER_NAME}}\", \"[/Script/BoatGame.BGCustomHostServerSettings].HostServerPassword\": \"{{server.build.env.SERVER_PASSWORD}}\", \"[/Script/BoatGame.BGCustomHostServerSettings].MaxPlayers\": \"{{server.build.env.MAX_PLAYERS}}\", \"[/Script/BoatGame.BGCustomHostServerSettings].AutosaveTimerSeconds\": \"{{server.build.env.AUTOSAVE_TIMER_SECONDS}}\"}}}",
         "startup": "{\"done\": \"Successfully created session\"}",

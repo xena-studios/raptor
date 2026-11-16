@@ -12,7 +12,7 @@
         "Wine": "ghcr.io/pelican-eggs/yolks:wine_latest@sha256:1d4cc591785abceb9faae159dcf6ce686d5327d4abfa4ba40db74937aa9a3b7b"
     },
     "file_denylist": [],
-    "startup": "echo 1203190 > steam_appid.txt; mkdir -p save; rm -f server.log; touch server.log; (trap - INT; exec wine ./Wreckfest2.exe --server --save-dir=\"$(winepath -w /home/container/save)\") & pid=$!; tail -n +1 -F server.log --pid=$pid & trap 'kill -INT $pid 2>/dev/null; (sleep 30; kill -9 $pid 2>/dev/null) &' INT TERM; while kill -0 $pid 2>/dev/null; do wait $pid; done",
+    "startup": "echo 1203190 > steam_appid.txt; mkdir -p save; rm -f server.log; touch server.log; tail -n +1 -F server.log 2>/dev/null & (trap - INT TERM; exec wine ./Wreckfest2.exe --server --save-dir=\"$(winepath -w /home/container/save)\") & pid=$!; trap '(sleep 30; kill -TERM $pid 2>/dev/null) &' INT TERM; wait $pid; r=$?; while kill -0 $pid 2>/dev/null; do wait $pid; r=$?; done; wineserver -w 2>/dev/null; sleep 1; exit $r",
     "config": {
         "files": "{\"save/server_config.scnf\": {\"parser\": \"json\", \"find\": {\"net server config[0].name\": \"{{server.build.env.SERVER_NAME}}\", \"net server config[0].password\": \"{{server.build.env.SERVER_PASSWORD}}\", \"net server config[0].game port\": \"{{server.build.default.port}}\", \"net server config[0].log file name\": \"../server.log\"}}}",
         "startup": "{\"done\": \"Server Started\"}",

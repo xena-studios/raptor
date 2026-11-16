@@ -12,7 +12,7 @@
         "Wine": "ghcr.io/pelican-eggs/yolks:wine_latest@sha256:1d4cc591785abceb9faae159dcf6ce686d5327d4abfa4ba40db74937aa9a3b7b"
     },
     "file_denylist": [],
-    "startup": "rm -f \"contagion/console.log\"; wine ./contagionds.exe -console -game contagion -port {{SERVER_PORT}} -tickrate 128 -condebug -conclearlog +sv_lan 0 +hostname \"{{SERVER_NAME}}\" +maxplayers {{SRV_MAXPLAYERS}} +servercfgfile \"{{SRV_CONFIG}}\" +map {{SRV_MAP}} & pid=$!; tail -n +1 -F \"contagion/console.log\" --pid=$pid 2>/dev/null",
+    "startup": "rm -f \"contagion/console.log\"; tail -n +1 -F \"contagion/console.log\" 2>/dev/null & (trap - INT TERM; exec wine ./contagionds.exe -console -game contagion -port {{SERVER_PORT}} -tickrate 128 -condebug -conclearlog +sv_lan 0 +hostname \"{{SERVER_NAME}}\" +maxplayers {{SRV_MAXPLAYERS}} +servercfgfile \"{{SRV_CONFIG}}\" +map {{SRV_MAP}}) & pid=$!; trap '(sleep 60; kill -TERM $pid 2>/dev/null) &' INT TERM; wait $pid; r=$?; while kill -0 $pid 2>/dev/null; do wait $pid; r=$?; done; wineserver -w 2>/dev/null; sleep 1; exit $r",
     "config": {
         "files": "{}",
         "startup": "{\"done\": \"Connection to Steam servers successful\"}",

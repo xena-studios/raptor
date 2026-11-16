@@ -12,7 +12,7 @@
         "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:d00a0c66bfc17b199136aefb169285d0fe9be63977741bfc4d838b9cdbb12042"
     },
     "file_denylist": [],
-    "startup": "rm -f .wesnothd/socket; mkdir -p .wesnothd; LD_LIBRARY_PATH=wesnoth/lib wesnoth/wesnothd -c wesnothd.cfg -p {{SERVER_PORT}} & p=$!; while kill -0 $p 2>/dev/null; do if read -r -t 1 l; then [ -p .wesnothd/socket ] && printf \"%s\\n\" \"$l\" > .wesnothd/socket; elif [ $? -lt 128 ]; then sleep 1; fi; done; wait $p",
+    "startup": "rm -f .wesnothd/socket; mkdir -p .wesnothd; (trap - INT TERM; LD_LIBRARY_PATH=wesnoth/lib exec wesnoth/wesnothd -c wesnothd.cfg -p {{SERVER_PORT}}) & p=$!; trap '(sleep 60; kill -TERM $p 2>/dev/null) &' INT TERM; while kill -0 $p 2>/dev/null; do if read -r -t 1 l; then [ -p .wesnothd/socket ] && printf \"%s\\n\" \"$l\" > .wesnothd/socket; elif [ $? -lt 128 ]; then sleep 1; fi; done; wait $p",
     "config": {
         "files": "{\"wesnothd.cfg\": {\"parser\": \"file\", \"find\": {\"motd=\": \"motd=\\\"{{server.build.env.MOTD}}\\\"\", \"passwd=\": \"passwd=\\\"{{server.build.env.PASSWD}}\\\"\"}}}",
         "startup": "{\"done\": \"Server commands may be written to this file.\"}",

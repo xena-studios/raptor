@@ -12,7 +12,7 @@
         "Proton": "ghcr.io/pelican-eggs/steamcmd:proton@sha256:099a9eba9b0e623c124680fd011948d09b2f5b24f49b0776b5821ff35e5b2530"
     },
     "file_denylist": [],
-    "startup": "rm -f \"NoLoveLost/Saved/Logs/NoLoveLost.log\"; proton run ./NoLoveLost/Binaries/Win64/NoLoveLostServer-Win64-Shipping.exe -log -port={{SERVER_PORT}} -queryport={{QUERY_PORT}} -servername=\"{{SERVER_NAME}}\" & pid=$!; tail -n +1 -F \"NoLoveLost/Saved/Logs/NoLoveLost.log\" --pid=$pid 2>/dev/null",
+    "startup": "rm -f \"NoLoveLost/Saved/Logs/NoLoveLost.log\"; tail -n +1 -F \"NoLoveLost/Saved/Logs/NoLoveLost.log\" 2>/dev/null & (trap - INT TERM; exec proton run ./NoLoveLost/Binaries/Win64/NoLoveLostServer-Win64-Shipping.exe -log -port={{SERVER_PORT}} -queryport={{QUERY_PORT}} -servername=\"{{SERVER_NAME}}\") & pid=$!; trap '(sleep 60; kill -TERM $pid 2>/dev/null) &' INT TERM; wait $pid; r=$?; while kill -0 $pid 2>/dev/null; do wait $pid; r=$?; done; sleep 1; exit $r",
     "config": {
         "files": "{}",
         "startup": "{\"done\": \"seconds to LoadMap\"}",

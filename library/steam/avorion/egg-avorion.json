@@ -12,7 +12,7 @@
         "SteamCMD": "ghcr.io/xena-studios/yolks:steamcmd@sha256:3da8e0bc90c94c7f9aca1355f2ae31c0484ee78dd446a0c6c1d796dfe4d7677d"
     },
     "file_denylist": [],
-    "startup": "if [ \"{{AUTO_UPDATE}}\" = 1 ]; then ./steamcmd/steamcmd.sh +force_install_dir /home/container +login anonymous +app_update {{SRCDS_APPID}} ${SRCDS_BETAID:+-beta \"$SRCDS_BETAID\"} ${SRCDS_BETAPASS:+-betapassword \"$SRCDS_BETAPASS\"} $([ \"{{VALIDATE}}\" = 1 ] && echo validate) +quit || echo \"Steam couldn't update the game, so the server starts as it is.\"; fi; ini=\"galaxy/{{GALAXY_NAME}}/server.ini\"; if [ ! -f \"$ini\" ]; then mkdir -p \"galaxy/{{GALAXY_NAME}}\"; printf \"[System]\\nbackupsPath=/home/container/backups\\n\" > \"$ini\"; elif grep -q \"^backupsPath=$\" \"$ini\"; then sed -i \"s|^backupsPath=$|backupsPath=/home/container/backups|\" \"$ini\"; fi; export LD_LIBRARY_PATH=\"./linux64:$LD_LIBRARY_PATH\"; exec ./bin/AvorionServer --galaxy-name \"{{GALAXY_NAME}}\" --datapath galaxy --admin {{ADMIN_ID}} --port {{SERVER_PORT}} --query-port {{QUERY_PORT}} --steam-query-port {{STEAM_QUERY_PORT}} --steam-master-port {{STEAM_MASTER_PORT}} --server-name \"{{SERVER_NAME}}\" --max-players {{MAX_PLAYERS}} --difficulty {{DIFFICULTY}} --collision-damage {{COLLISION_DMG}} --save-interval {{SAVE_INTERVAL}} --same-start-sector {{SAME_START_SECTOR}} --threads {{GAME_THREADS}} --listed {{SERVER_LISTED}}",
+    "startup": "if [ \"{{AUTO_UPDATE}}\" = 1 ]; then ./steamcmd/steamcmd.sh +force_install_dir /home/container +login anonymous +app_update {{SRCDS_APPID}} ${SRCDS_BETAID:+-beta \"$SRCDS_BETAID\"} ${SRCDS_BETAPASS:+-betapassword \"$SRCDS_BETAPASS\"} $([ \"{{VALIDATE}}\" = 1 ] && echo validate) +quit || echo \"Steam couldn't update the game, so the server starts as it is.\"; fi; ini=\"galaxy/{{GALAXY_NAME}}/server.ini\"; if [ ! -f \"$ini\" ]; then mkdir -p \"galaxy/{{GALAXY_NAME}}\"; printf \"[System]\\nbackupsPath=/home/container/backups\\n\" > \"$ini\"; elif grep -q \"^backupsPath=$\" \"$ini\"; then sed -i \"s|^backupsPath=$|backupsPath=/home/container/backups|\" \"$ini\"; fi; for k in sendCrashReports hangDetection; do if grep -q \"^$k=\" \"$ini\"; then sed -i \"s/^$k=.*/$k={{CRASH_REPORTS}}/\" \"$ini\"; else sed -i \"/^\\[System\\]/a $k={{CRASH_REPORTS}}\" \"$ini\"; fi; done; export LD_LIBRARY_PATH=\"./linux64:$LD_LIBRARY_PATH\"; exec ./bin/AvorionServer --galaxy-name \"{{GALAXY_NAME}}\" --datapath galaxy --admin {{ADMIN_ID}} --port {{SERVER_PORT}} --query-port {{QUERY_PORT}} --steam-query-port {{STEAM_QUERY_PORT}} --steam-master-port {{STEAM_MASTER_PORT}} --server-name \"{{SERVER_NAME}}\" --max-players {{MAX_PLAYERS}} --difficulty {{DIFFICULTY}} --collision-damage {{COLLISION_DMG}} --save-interval {{SAVE_INTERVAL}} --same-start-sector {{SAME_START_SECTOR}} --threads {{GAME_THREADS}} --listed {{SERVER_LISTED}}",
     "config": {
         "files": "{}",
         "startup": "{\"done\": \"Server startup complete\"}",
@@ -205,6 +205,16 @@
             "user_viewable": false,
             "user_editable": false,
             "rules": "required|string|in:565060",
+            "field_type": "text"
+        },
+        {
+            "name": "Crash reports",
+            "description": "Send crash and hang reports to the game's developers (true or false).",
+            "env_variable": "CRASH_REPORTS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
             "field_type": "text"
         }
     ]

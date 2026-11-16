@@ -12,7 +12,7 @@
         "Proton": "ghcr.io/pelican-eggs/steamcmd:proton@sha256:099a9eba9b0e623c124680fd011948d09b2f5b24f49b0776b5821ff35e5b2530"
     },
     "file_denylist": [],
-    "startup": "rm -f AbioticFactor/Saved/Logs/AbioticFactor.log; cd AbioticFactor/Binaries/Win64; proton run ./AbioticFactorServer-Win64-Shipping.exe -log -useperfthreads -PORT={{SERVER_PORT}} -QUERYPORT={{QUERY_PORT}} -MaxServerPlayers={{NUM_PLAYERS}} -SteamServerName=\"{{SERVER_NAME}}\" -ServerPassword=\"{{SERVER_PASSWORD}}\" -WorldSaveName=\"{{WORLD_SAVE_NAME}}\" -SandboxIniPath=\"{{SANDBOX_INI_PATH}}\" ${ADMIN_PASSWORD:+\"-AdminPassword=$ADMIN_PASSWORD\"} & pid=$!; tail -n +1 -F ../../Saved/Logs/AbioticFactor.log --pid=$pid 2>/dev/null",
+    "startup": "rm -f AbioticFactor/Saved/Logs/AbioticFactor.log; cd AbioticFactor/Binaries/Win64; tail -n +1 -F ../../Saved/Logs/AbioticFactor.log 2>/dev/null & (trap - INT TERM; exec proton run ./AbioticFactorServer-Win64-Shipping.exe -log -useperfthreads -PORT={{SERVER_PORT}} -QUERYPORT={{QUERY_PORT}} -MaxServerPlayers={{NUM_PLAYERS}} -SteamServerName=\"{{SERVER_NAME}}\" -ServerPassword=\"{{SERVER_PASSWORD}}\" -WorldSaveName=\"{{WORLD_SAVE_NAME}}\" -SandboxIniPath=\"{{SANDBOX_INI_PATH}}\" ${ADMIN_PASSWORD:+\"-AdminPassword=$ADMIN_PASSWORD\"}) & pid=$!; trap '(sleep 60; kill -TERM $pid 2>/dev/null) &' INT TERM; wait $pid; r=$?; while kill -0 $pid 2>/dev/null; do wait $pid; r=$?; done; sleep 1; exit $r",
     "config": {
         "files": "{}",
         "startup": "{\"done\": \"LogWorld: Bringing up level for play took\"}",

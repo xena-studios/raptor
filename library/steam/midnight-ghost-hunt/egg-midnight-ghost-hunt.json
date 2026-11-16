@@ -12,7 +12,7 @@
         "Proton": "ghcr.io/pelican-eggs/steamcmd:proton@sha256:099a9eba9b0e623c124680fd011948d09b2f5b24f49b0776b5821ff35e5b2530"
     },
     "file_denylist": [],
-    "startup": "rm -f MidnightGhostHunt/Saved/Logs/MidnightGhostHunt.log; proton run MidnightGhostHunt/Binaries/Win64/MidnightGhostHuntServer-Win64-Shipping.exe -server -log -port={{SERVER_PORT}} -queryport={{QUERY_PORT}} -BeaconPort={{BEACON_PORT}} -multihome=0.0.0.0 -Map=\"{{MAP}}\" -Gamename=\"{{GAME_NAME}}\" -Gamemode=\"{{GAME_MODE}}\" -Region=\"{{REGION}}\" -BotDifficulty=\"{{B_DIFFICULTY}}\" ${PASSWORD:+-password=\"$PASSWORD\"} {{ADDITIONAL_ARGS}} & pid=$!; tail -n +1 -F MidnightGhostHunt/Saved/Logs/MidnightGhostHunt.log --pid=$pid 2>/dev/null; wait $pid",
+    "startup": "rm -f MidnightGhostHunt/Saved/Logs/MidnightGhostHunt.log; tail -n +1 -F MidnightGhostHunt/Saved/Logs/MidnightGhostHunt.log 2>/dev/null & (trap - INT TERM; exec proton run MidnightGhostHunt/Binaries/Win64/MidnightGhostHuntServer-Win64-Shipping.exe -server -log -port={{SERVER_PORT}} -queryport={{QUERY_PORT}} -BeaconPort={{BEACON_PORT}} -multihome=0.0.0.0 -Map=\"{{MAP}}\" -Gamename=\"{{GAME_NAME}}\" -Gamemode=\"{{GAME_MODE}}\" -Region=\"{{REGION}}\" -BotDifficulty=\"{{B_DIFFICULTY}}\" ${PASSWORD:+-password=\"$PASSWORD\"} {{ADDITIONAL_ARGS}}) & pid=$!; trap '(sleep 60; kill -TERM $pid 2>/dev/null) &' INT TERM; wait $pid; r=$?; while kill -0 $pid 2>/dev/null; do wait $pid; r=$?; done; sleep 1; exit $r",
     "config": {
         "files": "{}",
         "startup": "{\"done\": \"IpNetDriver listening on port\"}",
