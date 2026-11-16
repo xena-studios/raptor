@@ -345,6 +345,13 @@ export function imageParams(cfg: ServerConfig, name: string, image: string) {
   return primary ? params : { ...params, allocations: cfg.allocations };
 }
 
+// startupParams is server.update's params to run a server with another
+// startup command, everything else as it is. It changes what code runs,
+// so it's signed.
+export function startupParams(cfg: ServerConfig, name: string, startup: string) {
+  return { ...imageParams(cfg, name, cfg.image), startup };
+}
+
 // changesCode: a new image or startup command changes what code runs, so
 // the user's passkey must sign it (Wings: Manager.ChangesCode).
 export function changesCode(cfg: ServerConfig, c: SettingsChange): boolean {

@@ -53,6 +53,18 @@ On **Network**:
 - **Networks** (admins and owners, on nodes with [networks](/nodes/networks/)): which network the server is on, and others it also joins, like a proxy. It changes at the next start.
 - **Connection test:** checks from outside whether players can reach the server, and says what to change if they can't. See [Players can't connect](/help/players-cant-connect/).
 
+## Minehut
+
+Minecraft servers running Velocity, Waterfall, or Paper (and Purpur or Folia) can join [Minehut](https://minehut.com)'s network as an **external server**, so players find them in Minehut's lobby and connect through its DDoS protection. On **Network**, **Set up for Minehut** makes the changes [Minehut's guide](https://support.minehut.com/hc/en-us/articles/33252734474899-How-to-Setup-a-Minehut-External-Hosted-Server) asks for:
+
+- **Velocity:** turns on the HAProxy protocol in `velocity.toml`, and adds Minehut's login flag to the startup command.
+- **Waterfall:** turns on the proxy protocol in `config.yml`, and adds the login flag.
+- **Paper:** turns on the proxy protocol in `config/paper-global.yml`, turns off `enforce-secure-profile`, and adds Minehut's login flags.
+
+Your passkey signs the startup change. Start the server once before, so its config files exist, and restart it after. If you use TCPShield, tick it, and the proxy protocol changes are left out. Then the card shows what to type into Minehut's **External Server Settings** (the IP is the node's address, which follows its IP), with copy buttons. **Undo Minehut's changes** puts it all back.
+
+After setting up, players can join **only through Minehut**, not the server's own address, and the player count may stop showing. BungeeCord isn't supported by Minehut: switch to Waterfall or Velocity. Minehut takes new external servers from its Partners Program and charges credits for them, so check your Minehut account first.
+
 ## Change the server's type
 
 **Server type** on **Settings** (admins and owners) changes what the server runs: Paper to Purpur, Forge to NeoForge, or another game entirely. Pick the new type, then what happens to the files:
