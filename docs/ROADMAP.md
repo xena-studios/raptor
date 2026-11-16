@@ -124,7 +124,7 @@ Bigger work, unordered.
 - CurseForge for the mod manager (Modrinth, Hangar, datapacks, and Steam Workshop are built; CurseForge's terms and API key need a look first)
 - A connection relay for owners behind CGNAT (a paid add-on)
 - Queued config edits for offline nodes
-- Public API keys and webhooks
+- Scoped API tokens, webhooks, an MCP server for AI tools, and Raptor Deployments (servers as code from GitHub: deploys with health checks and rollback, drift sent back as pull requests): the plan is [#374](https://github.com/xena-studios/raptor/issues/374)
 - More certified games and OS versions
 - End-to-end encryption of node traffic inside the WebSocket, so Cloudflare can't read it, if customers ask for it
 
