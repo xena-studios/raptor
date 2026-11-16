@@ -27,7 +27,7 @@ SELECT count(*) FROM alert_channels WHERE user_id = $1;
 
 -- name: UserAlertChannels :many
 -- A user's own channels, for them (row-level security).
-SELECT id, type, name, config, hint, failing_since, last_error, last_sent_at, disabled_at, created_at
+SELECT id, type, name, config, hint, failing_since, last_error, last_sent_at, disabled_at, created_at, session_id
 FROM alert_channels WHERE user_id = $1 ORDER BY created_at;
 
 -- name: GetAlertChannel :one

@@ -207,6 +207,28 @@ func TestPhonePush(t *testing.T) {
 	if err != nil || len(mine.GetChannels()) != 2 { // email and the phone
 		t.Fatalf("Alice's channels: %v, %v", mine, err)
 	}
+	for _, ch := range mine.GetChannels() {
+		if ch.GetThisDevice() {
+			t.Error("the browser was told a phone is this device")
+		}
+	}
+	// The app sees which channel is its own.
+	theirs, err := iphone.alerts.ListAlertChannels(ctx, &panelv1.ListAlertChannelsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	own := 0
+	for _, c := range theirs.GetChannels() {
+		if c.GetThisDevice() {
+			own++
+			if c.GetId() != ch.GetId() {
+				t.Errorf("the app's own channel: %v", c)
+			}
+		}
+	}
+	if own != 1 {
+		t.Errorf("the app found %d channels of its own", own)
+	}
 	for _, typ := range mine.GetTypes() {
 		if typ == alerts.Phone {
 			t.Error("phones are offered as a channel to add by hand")

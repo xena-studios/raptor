@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "sessions": {
+    "e7ae2692-8897-4077-af40-34210003ecd6": {
+      "updatedAt": 1794858389664,
+      "files": {
+        "/Users/zachary/Projects/raptor/.claude/worktrees/mobile-tokens/mobile/src/components/ui.tsx": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/zachary/Projects/raptor/.claude/worktrees/mobile-tokens/mobile/src/lib/lock.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/zachary/Projects/raptor/.claude/worktrees/mobile-tokens/mobile/src/components/lock-screen.tsx": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    }
+  }
+}

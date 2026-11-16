@@ -94,7 +94,7 @@ func pushFor(m Message) pushMessage {
 		Group: cmpOr(m.ServerID, m.NodeID, m.Condition),
 		Data:  map[string]string{},
 	}
-	for k, v := range map[string]string{"url": m.URL, "node_id": m.NodeID, "server_id": m.ServerID, "condition": m.Condition, "level": m.Level} {
+	for k, v := range map[string]string{"url": m.URL, "org_id": m.OrgID, "node_id": m.NodeID, "server_id": m.ServerID, "condition": m.Condition, "level": m.Level} {
 		if v != "" {
 			p.Data[k] = v
 		}

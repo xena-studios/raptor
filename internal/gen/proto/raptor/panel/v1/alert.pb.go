@@ -35,10 +35,12 @@ type AlertChannel struct {
 	Enabled bool   `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// Failing since the first alert it couldn't deliver (turned off after 3
 	// days of it); error is the last failure.
-	FailingSince  *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=failing_since,json=failingSince,proto3" json:"failing_since,omitempty"`
-	Error         string                 `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
-	LastSentAt    *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=last_sent_at,json=lastSentAt,proto3" json:"last_sent_at,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	FailingSince *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=failing_since,json=failingSince,proto3" json:"failing_since,omitempty"`
+	Error        string                 `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
+	LastSentAt   *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=last_sent_at,json=lastSentAt,proto3" json:"last_sent_at,omitempty"`
+	CreatedAt    *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// A phone channel that's the calling app's own (this phone).
+	ThisDevice    bool `protobuf:"varint,11,opt,name=this_device,json=thisDevice,proto3" json:"this_device,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -134,6 +136,13 @@ func (x *AlertChannel) GetCreatedAt() *timestamppb.Timestamp {
 		return x.CreatedAt
 	}
 	return nil
+}
+
+func (x *AlertChannel) GetThisDevice() bool {
+	if x != nil {
+		return x.ThisDevice
+	}
+	return false
 }
 
 type ListAlertChannelsRequest struct {
@@ -2232,7 +2241,7 @@ var File_raptor_panel_v1_alert_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_alert_proto_rawDesc = "" +
 	"\n" +
-	"\x1braptor/panel/v1/alert.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd8\x02\n" +
+	"\x1braptor/panel/v1/alert.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf9\x02\n" +
 	"\fAlertChannel\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x12\n" +
@@ -2244,7 +2253,9 @@ const file_raptor_panel_v1_alert_proto_rawDesc = "" +
 	"\flast_sent_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"lastSentAt\x129\n" +
 	"\n" +
-	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtJ\x04\b\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x1f\n" +
+	"\vthis_device\x18\v \x01(\bR\n" +
+	"thisDeviceJ\x04\b\n" +
 	"\x10\vR\bemail_to\"1\n" +
 	"\x18ListAlertChannelsRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"\x82\x01\n" +
