@@ -124,6 +124,8 @@ const (
 	// OrgServiceTestConnectionProcedure is the fully-qualified name of the OrgService's TestConnection
 	// RPC.
 	OrgServiceTestConnectionProcedure = "/raptor.panel.v1.OrgService/TestConnection"
+	// OrgServiceShareLogProcedure is the fully-qualified name of the OrgService's ShareLog RPC.
+	OrgServiceShareLogProcedure = "/raptor.panel.v1.OrgService/ShareLog"
 	// OrgServiceGetBackupStorageProcedure is the fully-qualified name of the OrgService's
 	// GetBackupStorage RPC.
 	OrgServiceGetBackupStorageProcedure = "/raptor.panel.v1.OrgService/GetBackupStorage"
@@ -274,6 +276,11 @@ type OrgServiceClient interface {
 	// With server.ports (what the game listens on, from the node), the web
 	// app tells why when it can't. Any access to the server; rate limited.
 	TestConnection(context.Context, *v1.TestConnectionRequest) (*v1.TestConnectionResponse, error)
+	// ShareLog shares a server's log (its console, or a log file the app
+	// read) on mclo.gs for support, after hiding IP addresses and node
+	// hostnames, and returns the link. The user chooses each time; it's in
+	// the audit log. Access to the server's console or files; rate limited.
+	ShareLog(context.Context, *v1.ShareLogRequest) (*v1.ShareLogResponse, error)
 	// GetBackupStorage is the org's Raptor Backup Storage: whether this Panel
 	// offers it, which nodes have it on, what's stored, and what it'd cost.
 	// Admins and owners.
@@ -548,6 +555,12 @@ func NewOrgServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(orgServiceMethods.ByName("TestConnection")),
 			connect.WithClientOptions(opts...),
 		),
+		shareLog: connect.NewClient[v1.ShareLogRequest, v1.ShareLogResponse](
+			httpClient,
+			baseURL+OrgServiceShareLogProcedure,
+			connect.WithSchema(orgServiceMethods.ByName("ShareLog")),
+			connect.WithClientOptions(opts...),
+		),
 		getBackupStorage: connect.NewClient[v1.GetBackupStorageRequest, v1.GetBackupStorageResponse](
 			httpClient,
 			baseURL+OrgServiceGetBackupStorageProcedure,
@@ -641,6 +654,7 @@ type orgServiceClient struct {
 	createSFTPAccess        *connect.Client[v1.CreateSFTPAccessRequest, v1.CreateSFTPAccessResponse]
 	revokeSFTPAccess        *connect.Client[v1.RevokeSFTPAccessRequest, v1.RevokeSFTPAccessResponse]
 	testConnection          *connect.Client[v1.TestConnectionRequest, v1.TestConnectionResponse]
+	shareLog                *connect.Client[v1.ShareLogRequest, v1.ShareLogResponse]
 	getBackupStorage        *connect.Client[v1.GetBackupStorageRequest, v1.GetBackupStorageResponse]
 	enableBackupStorage     *connect.Client[v1.EnableBackupStorageRequest, v1.EnableBackupStorageResponse]
 	disableBackupStorage    *connect.Client[v1.DisableBackupStorageRequest, v1.DisableBackupStorageResponse]
@@ -975,6 +989,15 @@ func (c *orgServiceClient) TestConnection(ctx context.Context, req *v1.TestConne
 	return nil, err
 }
 
+// ShareLog calls raptor.panel.v1.OrgService.ShareLog.
+func (c *orgServiceClient) ShareLog(ctx context.Context, req *v1.ShareLogRequest) (*v1.ShareLogResponse, error) {
+	response, err := c.shareLog.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // GetBackupStorage calls raptor.panel.v1.OrgService.GetBackupStorage.
 func (c *orgServiceClient) GetBackupStorage(ctx context.Context, req *v1.GetBackupStorageRequest) (*v1.GetBackupStorageResponse, error) {
 	response, err := c.getBackupStorage.CallUnary(ctx, connect.NewRequest(req))
@@ -1173,6 +1196,11 @@ type OrgServiceHandler interface {
 	// With server.ports (what the game listens on, from the node), the web
 	// app tells why when it can't. Any access to the server; rate limited.
 	TestConnection(context.Context, *v1.TestConnectionRequest) (*v1.TestConnectionResponse, error)
+	// ShareLog shares a server's log (its console, or a log file the app
+	// read) on mclo.gs for support, after hiding IP addresses and node
+	// hostnames, and returns the link. The user chooses each time; it's in
+	// the audit log. Access to the server's console or files; rate limited.
+	ShareLog(context.Context, *v1.ShareLogRequest) (*v1.ShareLogResponse, error)
 	// GetBackupStorage is the org's Raptor Backup Storage: whether this Panel
 	// offers it, which nodes have it on, what's stored, and what it'd cost.
 	// Admins and owners.
@@ -1443,6 +1471,12 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(orgServiceMethods.ByName("TestConnection")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orgServiceShareLogHandler := connect.NewUnaryHandlerSimple(
+		OrgServiceShareLogProcedure,
+		svc.ShareLog,
+		connect.WithSchema(orgServiceMethods.ByName("ShareLog")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orgServiceGetBackupStorageHandler := connect.NewUnaryHandlerSimple(
 		OrgServiceGetBackupStorageProcedure,
 		svc.GetBackupStorage,
@@ -1569,6 +1603,8 @@ func NewOrgServiceHandler(svc OrgServiceHandler, opts ...connect.HandlerOption) 
 			orgServiceRevokeSFTPAccessHandler.ServeHTTP(w, r)
 		case OrgServiceTestConnectionProcedure:
 			orgServiceTestConnectionHandler.ServeHTTP(w, r)
+		case OrgServiceShareLogProcedure:
+			orgServiceShareLogHandler.ServeHTTP(w, r)
 		case OrgServiceGetBackupStorageProcedure:
 			orgServiceGetBackupStorageHandler.ServeHTTP(w, r)
 		case OrgServiceEnableBackupStorageProcedure:
@@ -1736,6 +1772,10 @@ func (UnimplementedOrgServiceHandler) RevokeSFTPAccess(context.Context, *v1.Revo
 
 func (UnimplementedOrgServiceHandler) TestConnection(context.Context, *v1.TestConnectionRequest) (*v1.TestConnectionResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.TestConnection is not implemented"))
+}
+
+func (UnimplementedOrgServiceHandler) ShareLog(context.Context, *v1.ShareLogRequest) (*v1.ShareLogResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.OrgService.ShareLog is not implemented"))
 }
 
 func (UnimplementedOrgServiceHandler) GetBackupStorage(context.Context, *v1.GetBackupStorageRequest) (*v1.GetBackupStorageResponse, error) {

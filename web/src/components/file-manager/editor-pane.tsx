@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Download, Loader2, Save, X } from "lucide-react";
 import { lazy, type ReactNode, Suspense, useEffect, useMemo, useRef, useState } from "react";
-
+import { ShareLogButton } from "@/components/share-log";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { message } from "@/lib/errors";
@@ -26,6 +26,11 @@ type Status = "clean" | "dirty" | "saving" | "saved" | "error";
 
 // EditorPane edits one file: Monaco, a Save button, and a status bar.
 // Unsaved text is kept in this browser as a draft until it's saved.
+// isLog is a file worth sharing for support: a log, or a crash report.
+function isLog(path: string): boolean {
+  return /\.log(\.\d+)?$/i.test(path) || /(^|\/)crash-reports\/[^/]+\.txt$/i.test(path);
+}
+
 export function EditorPane({
   api,
   nodeId,
@@ -38,6 +43,7 @@ export function EditorPane({
   onBack,
   onClose,
   onDirty,
+  orgId,
 }: {
   api: ReturnType<typeof useFilesApi>;
   nodeId: string;
@@ -52,6 +58,8 @@ export function EditorPane({
   onBack: () => void;
   onClose: () => void;
   onDirty: (dirty: boolean) => void;
+  // Given, logs can be shared on mclo.gs.
+  orgId?: string;
 }) {
   const settings = useFileSettings();
   // Read once: saving doesn't reload the file, which would reset the editor.
@@ -155,6 +163,15 @@ export function EditorPane({
         {badge}
         <div className="ml-auto flex items-center gap-1">
           {actions}
+          {orgId && transfers && !binary && isLog(path) && (
+            <ShareLogButton
+              orgId={orgId}
+              nodeId={nodeId}
+              serverId={serverId}
+              name={path}
+              content={() => text ?? loaded.text}
+            />
+          )}
           {transfers && (
             <a
               href={downloadURL(nodeId, serverId, path)}

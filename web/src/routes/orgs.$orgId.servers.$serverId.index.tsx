@@ -86,6 +86,7 @@ function Overview() {
                   serverId={serverId}
                   canWrite={can(server, "console.write")}
                   onOutput={onOutput}
+                  orgId={orgId}
                 />
               </Suspense>
             ) : (
