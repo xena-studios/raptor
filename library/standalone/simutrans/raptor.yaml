@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/simutrans/egg-simutrans.json
+license: MIT
+credits:
+  - "Written for Raptor; the server is built from https://github.com/simutrans/simutrans (Artistic License 1.0), pak64 from Simutrans' SourceForge downloads"
+  - "Icon: Simutrans' logo, from https://github.com/simutrans"
+certified: true
+# Built from source on the node, so it runs natively on both.
+arch: [amd64, arm64]
+# No players query (Simutrans' own protocol) and no backup hooks: the server
+# has no console (its admin tool, nettool, is used for the stop instead,
+# which saves the game).
+test:
+  # Builds the server from source (a few minutes on two cores).
+  tier: slow
+  memory_mib: 1024
+  done_timeout: 5m

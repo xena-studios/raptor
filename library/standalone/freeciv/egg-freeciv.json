@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Freeciv",
+    "author": "support@raptorpanel.net",
+    "description": "Freeciv, the free turn-based empire-building strategy game. Installs the Freeciv server from Debian's own packages, saves every turn to saves/, and runs server.serv at every start.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "export LD_LIBRARY_PATH=/home/container/lib FREECIV_DATA_PATH=/home/container/data:/home/container/.freeciv; exec ./bin/freeciv-server --port {{SERVER_PORT}} --saves saves --read server.serv --ruleset {{RULESET}} $([ \"{{PUBLIC}}\" = 1 ] && echo --meta)",
+    "config": {
+        "files": "{\"server.serv\": {\"parser\": \"file\", \"find\": {\"set maxplayers \": \"set maxplayers {{server.build.env.MAX_PLAYERS}}\"}}}",
+        "startup": "{\"done\": [\"Now accepting new client connections\"]}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Freeciv. Installs the Freeciv server from Debian 13's own packages (the\n# runtime image is Debian 13, so it runs as Debian built it), downloaded and\n# signature-checked by apt. Your saves (saves/), settings (server.serv) and\n# anything else you add are never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\nrm -rf \"$build\" && mkdir -p \"$build/lists/partial\" \"$build/cache/archives/partial\" \"$build/root\"\n\ncase \"$(uname -m)\" in\nx86_64) arch=amd64; triplet=x86_64-linux-gnu ;;\naarch64) arch=arm64; triplet=aarch64-linux-gnu ;;\n*) fail \"This Freeciv server runs on x86-64 and ARM64 machines only.\" ;;\nesac\n\ncat > \"$build/sources.list\" <<SRC\ndeb http://deb.debian.org/debian trixie main\ndeb http://deb.debian.org/debian trixie-updates main\ndeb http://deb.debian.org/debian-security trixie-security main\nSRC\napt=(apt-get -q -o Dir::Etc::SourceList=\"$build/sources.list\" -o Dir::Etc::SourceParts=/dev/null\n    -o Dir::State::Lists=\"$build/lists\" -o Dir::Cache=\"$build/cache\" -o APT::Architecture=\"$arch\"\n    -o APT::Architectures=\"$arch\" -o Debug::NoLocking=1)\necho \"Reading Debian 13's package lists\"\n\"${apt[@]}\" update >\"$build/apt.log\" 2>&1 || { tail -n 5 \"$build/apt.log\"; fail \"Debian's package servers can't be reached right now. Reinstall to try again.\"; }\nversion=$(\"${apt[@]}\" -o APT::Get::Show-Versions=1 --print-uris download freeciv-server 2>/dev/null |\n    sed -n \"s/.*freeciv-server_\\([^_]*\\)_.*/\\1/p\" | sed -n 1p | sed 's/%2b/+/gI; s/%3a/:/gI')\n[ -n \"$version\" ] || fail \"Debian's package lists have no Freeciv server for $arch.\"\n\nif [ -x bin/freeciv-server ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"Freeciv $version is already installed.\"\nelse\n    echo \"Downloading Freeciv $version\"\n    (cd \"$build/cache/archives\" && \"${apt[@]}\" download freeciv-server freeciv-data liblua5.4-0 libreadline8t64 readline-common >\"$build/apt.log\" 2>&1) ||\n        { tail -n 5 \"$build/apt.log\"; fail \"The download from Debian failed. Reinstall to try again.\"; }\n    for d in \"$build\"/cache/archives/*.deb; do dpkg-deb -x \"$d\" \"$build/root\"; done\n    r=\"$build/root\"\n    rm -rf \"$build/new\" && mkdir -p \"$build/new/bin\" \"$build/new/lib\"\n    mv \"$r/usr/games/freeciv-server\" \"$build/new/bin/\"\n    mv \"$r/usr/share/games/freeciv\" \"$build/new/data\"\n    cp -a \"$r/usr/lib/$triplet\"/liblua5.4.so.0* \"$r/usr/lib/$triplet\"/libreadline.so.8* \"$build/new/lib/\"\n    rm -rf bin lib data\n    mv \"$build/new/bin\" bin; mv \"$build/new/lib\" lib; mv \"$build/new/data\" data\n    echo \"$version\" > .raptor-version\nfi\n\nmkdir -p saves\n# A starting settings file, only when there is none: the Panel sets the port\n# and player limit at each start; the rest is yours to change.\n[ -f server.serv ] || cat > server.serv <<'SERV'\n# Freeciv server commands, run at every start (see \"help\" in the console).\nset autosaves \"TURN|GAMEOVER|QUITIDLE|INTERRUPT\"\nset saveturns 1\nSERV\n# The player limit, as a line Raptor rewrites at each start.\ngrep -q '^set maxplayers ' server.serv || echo \"set maxplayers 16\" >> server.serv\necho \"Installed Freeciv $version from Debian 13.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Ruleset",
+            "description": "The rules the game is played with: civ2civ3, classic, civ1, civ2, multiplayer, sandbox or alien, or a modpack's.",
+            "env_variable": "RULESET",
+            "default_value": "civ2civ3",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9_-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players, people and AIs together, the game can have.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "16",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,500",
+            "field_type": "text"
+        },
+        {
+            "name": "Public",
+            "description": "1 lists the server on Freeciv's metaserver so players find it; 0 keeps it unlisted.",
+            "env_variable": "PUBLIC",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|in:0,1",
+            "field_type": "text"
+        }
+    ]
+}

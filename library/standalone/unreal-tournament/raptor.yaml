@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/unreal-tournament/egg-unreal-tournament.json
+license: MIT
+credits:
+  - "Written for Raptor, following OldUnreal's Linux installer in https://github.com/OldUnreal/FullGameInstallers (the same downloads and steps)"
+  - "Icon: Unreal Tournament's logo, from its Steam store page (Epic Games, app 13240)"
+certified: true
+# OldUnreal's patch has native Linux builds for both.
+arch: [amd64, arm64]
+# No players query (UT answers GameSpy queries, not A2S), no backup hooks
+# (nothing to save), and no console: the server doesn't read its input.
+test:
+  # A 620 MB game CD image.
+  tier: slow
+  memory_mib: 512
+  done_timeout: 5m

@@ -1,0 +1,114 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Unreal Tournament 2004",
+    "author": "support@raptorpanel.net",
+    "description": "The 2004 arena shooter, Editor's Choice edition, with OldUnreal's community patch. It also uses the port after the server's port and the one 10 above it for server browsers, so add those too. Other settings are in System/UT2004.ini.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "s=System; [ \"$(uname -m)\" = aarch64 ] && s=SystemARM64; cd $s && exec ./ucc-bin server \"{{MAP}}?game={{GAME_TYPE}}?MaxPlayers={{MAX_PLAYERS}}\" port={{SERVER_PORT}} ini=../System/UT2004.ini userini=../System/User.ini -nohomedir",
+    "config": {
+        "files": "{\"System/UT2004.ini\": {\"parser\": \"ini\", \"find\": {\"[URL].Port\": \"{{server.build.default.port}}\", \"[Engine.GameReplicationInfo].ServerName\": \"{{server.build.env.SERVER_NAME}}\", \"[Engine.AccessControl].GamePassword\": \"{{server.build.env.SERVER_PASSWORD}}\", \"[Engine.AccessControl].AdminPassword\": \"{{server.build.env.ADMIN_PASSWORD}}\", \"[IpDrv.MasterServerUplink].DoUplink\": \"{{server.build.env.PUBLIC}}\"}}}",
+        "startup": "{\"done\": [\"GameInfo::InitGame\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Unreal Tournament 2004 with OldUnreal's community patch, installed as\n# OldUnreal's own Linux installer does: the Editor's Choice DVD image from\n# OldUnreal's mirrors (free to download, with Epic's blessing), unpacked with\n# OldUnreal's unshield build, then the patch from GitHub, all checked against\n# their SHA-256. Your settings (System/UT2004.ini, User.ini) and anything you\n# add are never overwritten.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nua=\"raptor-installer (+https://raptorpanel.net)\"\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\nmkdir -p \"$build\"\n\ncase \"$(uname -m)\" in\nx86_64) arch=amd64; zarch=x64; sys=System ;;\naarch64) arch=arm64; zarch=arm64; sys=SystemARM64 ;;\n*) fail \"Unreal Tournament 2004's server runs on x86-64 and ARM64 machines only.\" ;;\nesac\n\nwant=${VERSION:-latest}\ntag=$(gh-release tag OldUnreal/UT2004Patches \"$want\") ||\n    fail \"OldUnreal patch ${VERSION} doesn't exist. Check Version and reinstall.\"\npatch=$(gh-release assets OldUnreal/UT2004Patches \"$tag\" | awk '$1 ~ /-Linux.*\\.tar\\.bz2$/ && !f { print $1; f = 1 }')\n[ -n \"$patch\" ] || fail \"OldUnreal patch $tag has no Linux build.\"\n\n# Downloads <file> from <url>s, checked against its SHA-256; a good copy\n# left by an interrupted install is used as it is.\nfetch() {\n    local out=$1 sum=$2 url\n    shift 2\n    [ -f \"$out\" ] && [ \"$(sha256sum \"$out\" | cut -d' ' -f1)\" = \"$sum\" ] && return 0\n    for url in \"$@\"; do\n        if curl -fsSL --retry 2 -A \"$ua\" -o \"$out\" \"$url\" &&\n            [ \"$(sha256sum \"$out\" | cut -d' ' -f1)\" = \"$sum\" ]; then\n            return 0\n        fi\n        echo \"The download from ${url%/*} failed or didn't match its checksum; trying the next mirror.\"\n    done\n    rm -f \"$out\"\n    fail \"No mirror gave a good copy of ${out##*/}. Reinstall to try again.\"\n}\n\niso_sum=43e9182ae20bcbc0f6f4588fee6c1b336c261f1465403118a1973b09b1a22541\nif [ \"$(cat .raptor-game 2>/dev/null)\" != \"$iso_sum\" ]; then\n    # 7-Zip and unshield, only for unpacking the DVD image; not kept.\n    t=$(gh-release tag ip7z/7zip latest) || fail \"GitHub can't be reached right now. Reinstall to try again.\"\n    gh-release download ip7z/7zip \"$t\" \"7z${t//./}-linux-$zarch.tar.xz\" \"$build/7z.tar.xz\" ||\n        fail \"7-Zip couldn't be downloaded from GitHub. Reinstall to try again.\"\n    tar -xJf \"$build/7z.tar.xz\" -C \"$build\" 7zzs\n    case $arch in\n    amd64) us=2c790958037538fd9dd31f41eebc2a0e0e6343ac8e4a1805b0176400b1d68332 ;;\n    arm64) us=51489f9768398f304e119ba36a8f1895d7e1b2bdd97bdf18c45600f69a6afd5f ;;\n    esac\n    fetch \"$build/unshield\" \"$us\" \"https://raw.githubusercontent.com/OldUnreal/FullGameInstallers/master/Linux/deps/unshield-$arch\"\n    chmod +x \"$build/unshield\"\n\n    echo \"Downloading Unreal Tournament 2004 (the 2.8 GB DVD image)\"\n    fetch \"$build/ut2004.iso\" \"$iso_sum\" https://files.oldunreal.net/UT2004.ISO https://files2.oldunreal.net/UT2004.ISO https://files3.oldunreal.net/UT2004.ISO\n    echo \"Unpacking the game\"\n    rm -rf \"$build/cabs\" \"$build/data\"\n    \"$build/7zzs\" e -y -bd -o\"$build/cabs\" \"$build/ut2004.iso\" 'Disk*/*.cab' 'Disk*/*.hdr' >/dev/null ||\n        fail \"The DVD image couldn't be unpacked. Reinstall to try again.\"\n    rm -f \"$build/ut2004.iso\"\n    \"$build/unshield\" -d \"$build/data\" x \"$build/cabs/data1.cab\" >/dev/null ||\n        fail \"The game's files couldn't be unpacked. Reinstall to try again.\"\n    rm -rf \"$build/cabs\"\n    d=\"$build/data\"\n    # No Windows programs or default settings, as OldUnreal's installer does.\n    rm -f \"$d\"/All_UT2004.EXE/*.exe \"$d\"/English_Sounds_Speech_System_Help/System/*.{bat,dll,exe}\n    rm -f \"$d\"/English_Sounds_Speech_System_Help/System/{UT2004,User}.ini\n    rm -rf \"$build/game\" && mkdir -p \"$build/game\"\n    for pair in All_Animations:Animations All_Benchmark:Benchmark All_ForceFeedback:ForceFeedback All_Help:Help \\\n        All_KarmaData:KarmaData All_Maps:Maps All_Music:Music All_StaticMeshes:StaticMeshes All_Textures:Textures \\\n        All_Web:Web All_UT2004.EXE:System English_Manual:Manual US_License.int:System English_Sounds_Speech_System_Help:; do\n        src=${pair%%:*} dst=${pair#*:}\n        [ -d \"$d/$src\" ] || continue\n        mkdir -p \"$build/game/$dst\"\n        cp -rf \"$d/$src/.\" \"$build/game/$dst/\"\n    done\n    rm -rf \"$d\"\n    # The game's files go in without replacing any already there.\n    (cd \"$build/game\" && find . -type f -print0) | while IFS= read -r -d '' f; do\n        [ -e \"$f\" ] || { mkdir -p \"$(dirname \"$f\")\" && mv \"$build/game/$f\" \"$f\"; }\n    done\n    rm -rf \"$build/game\"\n    rm -f .raptor-version\n    echo \"$iso_sum\" > .raptor-game\nfi\n\nif [ \"$(cat .raptor-version 2>/dev/null)\" = \"$tag\" ] && [ -x \"$sys/ucc-bin\" ]; then\n    echo \"OldUnreal's patch $tag is already installed.\"\nelse\n    echo \"Downloading OldUnreal's patch $tag\"\n    gh-release download OldUnreal/UT2004Patches \"$tag\" \"$patch\" \"$build/patch.tar.bz2\" ||\n        fail \"The patch download from GitHub failed. Reinstall to try again.\"\n    rm -rf \"$build/patch\" && mkdir -p \"$build/patch\"\n    tar -xjf \"$build/patch.tar.bz2\" -C \"$build/patch\"\n    # The game's wrongly cased copies of packages the patch replaces, which\n    # a case-sensitive file system would load too (OldUnreal's installer\n    # removes them); removed first, so the patch's stay on any file system.\n    for f in Bonuspack.u Gui2K4.u Gameplay.u Ipdrv.u Skaarjpack.u StreamLineFX.u UT2K4Assault.u UT2K4AssaultFull.u XVoting.u xWebAdmin.u; do\n        rm -f \"System/$f\" \"SystemARM64/$f\"\n    done\n    # The patch's own files replace the game's.\n    cp -a \"$build/patch/.\" .\n    echo \"$tag\" > .raptor-version\nfi\n\n# The server's settings start from the patch's defaults, as the game does on\n# its first start, in System/ for every CPU; the Panel sets the port, name\n# and passwords at each start.\n[ -f System/UT2004.ini ] || cp \"$sys/Default.ini\" System/UT2004.ini\n[ -f System/User.ini ] || cp \"$sys/DefUser.ini\" System/User.ini\nchmod +x \"$sys\"/ucc-bin* 2>/dev/null || true\necho \"Installed Unreal Tournament 2004 with OldUnreal's patch $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "OldUnreal's patch, such as 3374-rc3, or latest for the newest one. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?3[0-9]{3}[a-z]?(-rc[0-9]+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server browser.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "An Unreal Tournament 2004 server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Map",
+            "description": "The map the server starts on, such as DM-Rankin, CTF-FaceClassic or ONS-Torlan; it must suit the game type.",
+            "env_variable": "MAP",
+            "default_value": "DM-Rankin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9_\\-\\[\\]]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Game type",
+            "description": "The game type: XGame.xDeathMatch, XGame.xTeamGame, XGame.xCTFGame, XGame.xBombingRun, XGame.xDoubleDom, Onslaught.ONSOnslaughtGame or UT2k4Assault.ASGameInfo, or a mod's.",
+            "env_variable": "GAME_TYPE",
+            "default_value": "XGame.xDeathMatch",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9_]+\\.[A-Za-z0-9_]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can be on the server at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "16",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,64",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with. Empty, anyone can join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The password for adminlogin, which gives a player admin commands. Empty turns it off.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Public",
+            "description": "True lists the server on the master servers so players find it; False keeps it unlisted.",
+            "env_variable": "PUBLIC",
+            "default_value": "True",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:True,False",
+            "field_type": "text"
+        }
+    ],
+    "install": {
+        "timeout": "2h"
+    }
+}

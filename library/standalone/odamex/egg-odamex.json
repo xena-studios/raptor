@@ -1,0 +1,111 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Odamex",
+    "author": "support@raptorpanel.net",
+    "description": "Odamex, the classic Doom multiplayer port for deathmatch, co-op and CTF. Builds the Odamex server and comes with Freedoom's free game data; your own WADs go in wads/ and your settings in server.cfg.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "exec ./odasrv -port {{SERVER_PORT}} -iwad {{IWAD}} -waddir /home/container/wads +set sv_upnp 0 +exec server.cfg +set sv_hostname \"{{SERVER_NAME}}\" +set sv_maxclients {{MAX_PLAYERS}} +set sv_maxplayers {{MAX_PLAYERS}} +set sv_gametype {{GAME_TYPE}} +set join_password \"{{SERVER_PASSWORD}}\" +set rcon_password \"{{RCON_PASSWORD}}\" +set sv_usemasters {{PUBLIC}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Odamex Server Initialized\"]}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Odamex. Odamex publishes no Linux server build, so this builds its server\n# from the release's source (checked against GitHub's SHA-256) the way\n# Odamex's own Docker image does, then adds Freedoom's free game data,\n# checked against Freedoom's checksum list. Your WADs (wads/), server.cfg\n# and anything else you add are never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\nrm -rf \"$build\" && mkdir -p \"$build\"\n\ntag=$(gh-release tag odamex/odamex \"${VERSION:-latest}\") ||\n    fail \"Odamex ${VERSION} doesn't exist. Check Version and reinstall.\"\nversion=${tag#v}\n\nif [ -x odasrv ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"Odamex $version is already installed.\"\nelse\n    echo \"Downloading Odamex $version's source\"\n    gh-release download odamex/odamex \"$tag\" \"odamex-src-$version.tar.xz\" \"$build/src.tar.xz\" ||\n        fail \"The download from GitHub failed. Reinstall to try again.\"\n    echo \"Installing the build tools\"\n    export DEBIAN_FRONTEND=noninteractive\n    { apt-get update -q && apt-get install -y -q --no-install-recommends g++ cmake ninja-build zlib1g-dev libzstd-dev python3; } >\"$build/apt.log\" 2>&1 ||\n        { tail -n 5 \"$build/apt.log\"; fail \"The build tools couldn't be installed. Reinstall to try again.\"; }\n    # Two compile jobs keep the server's build within the install's memory\n    # (no swap).\n    echo \"Building the Odamex server (a few minutes)\"\n    mkdir -p \"$build/src\" \"$build/b\"\n    tar -xJf \"$build/src.tar.xz\" -C \"$build/src\" --strip-components=1\n    # Its bundled libraries build with one job per CPU whatever the build is\n    # told; one job keeps protobuf within the install's memory.\n    sed -i 's/^ProcessorCount(PARALLEL_PROC_COUNT)/set(PARALLEL_PROC_COUNT 1)/' \"$build/src/libraries/CMakeLists.txt\"\n    (cd \"$build/b\" && cmake -W no-dev -G Ninja -D CMAKE_BUILD_TYPE=Release -D BUILD_CLIENT=0 -D BUILD_LAUNCHER=0 \\\n        -D BUILD_TESTS=0 -D BUILD_MASTER=0 -D BUILD_SERVER=1 -D CMAKE_C_FLAGS=-w -D CMAKE_CXX_FLAGS=-w \"$build/src\" &&\n        cmake --build . --parallel 2) >\"$build/build.log\" 2>&1 ||\n        { tail -n 20 \"$build/build.log\"; fail \"Odamex's server didn't build. Reinstall to try again.\"; }\n    [ -x \"$build/b/server/odasrv\" ] && [ -f \"$build/b/server/odamex.wad\" ] || fail \"Odamex's build made no server.\"\n    mv -f \"$build/b/server/odasrv\" odasrv\n    mv -f \"$build/b/server/odamex.wad\" odamex.wad\n    mkdir -p config-samples\n    cp -f \"$build/src\"/config-samples/*.cfg config-samples/ 2>/dev/null || true\n    echo \"$version\" > .raptor-version\nfi\n\n# Freedoom's game data, free to play and share, for servers without their\n# own Doom WADs; your own WADs go in wads/ too.\nmkdir -p wads\nftag=$(gh-release tag freedoom/freedoom latest) || fail \"GitHub can't be reached right now. Reinstall to try again.\"\nfver=${ftag#v}\nif [ -f wads/freedoom2.wad ] && [ -f wads/freedm.wad ] && [ \"$(cat .raptor-freedoom 2>/dev/null)\" = \"$fver\" ]; then\n    echo \"Freedoom $fver is already installed.\"\nelse\n    echo \"Downloading Freedoom $fver\"\n    sums=$(curl -fsSL --retry 3 \"https://github.com/freedoom/freedoom/releases/download/$ftag/freedoom-$fver-CHECKSUM\") ||\n        fail \"Freedoom's checksum list couldn't be downloaded. Reinstall to try again.\"\n    for z in \"freedoom-$fver.zip\" \"freedm-$fver.zip\"; do\n        gh-release download freedoom/freedoom \"$ftag\" \"$z\" \"$build/$z\" || fail \"The download of $z failed. Reinstall to try again.\"\n        sum=$(sed -n \"s/^SHA256 ($z) = \\([0-9a-f]*\\)$/\\1/p\" <<<\"$sums\")\n        [ -n \"$sum\" ] && [ \"$(sha256sum \"$build/$z\" | cut -d' ' -f1)\" = \"$sum\" ] ||\n            fail \"$z didn't match Freedoom's checksum. Reinstall to try again.\"\n        unzip -q -o -j \"$build/$z\" '*.wad' -d \"$build/wads\"\n    done\n    mv -f \"$build\"/wads/*.wad wads/\n    echo \"$fver\" > .raptor-freedoom\nfi\n\n[ -f server.cfg ] || cat > server.cfg <<'CFG'\n// Odamex server settings, run at every start. The port, name, slots, game\n// type, IWAD and passwords come from the server's variables; config-samples/\n// has Odamex's ready-made setups (exec one from here).\nset sv_motd \"Welcome to an Odamex server.\"\nset sv_skill 3\nset sv_timelimit 10\nCFG\necho \"Installed Odamex $version with Freedoom $fver.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Odamex release, such as 12.3.0, or latest for the newest one. Players need the same release. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|[0-9]+\\.[0-9]+\\.[0-9]+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server browser.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "An Odamex server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "IWAD",
+            "description": "The game data the server runs: freedoom2.wad, freedoom1.wad or freedm.wad (Freedoom, included), or a Doom IWAD you upload to wads/.",
+            "env_variable": "IWAD",
+            "default_value": "freedoom2.wad",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9._-]+\\.(wad|WAD)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Game type",
+            "description": "0 co-op, 1 deathmatch, 2 team deathmatch, 3 capture the flag, 4 horde.",
+            "env_variable": "GAME_TYPE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|in:0,1,2,3,4",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can be on the server at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "16",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,255",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with. Empty, anyone can join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON password",
+            "description": "The password for remote admin commands over rcon. Empty turns rcon off.",
+            "env_variable": "RCON_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Public",
+            "description": "1 lists the server on Odamex's master servers so players find it; 0 keeps it unlisted.",
+            "env_variable": "PUBLIC",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|in:0,1",
+            "field_type": "text"
+        }
+    ]
+}

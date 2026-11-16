@@ -1,0 +1,81 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Red Eclipse",
+    "author": "support@raptorpanel.net",
+    "description": "Red Eclipse, the free arena shooter with parkour, impulse boosts and many game modes. It also uses the port after the server's port, so add that one too. Other settings are in home/servinit.cfg.",
+    "features": [],
+    "docker_images": {
+        "Box64": "ghcr.io/xena-studios/yolks:box64@sha256:a8f7c0aab43e795694a44fdc2fbd3f38f1d7915739f8792bfd51889a6bf75e96"
+    },
+    "file_denylist": [],
+    "startup": "b=; command -v box64 >/dev/null && b=box64; export LD_LIBRARY_PATH=$PWD/bin/amd64 BOX64_LD_LIBRARY_PATH=$PWD/bin/amd64 BOX64_LOG=0; exec $b ./bin/amd64/redeclipse_server_linux -h/home/container/home -sp{{SERVER_PORT}}",
+    "config": {
+        "files": "{\"home/servinit.cfg\": {\"parser\": \"file\", \"find\": {\"sv_serverdesc \": \"sv_serverdesc \\\"{{server.build.env.SERVER_NAME}}\\\"\", \"sv_serverclients \": \"sv_serverclients {{server.build.env.MAX_PLAYERS}}\", \"serverpass \": \"serverpass \\\"{{server.build.env.SERVER_PASSWORD}}\\\"\", \"adminpass \": \"adminpass \\\"{{server.build.env.ADMIN_PASSWORD}}\\\"\"}}}",
+        "startup": "{\"done\": [\"Dedicated server started, waiting for clients\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Red Eclipse. Downloads a release from GitHub and keeps only what the\n# server needs (the server, its config/ scripts and the maps), about 10 MB of\n# the 950 MB release. home/ (servinit.cfg, your settings, bans) is never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\ntrap 'rm -rf \"$build\"' EXIT\n\nwant=${VERSION:-latest}\n[ \"$want\" = latest ] || want=\"v${want#v}\"\ntag=$(gh-release tag redeclipse/base \"$want\") ||\n    fail \"Red Eclipse ${VERSION} doesn't exist. Check Version and reinstall.\"\nversion=${tag#v}\n\nif [ -x bin/amd64/redeclipse_server_linux ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"Red Eclipse $version is already installed.\"\nelse\n    rm -rf \"$build\" && mkdir -p \"$build\"\n    echo \"Downloading Red Eclipse $version (about 950 MB, of which the server keeps 10 MB)\"\n    gh-release download redeclipse/base \"$tag\" \"redeclipse_${version}_nix.tar.bz2\" \"$build/re.tar.bz2\" ||\n        fail \"The download from GitHub failed. Reinstall to try again.\"\n    tar -xjf \"$build/re.tar.bz2\" -C \"$build\" --wildcards \\\n        '*/bin/amd64/redeclipse_server_linux' '*/bin/amd64/libsteam_api.so' '*/config/*' '*/data/maps/*' '*/doc/examples/servinit.cfg' ||\n        fail \"Red Eclipse's download has no Linux server in it.\"\n    rel=$(find \"$build\" -mindepth 1 -maxdepth 1 -type d -name 'redeclipse*' | sed -n 1p)\n    mkdir -p bin data\n    rm -rf bin/amd64 config data/maps\n    mv \"$rel/bin/amd64\" bin/amd64\n    mv \"$rel/config\" config\n    mv \"$rel/data/maps\" data/maps\n    chmod +x bin/amd64/redeclipse_server_linux\n    mkdir -p home\n    [ -f home/servinit.cfg ] || mv \"$rel/doc/examples/servinit.cfg\" home/servinit.cfg\n    echo \"$version\" > .raptor-version\nfi\n# The settings the server's variables set, as lines Raptor rewrites at each\n# start (the example servinit.cfg has them commented out).\nmkdir -p home\ntouch home/servinit.cfg\nfor k in sv_serverdesc sv_serverclients serverpass adminpass; do\n    grep -q \"^$k \" home/servinit.cfg || echo \"$k \\\"\\\"\" >> home/servinit.cfg\ndone\necho \"Installed Red Eclipse $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Red Eclipse release, such as 2.0.0, or latest for the newest one. Players need the same release. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?[0-9]+\\.[0-9]+(\\.[0-9]+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server browser.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A Red Eclipse server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:60|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can be on the server at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "16",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,64",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with. Empty, anyone can join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:60|regex:/^[^\"]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The password for /setmaster, which gives a player admin rights. Empty turns it off.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:60|regex:/^[^\"]*$/",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/unreal-tournament-2004/egg-unreal-tournament-2004.json
+license: MIT
+credits:
+  - "Written for Raptor, following OldUnreal's Linux installer in https://github.com/OldUnreal/FullGameInstallers (the same downloads and steps)"
+  - "Icon: Unreal Tournament 2004's Steam store art (Epic Games, app 13230)"
+certified: true
+# OldUnreal's patch has native Linux builds for both.
+arch: [amd64, arm64]
+# No players query (UT2004 answers GameSpy queries, not A2S), no backup
+# hooks (nothing to save), and no console: the server doesn't read its input.
+test:
+  # A 2.8 GB DVD image that unpacks to 5.8 GB (about 9 GB at the peak).
+  tier: slow
+  memory_mib: 1024
+  done_timeout: 5m
