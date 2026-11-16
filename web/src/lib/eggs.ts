@@ -157,11 +157,25 @@ export const addonKinds: Record<
 };
 
 // addonSources are where a kind's add-ons can come from, the default
-// first.
-export function addonSources(kind: string, loaders: string[]): string[] {
+// first. curseforge: the Panel has CurseForge and the node can install
+// from it (#412).
+export function addonSources(kind: string, loaders: string[], curseforge = false): string[] {
   if (kind === "umod") return ["umod"];
   if (kind === "factorio") return ["factorio"];
-  return onHangar(kind, loaders) ? ["modrinth", "hangar"] : ["modrinth"];
+  const out = onHangar(kind, loaders) ? ["modrinth", "hangar"] : ["modrinth"];
+  if (curseforge && onCurseForge(kind, loaders)) out.push("curseforge");
+  return out;
+}
+
+// onCurseForge reports whether CurseForge has an add-on kind for the
+// loaders: mods for Forge, Fabric, Quilt, and NeoForge; Bukkit plugins
+// for Paper's family.
+export function onCurseForge(kind: string, loaders: string[]): boolean {
+  if (kind === "mods")
+    return loaders.some((l) => ["forge", "fabric", "quilt", "neoforge"].includes(l));
+  if (kind === "plugins")
+    return loaders.some((l) => ["paper", "spigot", "bukkit", "purpur", "folia"].includes(l));
+  return false;
 }
 
 // hangarLoaders are the loaders whose plugins Hangar has (Paper's, and
@@ -185,6 +199,7 @@ export function onHangar(kind: string, loaders: string[]): boolean {
 export const sourceNames: Record<string, string> = {
   modrinth: "Modrinth",
   hangar: "Hangar",
+  curseforge: "CurseForge",
   umod: "uMod",
   factorio: "the Factorio mod portal",
 };

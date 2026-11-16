@@ -60,6 +60,20 @@ service AddonService {
   rpc ListGameVersions(ListGameVersionsRequest) returns (ListGameVersionsResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // ListAddonSources lists the add-on sources this Panel has besides the
+  // ones it always has: "curseforge" once it has an API key (#412).
+  rpc ListAddonSources(ListAddonSourcesRequest) returns (ListAddonSourcesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+message ListAddonSourcesRequest {
+  string org_id = 1;
+}
+
+message ListAddonSourcesResponse {
+  repeated string sources = 1;
 }
 
 message AddonProject {
@@ -92,10 +106,14 @@ message AddonFile {
   string url = 1;
   string filename = 2;
   int64 size = 3;
-  // Modrinth's files have a SHA-512, Hangar's a SHA-256, uMod's a SHA-1.
+  // Modrinth's files have a SHA-512, Hangar's a SHA-256, uMod's,
+  // Factorio's, and CurseForge's a SHA-1.
   string sha512 = 4;
   string sha256 = 5;
   string sha1 = 6;
+  // Set, with no url, for a CurseForge file whose author turned off
+  // downloads by other apps: its page, to download it by hand.
+  string manual_url = 7;
 }
 
 message AddonVersion {
@@ -122,8 +140,9 @@ message SearchAddonsRequest {
   string game_version = 4;
   string query = 5;
   int32 offset = 6;
-  // "modrinth" (the default), "hangar" (plugins only), or "umod" (the
-  // umod kind, which has only uMod).
+  // "modrinth" (the default), "hangar" (plugins only), "curseforge"
+  // (plugins and mods, when the Panel has it), or "umod" (the umod kind,
+  // which has only uMod).
   string source = 7;
   // Mods only: include client-only ones (left out by default, since they
   // don't run on a server).
@@ -140,7 +159,8 @@ message ListAddonVersionsRequest {
   string project_id = 2;
   repeated string loaders = 3;
   string game_version = 4;
-  // The project's source: "modrinth" (the default), "hangar", or "umod".
+  // The project's source: "modrinth" (the default), "hangar",
+  // "curseforge", or "umod".
   string source = 5;
   // "modpacks" for a modpack's versions (no loaders needed); empty for
   // add-ons.
@@ -165,6 +185,9 @@ message IdentifyAddonsRequest {
   // that isn't it is offered the update.
   map<string, string> names = 6;
   map<string, string> sha1 = 7;
+  // CurseForge's fingerprints, by SHA-512: files neither Modrinth nor
+  // Hangar knows are looked up on CurseForge (when the Panel has it).
+  map<string, uint32> curseforge = 8;
 }
 
 message IdentifiedAddon {

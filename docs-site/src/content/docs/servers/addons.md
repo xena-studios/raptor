@@ -13,9 +13,11 @@ Servers whose game takes add-ons get an **Add-ons** tab, next to Files. It has a
 
 | Tab | For | From |
 |---|---|---|
-| **Plugins** | Paper, Purpur, Spigot, Bukkit, Folia, Velocity, BungeeCord, Waterfall, Sponge | Modrinth, or Hangar (PaperMC's repository) |
-| **Mods** | Fabric, Forge, NeoForge, Quilt | Modrinth |
+| **Plugins** | Paper, Purpur, Spigot, Bukkit, Folia, Velocity, BungeeCord, Waterfall, Sponge | Modrinth, Hangar (PaperMC's repository), or CurseForge* |
+| **Mods** | Fabric, Forge, NeoForge, Quilt | Modrinth, or CurseForge* |
 | **Datapacks** | Any Java server | Modrinth |
+
+\* CurseForge shows up once the Panel has a CurseForge API key. Some CurseForge authors only allow downloads from CurseForge itself: for those, Raptor links to the file to download by hand (then upload it in Files) instead of installing it.
 
 On the tab:
 

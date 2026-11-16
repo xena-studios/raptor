@@ -13,6 +13,7 @@ import (
 
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/panel/auth"
+	"github.com/xena-studios/raptor/internal/panel/curseforge"
 	"github.com/xena-studios/raptor/internal/panel/hangar"
 	"github.com/xena-studios/raptor/internal/panel/modrinth"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
@@ -106,12 +107,47 @@ func TestAddons(t *testing.T) {
 	}))
 	defer st.Close()
 
+	cf := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Api-Key") != "cf-key" {
+			http.Error(w, "no key", http.StatusForbidden)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		const mod = `{"id":238222,"classId":6,"name":"JEI","slug":"jei","authors":[{"name":"mezz"}]}`
+		const blocked = `{"id":5,"classId":6,"name":"Shy","slug":"shy","allowModDistribution":false}`
+		file := func(id, mod, date string) string {
+			return `{"id":` + id + `,"modId":` + mod + `,"displayName":"v` + id + `","fileName":"f` + id + `.jar","fileDate":"` + date + `","isAvailable":true,
+				"downloadUrl":"https://edge.forgecdn.net/files/` + id + `.jar","hashes":[{"value":"` + strings.Repeat("a", 40) + `","algo":1}],
+				"gameVersions":["1.21.1","Fabric"],"dependencies":[{"modId":306612,"relationType":3}],"fileFingerprint":` + id + `}`
+		}
+		switch r.URL.Path {
+		case "/v1/mods/search":
+			_, _ = io.WriteString(w, `{"data":[`+mod+`],"pagination":{"totalCount":1}}`)
+		case "/v1/mods/238222":
+			_, _ = io.WriteString(w, `{"data":`+mod+`}`)
+		case "/v1/mods/5":
+			_, _ = io.WriteString(w, `{"data":`+blocked+`}`)
+		case "/v1/mods/238222/files":
+			_, _ = io.WriteString(w, `{"data":[`+file("2", "238222", "2026-02-01T00:00:00Z")+`,`+file("1", "238222", "2026-01-01T00:00:00Z")+`]}`)
+		case "/v1/mods/5/files":
+			_, _ = io.WriteString(w, `{"data":[`+file("9", "5", "2026-01-01T00:00:00Z")+`]}`)
+		case "/v1/fingerprints/432":
+			_, _ = io.WriteString(w, `{"data":{"exactMatches":[{"file":`+file("1", "238222", "2026-01-01T00:00:00Z")+`}]}}`)
+		case "/v1/mods":
+			_, _ = io.WriteString(w, `{"data":[`+mod+`]}`)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer cf.Close()
+
 	authSvc := &auth.Service{DB: db, Mailer: mail, AppURL: appOrigin}
 	srv := httptest.NewTLSServer(Handler(Config{
 		Auth: authSvc, Orgs: &orgs.Service{DB: db, Auth: authSvc}, AppOrigin: appOrigin,
-		Modrinth: &modrinth.Client{Base: mr.URL, UserAgent: "test"},
-		Hangar:   &hangar.Client{Base: hg.URL, UserAgent: "test"},
-		Steam:    &steam.Client{Base: st.URL, UserAgent: "test"},
+		Modrinth:   &modrinth.Client{Base: mr.URL, UserAgent: "test"},
+		Hangar:     &hangar.Client{Base: hg.URL, UserAgent: "test"},
+		Steam:      &steam.Client{Base: st.URL, UserAgent: "test"},
+		CurseForge: &curseforge.Client{Key: "cf-key", Base: cf.URL, UserAgent: "test"},
 	}))
 	defer srv.Close()
 	signUp := func(email string) *browser {
@@ -223,5 +259,32 @@ func TestAddons(t *testing.T) {
 	}
 	if _, err := carol.addons.LookupWorkshopItems(ctx, &panelv1.LookupWorkshopItemsRequest{OrgId: org, Ids: []string{"5"}}); connect.CodeOf(err) != connect.CodeNotFound {
 		t.Errorf("an outsider looking up workshop items: %v", err)
+	}
+
+	// CurseForge (#412): on with a key; files whose author blocks other
+	// apps come with a page to download them by hand.
+	if src, err := alice.addons.ListAddonSources(ctx, &panelv1.ListAddonSourcesRequest{OrgId: org}); err != nil || len(src.GetSources()) != 1 || src.GetSources()[0] != "curseforge" {
+		t.Errorf("sources: %v, %v", src, err)
+	}
+	found, err := alice.addons.SearchAddons(ctx, &panelv1.SearchAddonsRequest{OrgId: org, Kind: "mods", Loaders: []string{"fabric"}, Source: "curseforge"})
+	if err != nil || len(found.GetProjects()) != 1 || found.GetProjects()[0].GetId() != "238222" || found.GetProjects()[0].GetSource() != "curseforge" {
+		t.Fatalf("curseforge search: %v, %v", found, err)
+	}
+	cfv, err := alice.addons.ListAddonVersions(ctx, &panelv1.ListAddonVersionsRequest{OrgId: org, ProjectId: "238222", Loaders: []string{"fabric"}, Source: "curseforge"})
+	if err != nil || len(cfv.GetVersions()) != 2 || cfv.GetVersions()[0].GetFile().GetSha1() == "" || cfv.GetVersions()[0].GetDependencies()[0].GetType() != "required" {
+		t.Fatalf("curseforge versions: %v, %v", cfv, err)
+	}
+	manual, err := alice.addons.ListAddonVersions(ctx, &panelv1.ListAddonVersionsRequest{OrgId: org, ProjectId: "5", Loaders: []string{"fabric"}, Source: "curseforge"})
+	if err != nil || len(manual.GetVersions()) != 1 || manual.GetVersions()[0].GetFile().GetUrl() != "" ||
+		manual.GetVersions()[0].GetFile().GetManualUrl() != "https://www.curseforge.com/minecraft/mc-mods/shy/files/9" {
+		t.Fatalf("a blocked file: %v, %v", manual, err)
+	}
+	h := strings.Repeat("c", 128)
+	cfID, err := alice.addons.IdentifyAddons(ctx, &panelv1.IdentifyAddonsRequest{OrgId: org, Hashes: []string{h}, Loaders: []string{"fabric"}, Curseforge: map[string]uint32{h: 1}})
+	if err != nil || len(cfID.GetAddons()) != 1 || cfID.GetAddons()[0].GetVersion().GetId() != "1" || cfID.GetAddons()[0].GetLatest().GetId() != "2" {
+		t.Fatalf("curseforge identify: %v, %v", cfID, err)
+	}
+	if _, err := alice.addons.SearchAddons(ctx, &panelv1.SearchAddonsRequest{OrgId: org, Kind: "datapacks", Loaders: []string{"datapack"}, Source: "curseforge"}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Errorf("curseforge datapacks: %v", err)
 	}
 }

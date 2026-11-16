@@ -19,6 +19,7 @@ import (
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
 	"github.com/xena-studios/raptor/internal/panel/auth"
+	"github.com/xena-studios/raptor/internal/panel/curseforge"
 	"github.com/xena-studios/raptor/internal/panel/factorio"
 	"github.com/xena-studios/raptor/internal/panel/gameversions"
 	"github.com/xena-studios/raptor/internal/panel/hangar"
@@ -42,6 +43,8 @@ type Addons struct {
 	Modpacks *modpacks.Client
 	Versions *gameversions.Client
 	Mojang   *mojang.Client
+	// CurseForge is off (nil, or no key) until the Panel has an API key.
+	CurseForge *curseforge.Client
 }
 
 // kindModpacks is the pack picker's kind (#413): Modrinth's modpacks,
@@ -164,8 +167,8 @@ func hangarPlatform(kind string, loaders []string) (string, error) {
 
 func checkSource(source string) error {
 	if source != "" && source != sourceModrinth && source != sourceHangar && source != sourceUMod && source != sourceFactorio &&
-		source != sourceFTB && source != sourceTechnic {
-		return invalid(errors.New("the source is modrinth, hangar, umod, factorio, ftb, or technic"))
+		source != sourceFTB && source != sourceTechnic && source != sourceCurseForge {
+		return invalid(errors.New("the source is modrinth, hangar, curseforge, umod, factorio, ftb, or technic"))
 	}
 	return nil
 }
@@ -332,6 +335,9 @@ func (s *Addons) SearchAddons(ctx context.Context, req *panelv1.SearchAddonsRequ
 		}
 		return out, nil
 	}
+	if req.GetSource() == sourceCurseForge {
+		return s.searchCurseForge(ctx, req, query, offset)
+	}
 	if req.GetSource() == sourceHangar {
 		platform, err := hangarPlatform(req.GetKind(), req.GetLoaders())
 		if err != nil {
@@ -412,6 +418,9 @@ func (s *Addons) ListAddonVersions(ctx context.Context, req *panelv1.ListAddonVe
 	if !projectRef.MatchString(req.GetProjectId()) {
 		return nil, invalid(errors.New("that isn't a project"))
 	}
+	if req.GetSource() == sourceCurseForge {
+		return s.curseForgeVersions(ctx, req)
+	}
 	if req.GetSource() == sourceUMod {
 		p, err := s.UMod.Get(ctx, req.GetProjectId())
 		if err != nil {
@@ -477,6 +486,11 @@ func (s *Addons) IdentifyAddons(ctx context.Context, req *panelv1.IdentifyAddons
 			return nil, invalid(errors.New("that isn't a SHA-1"))
 		}
 	}
+	for k := range req.GetCurseforge() {
+		if !sha512Hex.MatchString(k) {
+			return nil, invalid(errors.New("that isn't a SHA-512"))
+		}
+	}
 	for k, v := range req.GetNames() {
 		if !sha512Hex.MatchString(k) || v == "" || len(v) > 255 || strings.ContainsAny(v, `/\`) {
 			return nil, invalid(errors.New("that isn't a file name"))
@@ -525,6 +539,9 @@ func (s *Addons) IdentifyAddons(ctx context.Context, req *panelv1.IdentifyAddons
 		out.Addons = append(out.Addons, a)
 	}
 	if err := s.identifyOnHangar(ctx, req, current, out); err != nil {
+		return nil, err
+	}
+	if err := s.identifyOnCurseForge(ctx, req, out); err != nil {
 		return nil, err
 	}
 	if err := s.identifyOnUMod(ctx, req, out); err != nil {

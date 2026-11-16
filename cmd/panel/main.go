@@ -30,6 +30,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/billing"
 	"github.com/xena-studios/raptor/internal/panel/catalog"
 	"github.com/xena-studios/raptor/internal/panel/commands"
+	"github.com/xena-studios/raptor/internal/panel/curseforge"
 	"github.com/xena-studios/raptor/internal/panel/discord"
 	"github.com/xena-studios/raptor/internal/panel/dns"
 	"github.com/xena-studios/raptor/internal/panel/images"
@@ -106,6 +107,8 @@ environment:
   PANEL_DISCORD_CUSTOMER_ROLE  the role the bot gives customers (and takes back)
   PANEL_DISCORD_SUPPORT_ROLE   the role a new ticket pings (optional)
   PANEL_DISCORD_LOG_CHANNEL    the staff channel for tickets and role changes (optional)
+  PANEL_CURSEFORGE_API_KEY     CurseForge for Studios API key; CurseForge add-ons are off
+                               without it
   PANEL_DOCS_URL               the docs, for /docs (default https://docs.raptorpanel.net)
   PANEL_POLAR_TOKEN            Polar organization access token; billing is off without it
   PANEL_POLAR_PRODUCT_ID       the seat-based product ($12 per node a month)
@@ -213,6 +216,9 @@ func run(args []string, log *slog.Logger) error {
 // their connections, which needs the signing key.
 func serveAPI(ctx context.Context, log *slog.Logger) error {
 	cfg := api.Config{Addr: envOr("PANEL_API_ADDR", ":8080")}
+	if key := os.Getenv("PANEL_CURSEFORGE_API_KEY"); key != "" {
+		cfg.CurseForge = &curseforge.Client{Key: key, UserAgent: "xena-studios/raptor/" + buildinfo.Version + " (raptorpanel.net)"}
+	}
 	host, _ := os.Hostname()
 	stopTelemetry, err := telemetry.Setup(ctx, buildinfo.Version, host, log)
 	if err != nil {

@@ -12,10 +12,12 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/xena-studios/raptor/internal/eggs"
+	"github.com/xena-studios/raptor/internal/shared/cffingerprint"
 	"github.com/xena-studios/raptor/internal/wings/addons"
 	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/files"
@@ -117,7 +119,7 @@ func TestInstall(t *testing.T) {
 	tr.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {
 		return (&net.Dialer{}).DialContext(ctx, network, cdn.Listener.Addr().String())
 	}
-	svc := &addons.Service{Files: fsvc, Servers: srv, Hosts: []string{"example.com", addons.HangarHost, addons.UModHost, addons.FactorioHost}}
+	svc := &addons.Service{Files: fsvc, Servers: srv, Hosts: []string{"example.com", addons.HangarHost, addons.UModHost, addons.FactorioHost, addons.CurseForgeHost}}
 	svc.Client = &http.Client{Transport: tr, CheckRedirect: func(*http.Request, []*http.Request) error {
 		return addons.ErrSource // the default client only follows redirects to its hosts
 	}}
@@ -175,6 +177,24 @@ func TestInstall(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := os.Remove(filepath.Join(dir, "plugins", "FromHangar.jar")); err != nil {
+		t.Fatal(err)
+	}
+
+	// CurseForge lists SHA-1s.
+	if _, err := install(addons.Install{URL: "https://" + addons.CurseForgeHost + "/v1.jar", Sha512: sum(v1), Filename: "cf.jar"}); err == nil {
+		t.Error("a CurseForge file without its SHA-1")
+	}
+	if _, err := install(addons.Install{URL: "https://" + addons.CurseForgeHost + "/v2.jar", Sha1: sum1(v1), Filename: "cf.jar"}); !errors.Is(err, addons.ErrHash) {
+		t.Errorf("a swapped CurseForge file: %v", err)
+	}
+	if f, err := install(addons.Install{URL: "https://" + addons.CurseForgeHost + "/v1.jar", Sha1: sum1(v1), Filename: "FromCF.jar"}); err != nil {
+		t.Fatal(err)
+	} else if ls, err := svc.List(ctx, srvID, "plugins"); err != nil || !slices.ContainsFunc(ls.Files, func(x addons.File) bool {
+		return x.Name == f.Name && x.Fingerprint == cffingerprint.Of(v1)
+	}) {
+		t.Errorf("CurseForge's fingerprint isn't listed: %+v %v", ls, err)
+	}
+	if err := os.Remove(filepath.Join(dir, "plugins", "FromCF.jar")); err != nil {
 		t.Fatal(err)
 	}
 
