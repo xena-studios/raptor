@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	localv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/wings/local/v1"
 	"github.com/xena-studios/raptor/internal/wings/host"
@@ -74,6 +74,11 @@ func New(ctx context.Context, b Backend, root bool) Model {
 	in := textinput.New()
 	in.Placeholder = "console command"
 	in.CharLimit = 2000
+	// The default styles colour the prompt and cursor; keep them plain.
+	st := in.Styles()
+	st.Focused.Prompt = lipgloss.NewStyle()
+	st.Cursor.Color = nil
+	in.SetStyles(st)
 	return Model{ctx: ctx, backend: b, root: root, input: in, width: 100, height: 30}
 }
 
@@ -220,7 +225,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.err, m.status = "", msg.status
 		}
 		return m, m.loadServers()
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		return m.key(msg)
 	}
 	if m.typing {
@@ -255,10 +260,10 @@ func (m Model) back() Model {
 	return m
 }
 
-func (m Model) key(k tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	m.err = ""
 	if m.typing {
-		switch k.Type {
+		switch k.Code {
 		case tea.KeyEsc:
 			m.typing = false
 			m.input.Blur()
@@ -393,8 +398,14 @@ func shortID(id string) string {
 	return id
 }
 
-// View renders the screen.
-func (m Model) View() string {
+// View renders the screen, on the alternate screen.
+func (m Model) View() tea.View {
+	v := tea.NewView(m.render())
+	v.AltScreen = true
+	return v
+}
+
+func (m Model) render() string {
 	var b strings.Builder
 	if m.view == detailView {
 		m.detail(&b)
@@ -508,6 +519,6 @@ func Sparkline(v []float64, width int) string {
 
 // Run shows the TUI until the user quits.
 func Run(ctx context.Context, b Backend, root bool) error {
-	_, err := tea.NewProgram(New(ctx, b, root), tea.WithAltScreen(), tea.WithContext(ctx)).Run()
+	_, err := tea.NewProgram(New(ctx, b, root), tea.WithContext(ctx)).Run()
 	return err
 }
