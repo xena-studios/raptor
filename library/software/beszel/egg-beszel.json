@@ -1,0 +1,81 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Beszel",
+    "author": "support@raptorpanel.net",
+    "description": "Beszel is a lightweight server monitoring hub with history, Docker stats and alerts. Runs the hub, creating the admin account from its settings at the first start, or on your first visit when they're empty.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "unset APP_URL USER_EMAIL USER_PASSWORD; [ -z \"{{BESZEL_APP_URL}}\" ] || export APP_URL=\"{{BESZEL_APP_URL}}\"; if [ -n \"{{ADMIN_EMAIL}}\" ] && [ -n \"{{ADMIN_PASSWORD}}\" ]; then export USER_EMAIL=\"{{ADMIN_EMAIL}}\" USER_PASSWORD=\"{{ADMIN_PASSWORD}}\"; fi; export CHECK_UPDATES={{CHECK_UPDATES}}; exec ./beszel serve --http 0.0.0.0:{{SERVER_PORT}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Server started at\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Beszel: downloads the Beszel hub from its GitHub releases, checked\n# against GitHub's SHA-256. The data folder (beszel_data: users, systems,\n# history) is never touched.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Beszel has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nwant=\"${VERSION:-latest}\"\n[ \"$want\" = latest ] || want=\"v${want#v}\"\ntag=$(gh-release tag henrygd/beszel \"$want\") || fail \"Set Version to latest, or to a release such as 0.21.2, then reinstall.\"\n\nif [ -x beszel ] && [ \"$(cat .beszel-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Beszel $tag is already installed.\"\nelse\n    echo \"Downloading Beszel $tag\"\n    gh-release download henrygd/beszel \"$tag\" \"beszel_linux_${arch}.tar.gz\" \"$work/beszel.tar.gz\"\n    tar -xzf \"$work/beszel.tar.gz\" -C \"$work\" beszel\n    install -m 0755 \"$work/beszel\" beszel.new\n    mv -f beszel.new beszel\n    echo \"$tag\" > .beszel-version\nfi\nmkdir -p beszel_data\necho \"Installed Beszel $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Beszel version to install, such as 0.21.2, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Address",
+            "description": "The hub's full public address, starting with http or https, used in links in emails and alerts. Leave it empty to use the server's address.",
+            "env_variable": "BESZEL_APP_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^https?:\\/\\/[^\\s\"]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin email",
+            "description": "The admin account's email, created on the first start with Admin password. Leave both empty to create it on the first visit to the hub.",
+            "env_variable": "ADMIN_EMAIL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^[^@\\s]+@[^@\\s]+$/|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The admin account's password (at least 8 characters), used only when the hub has no users yet.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:72",
+            "field_type": "text"
+        },
+        {
+            "name": "Check for updates",
+            "description": "Ask GitHub for new Beszel releases and show a notice when there is one.",
+            "env_variable": "CHECK_UPDATES",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        }
+    ]
+}

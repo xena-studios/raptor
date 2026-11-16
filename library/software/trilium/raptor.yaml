@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/trilium/egg-trilium.json
+license: MIT
+credits:
+  - "Written for Raptor from TriliumNext's documentation, https://github.com/TriliumNext/Trilium (AGPL-3.0)"
+  - "Icon: the Trilium logo, from https://github.com/TriliumNext (AGPL-3.0)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m

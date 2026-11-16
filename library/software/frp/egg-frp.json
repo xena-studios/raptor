@@ -1,0 +1,51 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "frp",
+    "author": "support@raptorpanel.net",
+    "description": "frp is a fast reverse proxy that exposes servers behind a NAT or firewall. Runs frps, the server that frp clients connect to with a shared token.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "if [ -z \"${FRPS_TOKEN:-}\" ]; then echo \"Set Auth token in the server's settings first: without one, anyone could use this server.\"; exit 1; fi; exec ./frps -c frps.toml",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"frps started successfully\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# frp: downloads frps (the server half of frp) from its GitHub releases,\n# checked against GitHub's SHA-256, and writes a first frps.toml. An\n# existing frps.toml is never touched.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"frp has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nwant=\"${VERSION:-latest}\"\n[ \"$want\" = latest ] || want=\"v${want#v}\"\ntag=$(gh-release tag fatedier/frp \"$want\") || fail \"Set Version to latest, or to a release such as 0.72.0, then reinstall.\"\nversion=\"${tag#v}\"\n\nif [ -x frps ] && [ \"$(cat .frps-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"frps $version is already installed.\"\nelse\n    echo \"Downloading frps $version\"\n    gh-release download fatedier/frp \"$tag\" \"frp_${version}_linux_${arch}.tar.gz\" \"$work/frp.tar.gz\"\n    tar -xzf \"$work/frp.tar.gz\" -C \"$work\" --strip-components=1\n    install -m 0755 \"$work/frps\" frps.new\n    mv -f frps.new frps\n    echo \"$tag\" > .frps-version\nfi\n\n# The port and token come from the server's settings at every start (frp\n# reads them from the environment); everything else is the owner's to change.\nif [ ! -f frps.toml ]; then\n    cat > frps.toml <<'TOML'\n# frps settings: https://github.com/fatedier/frp#configuration-files\n# The port clients connect to and the token they need come from the\n# server's settings. Clients can open proxies on the server's other ports.\nbindAddr = \"0.0.0.0\"\nbindPort = {{ .Envs.SERVER_PORT }}\nauth.method = \"token\"\nauth.token = \"{{ .Envs.FRPS_TOKEN }}\"\n\n# Only these ports can be opened by clients (add the server's other ports).\n# allowPorts = [{ start = 25565, end = 25570 }]\n\n# Web dashboard: set a port the server has and a password to turn it on.\n# webServer.addr = \"0.0.0.0\"\n# webServer.port = 7500\n# webServer.user = \"admin\"\n# webServer.password = \"\"\nTOML\n    echo \"Wrote a first frps.toml.\"\nfi\necho \"Installed frps $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The frp version to install, such as 0.72.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Auth token",
+            "description": "The token frp clients must use to connect (auth.token in frpc.toml). The server won't start without one.",
+            "env_variable": "FRPS_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:200|regex:/^[^\"\\\\]*$/",
+            "field_type": "text"
+        }
+    ]
+}

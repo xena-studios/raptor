@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/healthchecks/egg-healthchecks.json
+license: MIT
+credits:
+  - "Written for Raptor from Healthchecks' documentation and Docker setup, https://github.com/healthchecks/healthchecks (BSD-3-Clause)"
+  - "Icon: Healthchecks' logo, from https://github.com/healthchecks (BSD-3-Clause)"
+certified: true
+arch: [amd64, arm64]
+test:
+  # The first start installs its Python packages.
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 10m
+  variables:
+    ADMIN_EMAIL: "admin@example.com"
+    ADMIN_PASSWORD: "raptor-test-pw"

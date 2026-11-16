@@ -1,0 +1,51 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Mosquitto",
+    "author": "support@raptorpanel.net",
+    "description": "Eclipse Mosquitto is a lightweight MQTT broker for IoT devices and home automation. Clients must sign in: the user from the server's settings, plus any in the password file.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "export LD_LIBRARY_PATH=/home/container/mosquitto/lib PATH=\"/home/container/mosquitto/bin:$PATH\"; if [ -n \"{{MQTT_USERNAME}}\" ] && [ -n \"${MQTT_PASSWORD:-}\" ]; then mosquitto_passwd -b passwords \"{{MQTT_USERNAME}}\" \"$MQTT_PASSWORD\" || exit 1; fi; grep -q : passwords 2>/dev/null || echo \"No users yet: set Username and Password in the server's settings, or add users with mosquitto_passwd.\"; exec mosquitto -c mosquitto.conf",
+    "config": {
+        "files": "{\"mosquitto.conf\": {\"parser\": \"file\", \"find\": {\"listener \": \"listener {{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": [\"regex:mosquitto version .* running\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Mosquitto: Eclipse Mosquitto publishes no Linux binaries of its own (it\n# points to the distributions' packages), so this installs Debian 13's\n# Mosquitto with its security updates, the same Debian the server runs:\n# apt downloads the packages and checks them against Debian's signed\n# archive, and they're unpacked into mosquitto/. The settings\n# (mosquitto.conf), the password file and the saved messages (data/) are\n# never touched.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\n\n# Debian 13 (trixie), signed with the archive keys the installer has.\napt=\"$work/apt\"\nmkdir -p \"$apt/lists/partial\" \"$apt/cache/archives/partial\" \"$apt/parts\" \"$work/debs\" \"$work/root\"\nkey=/usr/share/keyrings/debian-archive-keyring.gpg\ncat > \"$apt/sources.list\" <<LIST\ndeb [signed-by=$key] https://deb.debian.org/debian trixie main\ndeb [signed-by=$key] https://deb.debian.org/debian trixie-updates main\ndeb [signed-by=$key] https://deb.debian.org/debian-security trixie-security main\nLIST\nopts=(-o Dir::Etc::SourceList=\"$apt/sources.list\" -o Dir::Etc::SourceParts=\"$apt/parts\"\n    -o Dir::State::Lists=\"$apt/lists\" -o Dir::Cache=\"$apt/cache\" -o Debug::NoLocking=1 -o APT::Sandbox::User=root)\necho \"Reading Debian 13's package lists\"\napt-get -qq \"${opts[@]}\" update || fail \"Debian's package archive can't be reached right now. Reinstall to try again.\"\n# Mosquitto and the libraries it needs that the server's image lacks.\npkgs=(mosquitto libmosquitto1 libcjson1 libdlt2 libwebsockets19t64 libwrap0)\nversion=$(apt-cache \"${opts[@]}\" policy mosquitto | awk '/Candidate:/ {print $2}')\n[ -n \"$version\" ] && [ \"$version\" != \"(none)\" ] || fail \"Debian has no Mosquitto package for this CPU ($(uname -m)).\"\n\nif [ -x mosquitto/bin/mosquitto ] && [ \"$(cat .mosquitto-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"Mosquitto $version is already installed.\"\nelse\n    echo \"Downloading Mosquitto $version\"\n    (cd \"$work/debs\" && apt-get -qq \"${opts[@]}\" download \"${pkgs[@]}\") || fail \"The download failed. Reinstall to try again.\"\n    for deb in \"$work\"/debs/*.deb; do dpkg-deb -x \"$deb\" \"$work/root\"; done\n    triplet=$(ls \"$work/root/usr/lib\" | grep -- '-linux-gnu$' | head -n 1)\n    mkdir -p \"$work/new/bin\" \"$work/new/lib\"\n    cp -a \"$work/root/usr/sbin/mosquitto\" \"$work\"/root/usr/bin/mosquitto_* \"$work/new/bin/\"\n    cp -a \"$work/root/usr/lib/$triplet/.\" \"$work/new/lib/\"\n    \"$work/new/bin/mosquitto\" -h >/dev/null 2>&1 || [ $? -eq 3 ] || true\n    rm -rf mosquitto.old\n    [ ! -d mosquitto ] || mv mosquitto mosquitto.old\n    mv \"$work/new\" mosquitto\n    rm -rf mosquitto.old\n    echo \"$version\" > .mosquitto-version\nfi\n\nmkdir -p data\n# A first configuration: one MQTT listener on the server's port, no\n# anonymous access, and users from the password file. The port is kept up\n# to date by the server's settings.\nif [ ! -f mosquitto.conf ]; then\n    cat > mosquitto.conf <<'CONF'\n# Mosquitto's settings: https://mosquitto.org/man/mosquitto-conf-5.html\n# The listener's port comes from the server's settings.\nlistener 1883\nallow_anonymous false\npassword_file /home/container/passwords\n\npersistence true\npersistence_location /home/container/data/\nautosave_interval 300\n\nlog_dest stdout\nlog_timestamp_format %Y-%m-%dT%H:%M:%S\nCONF\n    echo \"Wrote a first mosquitto.conf.\"\nfi\n[ -f passwords ] || { : > passwords; chmod 600 passwords; }\necho \"Installed Mosquitto $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Username",
+            "description": "A user clients can sign in as, added to the password file (or updated) at every start.",
+            "env_variable": "MQTT_USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64|regex:/^[^:\\s\"]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "That user's password.",
+            "env_variable": "MQTT_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:128",
+            "field_type": "text"
+        }
+    ]
+}

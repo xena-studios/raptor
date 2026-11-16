@@ -1,0 +1,91 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Stirling-PDF",
+    "author": "support@raptorpanel.net",
+    "description": "Stirling-PDF is a web app with dozens of PDF tools: merge, split, rotate, sign, watermark and more. Tools that need LibreOffice, OCR or Ghostscript aren't available. Sign-in is required, with the admin account from the server's settings.",
+    "features": [],
+    "docker_images": {
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:98fbedc047cc55fcead2cea64cb4dd31e3954e942ff33ed863f4dc5fb01d9406"
+    },
+    "file_denylist": [],
+    "startup": "if [ \"{{SECURITY_ENABLELOGIN}}\" = true ] && [ -z \"${SECURITY_INITIALLOGIN_PASSWORD:-}\" ] && ! ls configs/stirling-pdf-DB*.mv.db >/dev/null 2>&1; then echo \"Set Admin password in the server's settings first (or turn off Sign-in).\"; exit 1; fi; export SERVER_ADDRESS=0.0.0.0 SYSTEM_ENABLEANALYTICS={{SYSTEM_ENABLEANALYTICS}} SYSTEM_ENABLEPOSTHOG={{SYSTEM_ENABLEANALYTICS}} SYSTEM_ENABLESCARF={{SYSTEM_ENABLEANALYTICS}} SYSTEM_SHOWUPDATE={{SYSTEM_SHOWUPDATE}} DISABLE_ADDITIONAL_FEATURES=false; exec java -XX:MaxRAMPercentage=80.0 -Dserver.port={{SERVER_PORT}} -Djava.io.tmpdir=/home/container/.tmp -jar Stirling-PDF.jar",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"regex:Started SPDFApplication|Stirling-PDF Started\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Stirling-PDF: downloads Stirling-PDF's jar with sign-in (and its web\n# interface) from its GitHub releases, checked against GitHub's SHA-256. Settings, users\n# and stored files (configs/, customFiles/, pipeline/) are never touched,\n# and the jar is only replaced once the new one checks out.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n\nwant=\"${VERSION:-latest}\"\n[ \"$want\" = latest ] || want=\"v${want#v}\"\ntag=$(gh-release tag Stirling-Tools/Stirling-PDF \"$want\") || fail \"Set Version to latest, or to a release such as 3.3.0, then reinstall.\"\n\nif [ -f Stirling-PDF.jar ] && [ \"$(cat .stirling-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Stirling-PDF $tag is already installed.\"\nelse\n    echo \"Downloading Stirling-PDF $tag\"\n    gh-release download Stirling-Tools/Stirling-PDF \"$tag\" Stirling-PDF-with-login.jar Stirling-PDF.jar.new\n    mv -f Stirling-PDF.jar.new Stirling-PDF.jar\n    echo \"$tag\" > .stirling-version\nfi\nmkdir -p configs customFiles logs pipeline .tmp\necho \"Installed Stirling-PDF $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Stirling-PDF version to install, such as 3.3.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Sign-in",
+            "description": "Require signing in. Off, anyone who can reach the server can use the tools.",
+            "env_variable": "SECURITY_ENABLELOGIN",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin username",
+            "description": "The admin account's username, created at the first start.",
+            "env_variable": "SECURITY_INITIALLOGIN_USERNAME",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|alpha_dash|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The admin account's password, used only at the first start; change it in Stirling-PDF afterwards.",
+            "env_variable": "SECURITY_INITIALLOGIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Usage reporting",
+            "description": "Send anonymous usage data to Stirling-PDF's developers.",
+            "env_variable": "SYSTEM_ENABLEANALYTICS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Check for updates",
+            "description": "Ask GitHub for new releases and show admins a notice when there is one.",
+            "env_variable": "SYSTEM_SHOWUPDATE",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        }
+    ]
+}

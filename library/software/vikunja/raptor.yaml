@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/vikunja/egg-vikunja.json
+license: MIT
+credits:
+  - "Written for Raptor from Vikunja's documentation, https://vikunja.io/docs (AGPL-3.0)"
+  - "Icon: Vikunja's logo, from https://github.com/go-vikunja (AGPL-3.0)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m
+  variables:
+    ADMIN_USERNAME: "raptor"
+    ADMIN_EMAIL: "raptor@example.com"
+    ADMIN_PASSWORD: "raptor-test-pw"

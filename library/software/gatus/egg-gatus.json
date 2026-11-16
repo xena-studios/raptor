@@ -1,0 +1,51 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Gatus",
+    "author": "support@raptorpanel.net",
+    "description": "Gatus is a status page and health checker for websites, APIs and services, with alerts. Builds Gatus from its source and runs it with the endpoints in config.yaml.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "export GATUS_CONFIG_PATH=config.yaml GATUS_LOG_LEVEL={{GATUS_LOG_LEVEL}}; exec ./gatus",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Listening on\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Gatus: Gatus publishes no binaries, so this builds the chosen release\n# from its source on GitHub with Go from go.dev (checked against go.dev's\n# SHA-256), in a build folder removed when the script ends. config.yaml\n# and the history (data/) are never touched; the binary is only replaced\n# once the new one is built.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\n# Go's module cache is read-only unless built with -modcacherw.\nclean() { [ ! -d \"$work\" ] || { chmod -R u+w \"$work\"; rm -rf \"$work\"; }; }\nclean && mkdir -p \"$work\"\ntrap clean EXIT\nfail() { echo \"$1\"; exit 1; }\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Gatus can't be built for this CPU ($(uname -m)).\" ;;\nesac\n\nwant=\"${VERSION:-latest}\"\n[ \"$want\" = latest ] || want=\"v${want#v}\"\ntag=$(gh-release tag TwiN/gatus \"$want\") || fail \"Set Version to latest, or to a release such as 5.38.0, then reinstall.\"\n\nif [ -x gatus ] && [ \"$(cat .gatus-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Gatus $tag is already installed.\"\nelse\n    echo \"Downloading Gatus $tag's source\"\n    git -c advice.detachedHead=false clone -q --depth 1 --branch \"$tag\" https://github.com/TwiN/gatus.git \"$work/src\" ||\n        fail \"GitHub can't be reached right now. Reinstall to try again.\"\n\n    # The newest Go release, which builds every Gatus release.\n    go=$(curl -fsSL --retry 3 'https://go.dev/dl/?mode=json' |\n        jq -r --arg a \"$arch\" '.[0].files[] | select(.os == \"linux\" and .arch == $a and .kind == \"archive\") | \"\\(.filename) \\(.sha256)\"') ||\n        fail \"go.dev can't be reached right now. Reinstall to try again.\"\n    read -r file sum <<<\"$go\"\n    echo \"Downloading ${file%.linux-*}\"\n    curl -fsSL --retry 3 -o \"$work/go.tar.gz\" \"https://go.dev/dl/$file\" || fail \"The download of Go failed. Reinstall to try again.\"\n    [ \"$(sha256sum \"$work/go.tar.gz\" | cut -d' ' -f1)\" = \"$sum\" ] || fail \"Go's download didn't match go.dev's checksum. Reinstall to try again.\"\n    tar -xzf \"$work/go.tar.gz\" -C \"$work\"\n    rm -f \"$work/go.tar.gz\"\n\n    echo \"Building Gatus $tag (a few minutes)\"\n    # Two build jobs and a tighter garbage collector keep the build within\n    # about 1 GiB of memory.\n    (\n        cd \"$work/src\"\n        mkdir -p \"$work/tmp\"\n        export PATH=\"$work/go/bin:$PATH\" GOPATH=\"$work/gopath\" GOCACHE=\"$work/cache\" GOTMPDIR=\"$work/tmp\" GOTOOLCHAIN=local \\\n            CGO_ENABLED=0 GOMAXPROCS=2 GOGC=50 GOFLAGS=\"-p=2 -modcacherw\"\n        go build -trimpath -ldflags \"-s -w\" -o \"$work/gatus\" .\n    ) || fail \"Gatus didn't build. Reinstall to try again, or choose another version.\"\n    install -m 0755 \"$work/gatus\" gatus.new\n    mv -f gatus.new gatus\n    echo \"$tag\" > .gatus-version\nfi\n\nmkdir -p data\n# A first configuration: history in SQLite, and one endpoint that checks\n# Gatus itself. Add your own endpoints here.\nif [ ! -f config.yaml ]; then\n    cat > config.yaml <<'YAML'\n# Gatus's settings: https://github.com/TwiN/gatus#configuration\n# The port comes from the server's settings. Gatus reloads this file when\n# it changes.\nweb:\n  address: 0.0.0.0\n  port: ${SERVER_PORT}\n\nstorage:\n  type: sqlite\n  path: data/data.db\n\nui:\n  title: Status\n\nendpoints:\n  - name: Gatus\n    group: self\n    url: \"http://127.0.0.1:${SERVER_PORT}/health\"\n    interval: 1m\n    conditions:\n      - \"[STATUS] == 200\"\n      - \"[BODY].status == UP\"\nYAML\n    echo \"Wrote a first config.yaml.\"\nfi\necho \"Installed Gatus $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Gatus version to build, such as 5.38.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Log level",
+            "description": "How much Gatus logs: DEBUG, INFO, WARN or ERROR.",
+            "env_variable": "GATUS_LOG_LEVEL",
+            "default_value": "INFO",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:DEBUG,INFO,WARN,ERROR",
+            "field_type": "text"
+        }
+    ]
+}

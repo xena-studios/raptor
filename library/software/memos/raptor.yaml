@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/memos/egg-memos.json
+license: MIT
+credits:
+  - "Written for Raptor from Memos' documentation, https://github.com/usememos/memos (MIT)"
+  - "Icon: the Memos logo, from https://github.com/usememos (MIT)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m

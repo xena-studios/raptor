@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Memos",
+    "author": "support@raptorpanel.net",
+    "description": "Memos is a lightweight, self-hosted place for quick notes in Markdown. The first account made becomes the admin, and sign-ups stay closed unless you open them.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "if [ \"{{OPEN_SIGNUPS}}\" = 1 ]; then closed=false; else closed=true; fi; sed \"s/@CLOSED@/$closed/\" .memos-config.template > .memos-config/raptor.json || exit 1; exec ./memos --addr 0.0.0.0 --port {{SERVER_PORT}} --data data --config-dir .memos-config ${MEMOS_INSTANCE_URL:+--instance-url \"$MEMOS_INSTANCE_URL\"}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"started successfully\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Memos: downloads Memos from its GitHub releases, checked against GitHub's\n# SHA-256. The data folder (memos, attachments, the database) is never\n# touched.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Memos has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nwant=\"${VERSION:-latest}\"\nwant=\"${want#v}\"\ntag=$(gh-release tag usememos/memos \"$want\") || fail \"Set Version to latest, or to a release such as 26.11.1, then reinstall.\"\nversion=\"${tag#v}\"\n\nif [ -x memos ] && [ \"$(cat .memos-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Memos $version is already installed.\"\nelse\n    echo \"Downloading Memos $version\"\n    gh-release download usememos/memos \"$tag\" \"memos_${version}_linux_${arch}.tar.gz\" \"$work/memos.tar.gz\"\n    tar -xzf \"$work/memos.tar.gz\" -C \"$work\" memos\n    install -m 0755 \"$work/memos\" memos.new\n    mv -f memos.new memos\n    echo \"$tag\" > .memos-version\nfi\nmkdir -p data .memos-config\n# Memos' declarative configuration, written at every start from Open\n# sign-ups: it owns only that switch, so every other setting stays the\n# admin's to change in Memos.\ncat > .memos-config.template <<'JSON'\n{\n  \"instanceSettings\": [\n    { \"name\": \"instance/settings/GENERAL\", \"generalSetting\": { \"disallowUserRegistration\": @CLOSED@ } }\n  ],\n  \"lifecycle\": [\n    { \"resource\": \"instance/settings/GENERAL\", \"ignoreChanges\": [\"generalSetting.customProfile\", \"generalSetting.disallowPasswordAuth\", \"generalSetting.disallowChangeUsername\", \"generalSetting.disallowChangeNickname\", \"generalSetting.weekStartDayOffset\", \"generalSetting.additionalStyle\", \"generalSetting.additionalScript\"] }\n  ]\n}\nJSON\necho \"Installed Memos $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Memos version to install, such as 26.11.1, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Open sign-ups",
+            "description": "Let anyone who can reach the server make an account. Off, only the admin adds users.",
+            "env_variable": "OPEN_SIGNUPS",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Address",
+            "description": "The full public address of Memos, starting with http or https, used in links it makes. Leave it empty to use the server's address.",
+            "env_variable": "MEMOS_INSTANCE_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^https?:\\/\\/[^\\s\"]+$/",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/beszel/egg-beszel.json
+license: MIT
+credits:
+  - "Written for Raptor from Beszel's documentation, https://github.com/henrygd/beszel (MIT)"
+  - "Icon: Beszel's icon, from https://github.com/henrygd/beszel (MIT)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m
+  variables:
+    ADMIN_EMAIL: "admin@example.com"
+    ADMIN_PASSWORD: "raptor-test-pw"
