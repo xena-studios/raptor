@@ -230,6 +230,9 @@ const (
 	// CapAddonsFactorio: the factorio add-on kind (Factorio's mod portal,
 	// checked by SHA-1), with the server's account added to downloads.
 	CapAddonsFactorio = "addons-factorio"
+	// CapAddonsCurseForge: add-ons from CurseForge's CDN (checked by
+	// SHA-1), and listings with CurseForge's fingerprint.
+	CapAddonsCurseForge = "addons-curseforge"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
@@ -238,6 +241,7 @@ var nodeCapabilities = []string{
 	CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal, CapDatabaseDocuments, CapDatabaseAlerts,
 	CapDatabaseSettings, CapDatabaseQueryStream, CapDatabaseInstanceBrowser, CapDatabaseRedisExternal,
 	CapDatabaseUsage, CapDatabaseShared, CapDatabaseInstanceBackups, CapRaptorEggs, CapAddonsUMod, CapAddonsFactorio,
+	CapAddonsCurseForge,
 }
 
 // NewHello starts a handshake for a node.

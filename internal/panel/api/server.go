@@ -22,6 +22,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/billing"
 	"github.com/xena-studios/raptor/internal/panel/commands"
+	"github.com/xena-studios/raptor/internal/panel/curseforge"
 	"github.com/xena-studios/raptor/internal/panel/discord"
 	"github.com/xena-studios/raptor/internal/panel/factorio"
 	"github.com/xena-studios/raptor/internal/panel/gameversions"
@@ -93,6 +94,9 @@ type Config struct {
 	Mojang *mojang.Client
 	// Modpacks finds FTB's and Technic's packs (nil: their APIs).
 	Modpacks *modpacks.Client
+	// CurseForge is the CurseForge client; nil or keyless keeps CurseForge
+	// off (#412).
+	CurseForge *curseforge.Client
 	// Support takes nodes' support bundles (nil: not configured).
 	Support http.Handler
 	// Transfers opens file transfer connections to nodes (*nodes.Router),
@@ -199,7 +203,7 @@ func Handler(cfg Config) http.Handler {
 			mp = &modpacks.Client{UserAgent: ua}
 		}
 		// A lookup is up to 500 SHA-512s, with their SHA-256s.
-		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg, Steam: st, UMod: um, Factorio: fa, Versions: gv, Mojang: mj, Modpacks: mp}, opts(connect.WithReadMaxBytes(256<<10))...)
+		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg, Steam: st, UMod: um, Factorio: fa, Versions: gv, Mojang: mj, Modpacks: mp, CurseForge: cfg.CurseForge}, opts(connect.WithReadMaxBytes(256<<10))...)
 		api.Handle(path, handler)
 	}
 	if cfg.Orgs != nil {

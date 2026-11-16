@@ -33,6 +33,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/xena-studios/raptor/internal/eggs"
+	"github.com/xena-studios/raptor/internal/shared/cffingerprint"
 	"github.com/xena-studios/raptor/internal/wings/files"
 )
 
@@ -55,10 +56,13 @@ const (
 	// account's username and token, which Wings adds from the server's
 	// variables (the egg's auth).
 	FactorioHost = "mods.factorio.com"
+	// CurseForge's CDN: its files list a SHA-1 (and an MD5).
+	CurseForgeHost  = "edge.forgecdn.net"
+	CurseForgeHost2 = "mediafilez.forgecdn.net"
 )
 
 // DefaultHosts are where files may come from.
-var DefaultHosts = []string{ModrinthHost, HangarHost, UModHost, FactorioHost}
+var DefaultHosts = []string{ModrinthHost, HangarHost, UModHost, FactorioHost, CurseForgeHost, CurseForgeHost2}
 
 // ErrNoAccount is a download that needs an account the server hasn't set.
 var ErrNoAccount = errors.New("the mod portal needs your factorio.com username and token: set them in Startup first")
@@ -66,7 +70,7 @@ var ErrNoAccount = errors.New("the mod portal needs your factorio.com username a
 // Errors.
 var (
 	ErrNoAddon  = errors.New("this server's egg doesn't have that add-on")
-	ErrSource   = errors.New("add-ons are downloaded from Modrinth, Hangar, and uMod only")
+	ErrSource   = errors.New("add-ons are downloaded from Modrinth, Hangar, CurseForge, uMod, and Factorio's mod portal only")
 	ErrHash     = errors.New("the download doesn't match the file its source lists; nothing was installed")
 	ErrName     = errors.New("that isn't an add-on file name")
 	ErrTooLarge = fmt.Errorf("add-on files are at most %d MiB", MaxFile>>20)
@@ -93,7 +97,10 @@ type Service struct {
 	hashes sync.Map // hashKey -> fileHashes
 }
 
-type fileHashes struct{ sha512, sha256, sha1 string }
+type fileHashes struct {
+	sha512, sha256, sha1 string
+	fingerprint          uint32
+}
 
 type hashKey struct {
 	server, name string
@@ -108,6 +115,9 @@ type File struct {
 	Sha512   string `json:"sha512,omitempty"`
 	Sha256   string `json:"sha256,omitempty"`
 	Sha1     string `json:"sha1,omitempty"`
+	// Fingerprint is CurseForge's (cffingerprint), which it looks files
+	// up by.
+	Fingerprint uint32 `json:"cf_fingerprint,omitempty"`
 	// Disabled: renamed to .disabled, which the software skips.
 	Disabled bool `json:"disabled,omitempty"`
 }
@@ -203,7 +213,7 @@ func (s *Service) List(ctx context.Context, id, kind string) (Listing, error) {
 		if err != nil {
 			return out, err
 		}
-		file.Sha512, file.Sha256, file.Sha1 = h.sha512, h.sha256, h.sha1
+		file.Sha512, file.Sha256, file.Sha1, file.Fingerprint = h.sha512, h.sha256, h.sha1, h.fingerprint
 		out.Files = append(out.Files, file)
 	}
 	return out, nil
@@ -225,10 +235,20 @@ func (s *Service) hash(ctx context.Context, f *files.FS, id, name string, fi fs.
 	}
 	defer func() { _ = file.Close() }()
 	h512, h256, h1 := sha512.New(), sha256.New(), sha1.New() //nolint:gosec // uMod's
-	if _, err := io.Copy(io.MultiWriter(h512, h256, h1), io.LimitReader(file, MaxFile)); err != nil {
+	var length cffingerprint.Counter
+	if _, err := io.Copy(io.MultiWriter(h512, h256, h1, &length), io.LimitReader(file, MaxFile)); err != nil {
 		return fileHashes{}, err
 	}
-	sum := fileHashes{hex.EncodeToString(h512.Sum(nil)), hex.EncodeToString(h256.Sum(nil)), hex.EncodeToString(h1.Sum(nil))}
+	// CurseForge's fingerprint is seeded with the length, so it's a
+	// second pass.
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return fileHashes{}, err
+	}
+	fp := cffingerprint.New(length.N)
+	if _, err := io.Copy(fp, io.LimitReader(file, MaxFile)); err != nil {
+		return fileHashes{}, err
+	}
+	sum := fileHashes{hex.EncodeToString(h512.Sum(nil)), hex.EncodeToString(h256.Sum(nil)), hex.EncodeToString(h1.Sum(nil)), fp.Sum32()}
 	s.hashes.Store(key, sum)
 	return sum, nil
 }
@@ -359,7 +379,8 @@ func wantHash(host string, p Install) (expected, error) {
 	switch {
 	case strings.EqualFold(host, HangarHost):
 		hexSum, size, newHash, name = p.Sha256, sha256.Size, sha256.New, "SHA-256"
-	case strings.EqualFold(host, UModHost), strings.EqualFold(host, FactorioHost):
+	case strings.EqualFold(host, UModHost), strings.EqualFold(host, FactorioHost),
+		strings.EqualFold(host, CurseForgeHost), strings.EqualFold(host, CurseForgeHost2):
 		hexSum, size, newHash, name = p.Sha1, sha1.Size, sha1.New, "SHA-1"
 	}
 	sum, err := hex.DecodeString(hexSum)

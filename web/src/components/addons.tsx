@@ -17,7 +17,7 @@ import { useConfirm } from "@/components/confirm";
 import { useFilesApi } from "@/components/file-manager/data";
 import { EmptyState } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -38,10 +38,11 @@ import {
   type ResolvedAddon,
 } from "@/gen/raptor/panel/v1/addon_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
-import { addonKinds, addonSources, loaderName, sourceNames } from "@/lib/eggs";
+import { addonKinds, addonSources, loaderName, onCurseForge, sourceNames } from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { dateOnly } from "@/lib/format";
 import { formatBytes as bytes } from "@/lib/metrics";
+import { useServer } from "@/lib/org-data";
 import { gameVersion, type ServerConfig } from "@/lib/servers";
 
 // The plugin installer and mod manager (docs/EGGS.md#add-ons): what's in
@@ -60,6 +61,7 @@ type Listing = {
     sha512?: string;
     sha256?: string;
     sha1?: string;
+    cf_fingerprint?: number;
     disabled?: boolean;
   }[];
 };
@@ -181,9 +183,22 @@ function Addons({
   const sha1 = umod
     ? Object.fromEntries(files.flatMap((f) => (f.sha512 && f.sha1 ? [[f.sha512, f.sha1]] : [])))
     : {};
+  // CurseForge (#412): on when the Panel has a key and the node can
+  // download from it; its files are looked up by fingerprint.
+  const { node } = useServer(orgId, nodeId, serverId);
+  const panelSources = useQuery(AddonService.method.listAddonSources, { orgId });
+  const curseforge =
+    !!panelSources.data?.sources.includes("curseforge") &&
+    !!node?.capabilities.includes("addons-curseforge") &&
+    onCurseForge(kind, loaders);
+  const fingerprints = curseforge
+    ? Object.fromEntries(
+        files.flatMap((f) => (f.sha512 && f.cf_fingerprint ? [[f.sha512, f.cf_fingerprint]] : [])),
+      )
+    : {};
   const known = useQuery(
     AddonService.method.identifyAddons,
-    { orgId, hashes, sha256, names, sha1, loaders, gameVersion: version },
+    { orgId, hashes, sha256, names, sha1, curseforge: fingerprints, loaders, gameVersion: version },
     { enabled: hashes.length > 0 },
   );
   const byHash = new Map((known.data?.addons ?? []).map((a) => [a.sha512, a]));
@@ -199,12 +214,12 @@ function Addons({
   // game version.
   const outdated = files.flatMap((f) => {
     const a = f.sha512 ? byHash.get(f.sha512) : undefined;
-    return a?.latest?.file ? [{ f, a }] : [];
+    return a?.latest?.file?.url ? [{ f, a }] : [];
   });
 
   function update(f: Row, a: IdentifiedAddon) {
     const latest = a.latest?.file;
-    if (!latest) return Promise.resolve();
+    if (!latest?.url) return Promise.resolve();
     return api.run("addons.install", {
       kind,
       url: latest.url,
@@ -414,7 +429,19 @@ function Addons({
                         Install what it needs
                       </Button>
                     )}
-                    {canWrite && latest && a?.latest && (
+                    {canWrite && latest?.manualUrl && a?.latest && (
+                      <a
+                        href={latest.manualUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Its author only allows downloads from CurseForge: download it, then upload it in Files"
+                        className={buttonVariants({ size: "sm", variant: "outline" })}
+                      >
+                        <ExternalLink />
+                        Get {a.latest.versionNumber} on CurseForge
+                      </a>
+                    )}
+                    {canWrite && latest?.url && a?.latest && (
                       <Button
                         size="sm"
                         disabled={!!busy}
@@ -463,6 +490,7 @@ function Addons({
           version={version}
           installed={installedProjects}
           installedIds={installedIds}
+          curseforge={curseforge}
           onInstall={installAll}
         />
       )}
@@ -496,6 +524,7 @@ function Finder({
   version,
   installed,
   installedIds,
+  curseforge,
   onInstall,
 }: {
   orgId: string;
@@ -504,6 +533,7 @@ function Finder({
   version: string;
   installed: Set<string | undefined>;
   installedIds: string[];
+  curseforge: boolean;
   onInstall: (files: InstallFile[], done: string) => Promise<void>;
 }) {
   const meta = addonKinds[kind];
@@ -512,7 +542,7 @@ function Finder({
   // out: on a server they crash it or do nothing.
   const [clientOnly, setClientOnly] = useState(false);
   const [picked, setPicked] = useState<AddonProject>();
-  const sources = addonSources(kind, loaders);
+  const sources = addonSources(kind, loaders, curseforge);
   const [source, setSource] = useState(sources[0] ?? "modrinth");
   const q = useDeferredValue(query.trim());
   const search = useInfiniteQuery(
@@ -730,6 +760,12 @@ function InstallDialog({
                 {v.file.filename} · {bytes(Number(v.file.size))}
               </p>
             )}
+            {v?.file?.manualUrl && (
+              <p className="text-sm">
+                Its author only allows downloads from CurseForge itself, so Raptor can't install it.
+                Download it from CurseForge, then upload it in Files.
+              </p>
+            )}
           </div>
         )}
         {deps.error && <p className="text-sm text-destructive">{message(deps.error)}</p>}
@@ -746,28 +782,39 @@ function InstallDialog({
           <Button variant="outline" disabled={busy} onClick={onClose}>
             Cancel
           </Button>
-          <Button
-            disabled={busy || !v?.file || waiting || (blocked && !alone)}
-            onClick={async () => {
-              if (!v?.file) return;
-              setBusy(true);
-              const extra = alone
-                ? []
-                : (deps.data?.optional ?? []).filter((o) => optional.has(o.project?.id ?? ""));
-              const more = filesOf([...required, ...extra]);
-              await onInstall(
-                [...more, fileOf(v.file)],
-                more.length === 0
-                  ? `Installed ${v.file.filename}.`
-                  : `Installed ${project.title} and ${more.length} more it uses.`,
-              );
-              setBusy(false);
-              onClose();
-            }}
-          >
-            {(busy || waiting) && <Loader2 className="animate-spin" />}
-            {required.length > 0 ? `Install with ${required.length} more` : "Install"}
-          </Button>
+          {v?.file?.manualUrl ? (
+            <a
+              href={v.file.manualUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={buttonVariants()}
+            >
+              <ExternalLink /> Download on CurseForge
+            </a>
+          ) : (
+            <Button
+              disabled={busy || !v?.file || waiting || (blocked && !alone)}
+              onClick={async () => {
+                if (!v?.file) return;
+                setBusy(true);
+                const extra = alone
+                  ? []
+                  : (deps.data?.optional ?? []).filter((o) => optional.has(o.project?.id ?? ""));
+                const more = filesOf([...required, ...extra]);
+                await onInstall(
+                  [...more, fileOf(v.file)],
+                  more.length === 0
+                    ? `Installed ${v.file.filename}.`
+                    : `Installed ${project.title} and ${more.length} more it uses.`,
+                );
+                setBusy(false);
+                onClose();
+              }}
+            >
+              {(busy || waiting) && <Loader2 className="animate-spin" />}
+              {required.length > 0 ? `Install with ${required.length} more` : "Install"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

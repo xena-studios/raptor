@@ -32,6 +32,8 @@ type Client struct {
 	HTTP      *http.Client
 	UserAgent string
 	Now       func() time.Time
+	// Header is added to every request (CurseForge's API key).
+	Header http.Header
 	// NotFound is returned for a 404, and Unavailable (wrapping the cause)
 	// for anything else that isn't a good answer.
 	NotFound, Unavailable error
@@ -103,6 +105,9 @@ func (c *Client) Do(ctx context.Context, path string, query url.Values, body any
 	req, err := http.NewRequestWithContext(ctx, method, u, rd)
 	if err != nil {
 		return err
+	}
+	for k, v := range c.Header {
+		req.Header[k] = v
 	}
 	req.Header.Set("User-Agent", c.UserAgent)
 	req.Header.Set("Accept", "application/json")
