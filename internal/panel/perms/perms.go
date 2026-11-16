@@ -24,10 +24,13 @@ const (
 	// includes it.
 	DatabasesRead  = "databases.read"
 	DatabasesWrite = "databases.write"
+	// Players is a Minecraft server's whitelist, operators, bans, and
+	// kicks (#422), without the console or the files.
+	Players = "players"
 )
 
 // All is every server permission (the database checks the same list).
-var All = []string{ConsoleRead, ConsoleWrite, Power, FilesRead, FilesWrite, Backups, Schedules, Startup, Reinstall, SFTP, DatabasesRead, DatabasesWrite}
+var All = []string{ConsoleRead, ConsoleWrite, Power, FilesRead, FilesWrite, Backups, Schedules, Startup, Reinstall, SFTP, DatabasesRead, DatabasesWrite, Players}
 
 // adminOnly marks actions only admins and owners may run.
 const adminOnly = ""
@@ -38,6 +41,10 @@ const View = "view"
 
 var actions = map[string]string{
 	"server.metrics": View,
+	// Only Minecraft Java servers' list files and checked commands (Wings
+	// refuses other servers).
+	"players.lists":  Players,
+	"players.manage": Players,
 	"server.ports":   View,
 	"server.console": ConsoleRead,
 	"server.command": ConsoleWrite,
