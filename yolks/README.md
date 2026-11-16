@@ -10,6 +10,8 @@ the way Wings runs servers before anything is published.
 | `java_8`, `java_11`, `java_17`, `java_21`, `java_25` | Eclipse Temurin JRE (Ubuntu) | amd64, arm64 |
 | `nodejs_22`, `nodejs_24`, `nodejs_26` | Node.js (Debian slim) | amd64, arm64 |
 | `python_3.11` … `python_3.15` | Python (Debian slim) | amd64, arm64 |
+| `php_8.3`, `php_8.4`, `php_8.5` | FrankenPHP (PHP in Caddy) with Composer and the common extensions (Debian) | amd64, arm64 |
+| `ruby_3.3`, `ruby_3.4`, `ruby_4.0` | Ruby (Debian slim), with a compiler and libraries for gems' native extensions | amd64, arm64 |
 | `dotnet_8`, `dotnet_10` | .NET SDK, with the ASP.NET Core runtime (Ubuntu) | amd64, arm64 |
 | `bun_1`, `deno_2` | Bun, Deno (Debian) | amd64, arm64 |
 | `go_1.26`, `go_1.27`, `rust_1` | Go, Rust toolchains (Debian) | amd64, arm64 |
@@ -19,7 +21,7 @@ the way Wings runs servers before anything is published.
 | `installer` | Debian slim with what install scripts use (curl, jq, unzip, git, …) | amd64, arm64 |
 
 Only supported releases: Java's long-term ones, Node's LTS and current,
-Python's maintained versions, .NET's LTS. A version leaves when its
+Python's, PHP's and Ruby's maintained versions, .NET's LTS. A version leaves when its
 upstream support ends.
 
 ## What every image does
@@ -28,7 +30,8 @@ upstream support ends.
   in the image is needed), with a read-only root filesystem and a tmpfs
   `/tmp`. `HOME` is `/home/container`, the server's folder; nothing is
   written anywhere else, so caches point there too (`GOPATH`,
-  `CARGO_HOME`, `DENO_DIR`, NuGet's in `HOME`).
+  `CARGO_HOME`, `DENO_DIR`, NuGet's in `HOME`, Ruby's `GEM_HOME`,
+  Composer's and Caddy's data).
 - **Starts eggs unchanged:** the entrypoint (`entrypoint.sh`) behaves like
   the Pterodactyl and Pelican yolks': it sets `TZ` and `INTERNAL_IP`, turns
   `{{VAR}}` in `STARTUP` into `${VAR}`, and evaluates it in
