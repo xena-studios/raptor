@@ -66,7 +66,7 @@ From the Xena Studios GitHub audit of Oct 22, 2026, and the nodes' overdue updat
 19. **The exit test:** a non-technical tester, starting from a blank VPS, gets a Minecraft server that friends can join, without help, in under 15 minutes. What they trip on goes first in the backlog.
 20. **The private beta:** 20–50 invited owners on real boxes (a mix of providers, amd64 and arm64), fixing every install failure and confusing screen as it comes, and watching [the metrics](#metrics).
 21. **The load test:** `cmd/fakewings` held 500 nodes against the dev Panel; left is thousands, through Cloudflare, against a staging Panel.
-22. **The status page** at `status.raptorpanel.net` off Cloudflare's DNS (a Better Stack page exists; its record is on Cloudflare).
+22. ~~**The status page**~~ (DECISIONS #359): `status.raptorpanel.net` is Raptor's own page on Azure ([raptor-status](https://github.com/xena-studios/raptor-status)), checked every minute from there; Better Stack is gone.
 23. **Last, the week-long soak** (`task soak:start`, then `soak:report` after a week), so it runs against the code that launches: scheduled restarts and backups and random Wings restarts with no unexpected game downtime.
 
 ### Business and legal

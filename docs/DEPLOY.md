@@ -438,6 +438,8 @@ The Panel sends metrics and a sample of traces (10% of requests) over OpenTeleme
 
 Also watch, outside Grafana: the provider's disk and CPU alerts on the server (set them in its console), and the `support@` inbox.
 
+**The status page** is its own repository, [raptor-status](https://github.com/xena-studios/raptor-status), on Azure (subscription *Raptor*, resource group `raptor-status`): its README has the setup and how to post an incident. It checks the public endpoints every minute from Azure's Central US; it doesn't page anyone, so the alerts above stay the alarm.
+
 ## Rehearsal
 
 ```bash
