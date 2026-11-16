@@ -17,3 +17,7 @@ test:
   tier: slow
   memory_mib: 8192
   done_timeout: 60m
+# Bohemia Workshop mods: the Add-ons tab edits config.json's game.mods, and
+# the server downloads them at start.
+reforger:
+  config: config.json

@@ -18,6 +18,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/modrinth"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/panel/paneltest"
+	"github.com/xena-studios/raptor/internal/panel/reforger"
 	"github.com/xena-studios/raptor/internal/panel/steam"
 )
 
@@ -107,6 +108,23 @@ func TestAddons(t *testing.T) {
 	}))
 	defer st.Close()
 
+	rf := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		page := func(props string) {
+			_, _ = io.WriteString(w, `<html><script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":`+props+`}}</script></html>`)
+		}
+		const mod = `{"id":"595F2BF2F44836FB","name":"RHS - Status Quo","currentVersionNumber":"0.17.5281","author":{"username":"Red Hammer Studios"},
+			"previews":[{"url":"https://ar-gcp-cdn.bistudio.com/image/a.jpg"}],"dependencies":[{"asset":{"id":"1337C0DE5DABBEEF","name":"RHS - Content Pack 01"}}]}`
+		switch {
+		case r.URL.Path == "/workshop/595F2BF2F44836FB":
+			page(`{"asset":` + mod + `}`)
+		case r.URL.Path == "/workshop" && r.URL.Query().Get("search") == "rhs":
+			page(`{"assets":{"count":1,"rows":[` + mod + `]}}`)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer rf.Close()
+
 	cf := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("X-Api-Key") != "cf-key" {
 			http.Error(w, "no key", http.StatusForbidden)
@@ -154,6 +172,7 @@ func TestAddons(t *testing.T) {
 		Modrinth:   &modrinth.Client{Base: mr.URL, UserAgent: "test"},
 		Hangar:     &hangar.Client{Base: hg.URL, UserAgent: "test"},
 		Steam:      &steam.Client{Base: st.URL, UserAgent: "test"},
+		Reforger:   &reforger.Client{Base: rf.URL, UserAgent: "test"},
 		CurseForge: &curseforge.Client{Key: "cf-key", Base: cf.URL, UserAgent: "test"},
 	}))
 	defer srv.Close()
@@ -266,6 +285,26 @@ func TestAddons(t *testing.T) {
 	}
 	if _, err := carol.addons.LookupWorkshopItems(ctx, &panelv1.LookupWorkshopItemsRequest{OrgId: org, Ids: []string{"5"}}); connect.CodeOf(err) != connect.CodeNotFound {
 		t.Errorf("an outsider looking up workshop items: %v", err)
+	}
+
+	// Arma Reforger Workshop (#417): mods named from their pages, ones it
+	// doesn't have left out, and only real IDs asked for.
+	rm, err := alice.addons.LookupReforgerMods(ctx, &panelv1.LookupReforgerModsRequest{OrgId: org, Ids: []string{"595F2BF2F44836FB", "0123456789ABCDEF"}})
+	if err != nil || len(rm.GetMods()) != 1 {
+		t.Fatalf("reforger: %v, %v", rm, err)
+	}
+	if m := rm.GetMods()[0]; m.GetName() != "RHS - Status Quo" || m.GetVersion() != "0.17.5281" || m.GetAuthor() != "Red Hammer Studios" ||
+		m.GetPreviewUrl() == "" || len(m.GetDependencies()) != 1 || m.GetDependencies()[0].GetId() != "1337C0DE5DABBEEF" {
+		t.Errorf("reforger mod: %v", m)
+	}
+	if _, err := alice.addons.LookupReforgerMods(ctx, &panelv1.LookupReforgerModsRequest{OrgId: org, Ids: []string{"../../etc"}}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Errorf("a bad reforger ID: %v", err)
+	}
+	if rs, err := alice.addons.SearchReforgerMods(ctx, &panelv1.SearchReforgerModsRequest{OrgId: org, Query: "rhs"}); err != nil || rs.GetTotal() != 1 || len(rs.GetMods()) != 1 {
+		t.Errorf("reforger search: %v, %v", rs, err)
+	}
+	if _, err := carol.addons.SearchReforgerMods(ctx, &panelv1.SearchReforgerModsRequest{OrgId: org, Query: "rhs"}); connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("an outsider searching reforger mods: %v", err)
 	}
 
 	// CurseForge (#412): on with a key; files whose author blocks other

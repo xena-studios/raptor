@@ -7,7 +7,8 @@ import { can } from "@/lib/org-data";
 import type { ServerConfig } from "@/lib/servers";
 
 // AddonSection is one part of a server's Add-ons tab (#436): an add-on
-// kind's page (Plugins, Mods, Datapacks) or the Workshop.
+// kind's page (Plugins, Mods, Datapacks), Arma Reforger's mods, or the
+// Workshop.
 export type AddonSection = { key: string; label: string };
 
 // useAddonSections is what a server's Add-ons tab holds, in order, for
@@ -45,6 +46,8 @@ export function useAddonSections(
       /^minecraft\/(bedrock|endstone)$/.test(server?.eggSource ?? "") ||
       /^Minecraft: (Bedrock|Endstone)$/.test(server?.eggName ?? "");
     if (bedrock && can(server, "files.read")) out.push({ key: "bedrock", label: "Packs" });
+    if (cfg?.egg?.reforger && can(server, "files.read"))
+      out.push({ key: "reforger", label: "Mods" });
     if (cfg?.egg?.workshop && can(server, "startup"))
       out.push({ key: "workshop", label: "Workshop" });
     return out;

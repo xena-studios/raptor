@@ -66,6 +66,10 @@ type Meta struct {
 	// Workshop says where the game takes Steam Workshop items (the egg's
 	// x-raptor.workshop, docs/EGGS.md#steam-workshop), added like Players.
 	Workshop *eggs.Workshop `yaml:"workshop"`
+	// Reforger says where Arma Reforger takes Bohemia Workshop mods (the
+	// egg's x-raptor.reforger, docs/EGGS.md#arma-reforger-mods), added
+	// like Players.
+	Reforger *eggs.Reforger `yaml:"reforger"`
 	// Web is a web dashboard the server serves (the egg's x-raptor.web),
 	// for the app's link to it.
 	Web *eggs.Web `yaml:"web"`
@@ -272,6 +276,9 @@ func (e *Entry) validate() error {
 	if err := eggs.CheckWorkshop(e.Workshop, egg.Variables); err != nil {
 		return err
 	}
+	if err := eggs.CheckReforger(e.Reforger); err != nil {
+		return err
+	}
 	if b := e.Backup; b != nil {
 		if err := eggs.CheckBackup(*b); err != nil {
 			return err
@@ -389,6 +396,11 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 			set(n, "apply", str(w.Apply))
 		}
 		set(ext, "workshop", n)
+	}
+	if r := e.Reforger; r != nil {
+		n := &yaml.Node{Kind: yaml.MappingNode}
+		set(n, "config", str(r.Config))
+		set(ext, "reforger", n)
 	}
 	if w := e.Web; w != nil {
 		n := &yaml.Node{Kind: yaml.MappingNode}

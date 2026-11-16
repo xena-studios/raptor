@@ -306,6 +306,23 @@ func TestParseWorkshop(t *testing.T) {
 	}
 }
 
+func TestParseReforger(t *testing.T) {
+	base := `{"meta": {"version": "PTDL_v2"}, "docker_images": {"a": "a"}, "startup": "x",
+		"x-raptor": {"reforger": %s}}`
+	e, err := Parse(fmt.Appendf(nil, base, `{"config": "config.json"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r := e.Raptor.Reforger; r == nil || r.Config != "config.json" {
+		t.Errorf("reforger: %+v", r)
+	}
+	for _, bad := range []string{`{}`, `{"config": "/config.json"}`, `{"config": "../config.json"}`, `{"config": "server.cfg"}`} {
+		if _, err := Parse(fmt.Appendf(nil, base, bad)); err == nil {
+			t.Errorf("%s: expected an error", bad)
+		}
+	}
+}
+
 func TestParseRulesKeepsRegexPipes(t *testing.T) {
 	e, err := Parse([]byte(`{"meta":{"version":"PTDL_v2"},"docker_images":{"a":"b"},"startup":"x",
 		"variables":[{"env_variable":"V","rules":"required|regex:/^(a|b)$/i|max:5"}]}`))

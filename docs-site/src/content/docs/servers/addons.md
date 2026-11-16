@@ -1,6 +1,6 @@
 ---
 title: Plugins, mods, and the Workshop
-description: Install Minecraft plugins, mods, and datapacks from Modrinth and Hangar, and Steam Workshop items, from the app.
+description: Install Minecraft plugins, mods, and datapacks from Modrinth and Hangar, Steam Workshop items, and Arma Reforger mods, from the app.
 sidebar:
   order: 6
 ---
@@ -89,3 +89,14 @@ Games that load Steam Workshop items themselves get a **Workshop** section in Ad
 - The page says whether a **restart** or a **reinstall** picks the change up.
 
 The game downloads the items itself; Raptor only changes the setting that lists them. It needs the **Startup settings** permission.
+
+## Arma Reforger mods
+
+Arma Reforger servers get a **Mods** section in Add-ons for mods from the [Arma Reforger Workshop](https://reforger.armaplatform.com/workshop).
+
+- **Search** the Workshop, or paste a mod's link or ID (the 16 letters and digits in its link). Adding a mod adds the mods it needs too.
+- Each mod shows its newest version. **Pin** one to keep it on the version it's on; unpinned mods always get the newest.
+- If the Workshop doesn't know an ID (an unlisted mod), type its name and add it anyway.
+- **Save** writes the list to the server's `config.json` (its `game.mods`); everything else in the file stays as it is. Restart the server: it downloads the mods itself when it starts.
+
+It needs the **Files** permissions, since it edits a file. To change the file by hand, use **Edit config.json as text**.

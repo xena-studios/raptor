@@ -1223,6 +1223,444 @@ func (x *LookupWorkshopItemsResponse) GetItems() []*WorkshopItem {
 	return nil
 }
 
+type LookupReforgerModsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	// Mod IDs (16 hexadecimal digits), at most 100.
+	Ids           []string `protobuf:"bytes,2,rep,name=ids,proto3" json:"ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LookupReforgerModsRequest) Reset() {
+	*x = LookupReforgerModsRequest{}
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LookupReforgerModsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LookupReforgerModsRequest) ProtoMessage() {}
+
+func (x *LookupReforgerModsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LookupReforgerModsRequest.ProtoReflect.Descriptor instead.
+func (*LookupReforgerModsRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *LookupReforgerModsRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *LookupReforgerModsRequest) GetIds() []string {
+	if x != nil {
+		return x.Ids
+	}
+	return nil
+}
+
+type ReforgerMod struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Id      string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name    string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Author  string                 `protobuf:"bytes,3,opt,name=author,proto3" json:"author,omitempty"`
+	Summary string                 `protobuf:"bytes,4,opt,name=summary,proto3" json:"summary,omitempty"`
+	// Its newest version.
+	Version string `protobuf:"bytes,5,opt,name=version,proto3" json:"version,omitempty"`
+	// The newest version's, in bytes.
+	Size int64 `protobuf:"varint,6,opt,name=size,proto3" json:"size,omitempty"`
+	// Its picture, on ar-gcp-cdn.bistudio.com; empty if none.
+	PreviewUrl string                 `protobuf:"bytes,7,opt,name=preview_url,json=previewUrl,proto3" json:"preview_url,omitempty"`
+	UpdatedAt  *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// The mods it needs (not filled in by a search).
+	Dependencies []*ReforgerModRef `protobuf:"bytes,9,rep,name=dependencies,proto3" json:"dependencies,omitempty"`
+	// The scenarios it adds (not filled in by a search).
+	Scenarios     []*ReforgerScenario `protobuf:"bytes,10,rep,name=scenarios,proto3" json:"scenarios,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReforgerMod) Reset() {
+	*x = ReforgerMod{}
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReforgerMod) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReforgerMod) ProtoMessage() {}
+
+func (x *ReforgerMod) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReforgerMod.ProtoReflect.Descriptor instead.
+func (*ReforgerMod) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ReforgerMod) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ReforgerMod) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ReforgerMod) GetAuthor() string {
+	if x != nil {
+		return x.Author
+	}
+	return ""
+}
+
+func (x *ReforgerMod) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+func (x *ReforgerMod) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *ReforgerMod) GetSize() int64 {
+	if x != nil {
+		return x.Size
+	}
+	return 0
+}
+
+func (x *ReforgerMod) GetPreviewUrl() string {
+	if x != nil {
+		return x.PreviewUrl
+	}
+	return ""
+}
+
+func (x *ReforgerMod) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *ReforgerMod) GetDependencies() []*ReforgerModRef {
+	if x != nil {
+		return x.Dependencies
+	}
+	return nil
+}
+
+func (x *ReforgerMod) GetScenarios() []*ReforgerScenario {
+	if x != nil {
+		return x.Scenarios
+	}
+	return nil
+}
+
+type ReforgerModRef struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReforgerModRef) Reset() {
+	*x = ReforgerModRef{}
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReforgerModRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReforgerModRef) ProtoMessage() {}
+
+func (x *ReforgerModRef) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReforgerModRef.ProtoReflect.Descriptor instead.
+func (*ReforgerModRef) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ReforgerModRef) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ReforgerModRef) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type ReforgerScenario struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// What the server's game.scenarioId takes.
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReforgerScenario) Reset() {
+	*x = ReforgerScenario{}
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReforgerScenario) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReforgerScenario) ProtoMessage() {}
+
+func (x *ReforgerScenario) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReforgerScenario.ProtoReflect.Descriptor instead.
+func (*ReforgerScenario) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *ReforgerScenario) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ReforgerScenario) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type LookupReforgerModsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// IDs the Workshop doesn't have, or that are private, are left out.
+	Mods          []*ReforgerMod `protobuf:"bytes,1,rep,name=mods,proto3" json:"mods,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LookupReforgerModsResponse) Reset() {
+	*x = LookupReforgerModsResponse{}
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LookupReforgerModsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LookupReforgerModsResponse) ProtoMessage() {}
+
+func (x *LookupReforgerModsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LookupReforgerModsResponse.ProtoReflect.Descriptor instead.
+func (*LookupReforgerModsResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *LookupReforgerModsResponse) GetMods() []*ReforgerMod {
+	if x != nil {
+		return x.Mods
+	}
+	return nil
+}
+
+type SearchReforgerModsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Query string                 `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
+	// From 1.
+	Page          int32 `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchReforgerModsRequest) Reset() {
+	*x = SearchReforgerModsRequest{}
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchReforgerModsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchReforgerModsRequest) ProtoMessage() {}
+
+func (x *SearchReforgerModsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchReforgerModsRequest.ProtoReflect.Descriptor instead.
+func (*SearchReforgerModsRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *SearchReforgerModsRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *SearchReforgerModsRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *SearchReforgerModsRequest) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+type SearchReforgerModsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Mods  []*ReforgerMod         `protobuf:"bytes,1,rep,name=mods,proto3" json:"mods,omitempty"`
+	// How many match in all.
+	Total         int32 `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchReforgerModsResponse) Reset() {
+	*x = SearchReforgerModsResponse{}
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchReforgerModsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchReforgerModsResponse) ProtoMessage() {}
+
+func (x *SearchReforgerModsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchReforgerModsResponse.ProtoReflect.Descriptor instead.
+func (*SearchReforgerModsResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *SearchReforgerModsResponse) GetMods() []*ReforgerMod {
+	if x != nil {
+		return x.Mods
+	}
+	return nil
+}
+
+func (x *SearchReforgerModsResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
 type ResolveAddonDependenciesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
@@ -1242,7 +1680,7 @@ type ResolveAddonDependenciesRequest struct {
 
 func (x *ResolveAddonDependenciesRequest) Reset() {
 	*x = ResolveAddonDependenciesRequest{}
-	mi := &file_raptor_panel_v1_addon_proto_msgTypes[16]
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1254,7 +1692,7 @@ func (x *ResolveAddonDependenciesRequest) String() string {
 func (*ResolveAddonDependenciesRequest) ProtoMessage() {}
 
 func (x *ResolveAddonDependenciesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_addon_proto_msgTypes[16]
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1267,7 +1705,7 @@ func (x *ResolveAddonDependenciesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveAddonDependenciesRequest.ProtoReflect.Descriptor instead.
 func (*ResolveAddonDependenciesRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{16}
+	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ResolveAddonDependenciesRequest) GetOrgId() string {
@@ -1324,7 +1762,7 @@ type ResolvedAddon struct {
 
 func (x *ResolvedAddon) Reset() {
 	*x = ResolvedAddon{}
-	mi := &file_raptor_panel_v1_addon_proto_msgTypes[17]
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1336,7 +1774,7 @@ func (x *ResolvedAddon) String() string {
 func (*ResolvedAddon) ProtoMessage() {}
 
 func (x *ResolvedAddon) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_addon_proto_msgTypes[17]
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1349,7 +1787,7 @@ func (x *ResolvedAddon) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolvedAddon.ProtoReflect.Descriptor instead.
 func (*ResolvedAddon) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{17}
+	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ResolvedAddon) GetProject() *AddonProject {
@@ -1390,7 +1828,7 @@ type ResolveAddonDependenciesResponse struct {
 
 func (x *ResolveAddonDependenciesResponse) Reset() {
 	*x = ResolveAddonDependenciesResponse{}
-	mi := &file_raptor_panel_v1_addon_proto_msgTypes[18]
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1402,7 +1840,7 @@ func (x *ResolveAddonDependenciesResponse) String() string {
 func (*ResolveAddonDependenciesResponse) ProtoMessage() {}
 
 func (x *ResolveAddonDependenciesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_addon_proto_msgTypes[18]
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1415,7 +1853,7 @@ func (x *ResolveAddonDependenciesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveAddonDependenciesResponse.ProtoReflect.Descriptor instead.
 func (*ResolveAddonDependenciesResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{18}
+	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ResolveAddonDependenciesResponse) GetRequired() []*ResolvedAddon {
@@ -1456,7 +1894,7 @@ type ListGameVersionsRequest struct {
 
 func (x *ListGameVersionsRequest) Reset() {
 	*x = ListGameVersionsRequest{}
-	mi := &file_raptor_panel_v1_addon_proto_msgTypes[19]
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1468,7 +1906,7 @@ func (x *ListGameVersionsRequest) String() string {
 func (*ListGameVersionsRequest) ProtoMessage() {}
 
 func (x *ListGameVersionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_addon_proto_msgTypes[19]
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1481,7 +1919,7 @@ func (x *ListGameVersionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGameVersionsRequest.ProtoReflect.Descriptor instead.
 func (*ListGameVersionsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{19}
+	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ListGameVersionsRequest) GetOrgId() string {
@@ -1509,7 +1947,7 @@ type GameVersion struct {
 
 func (x *GameVersion) Reset() {
 	*x = GameVersion{}
-	mi := &file_raptor_panel_v1_addon_proto_msgTypes[20]
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1521,7 +1959,7 @@ func (x *GameVersion) String() string {
 func (*GameVersion) ProtoMessage() {}
 
 func (x *GameVersion) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_addon_proto_msgTypes[20]
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1534,7 +1972,7 @@ func (x *GameVersion) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GameVersion.ProtoReflect.Descriptor instead.
 func (*GameVersion) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{20}
+	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *GameVersion) GetId() string {
@@ -1561,7 +1999,7 @@ type ListGameVersionsResponse struct {
 
 func (x *ListGameVersionsResponse) Reset() {
 	*x = ListGameVersionsResponse{}
-	mi := &file_raptor_panel_v1_addon_proto_msgTypes[21]
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1573,7 +2011,7 @@ func (x *ListGameVersionsResponse) String() string {
 func (*ListGameVersionsResponse) ProtoMessage() {}
 
 func (x *ListGameVersionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_addon_proto_msgTypes[21]
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1586,7 +2024,7 @@ func (x *ListGameVersionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGameVersionsResponse.ProtoReflect.Descriptor instead.
 func (*ListGameVersionsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{21}
+	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ListGameVersionsResponse) GetVersions() []*GameVersion {
@@ -1607,7 +2045,7 @@ type LookupMinecraftPlayerRequest struct {
 
 func (x *LookupMinecraftPlayerRequest) Reset() {
 	*x = LookupMinecraftPlayerRequest{}
-	mi := &file_raptor_panel_v1_addon_proto_msgTypes[22]
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1619,7 +2057,7 @@ func (x *LookupMinecraftPlayerRequest) String() string {
 func (*LookupMinecraftPlayerRequest) ProtoMessage() {}
 
 func (x *LookupMinecraftPlayerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_addon_proto_msgTypes[22]
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1632,7 +2070,7 @@ func (x *LookupMinecraftPlayerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LookupMinecraftPlayerRequest.ProtoReflect.Descriptor instead.
 func (*LookupMinecraftPlayerRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{22}
+	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *LookupMinecraftPlayerRequest) GetOrgId() string {
@@ -1666,7 +2104,7 @@ type LookupMinecraftPlayerResponse struct {
 
 func (x *LookupMinecraftPlayerResponse) Reset() {
 	*x = LookupMinecraftPlayerResponse{}
-	mi := &file_raptor_panel_v1_addon_proto_msgTypes[23]
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1678,7 +2116,7 @@ func (x *LookupMinecraftPlayerResponse) String() string {
 func (*LookupMinecraftPlayerResponse) ProtoMessage() {}
 
 func (x *LookupMinecraftPlayerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_addon_proto_msgTypes[23]
+	mi := &file_raptor_panel_v1_addon_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1691,7 +2129,7 @@ func (x *LookupMinecraftPlayerResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LookupMinecraftPlayerResponse.ProtoReflect.Descriptor instead.
 func (*LookupMinecraftPlayerResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{23}
+	return file_raptor_panel_v1_addon_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *LookupMinecraftPlayerResponse) GetName() string {
@@ -1828,7 +2266,39 @@ const file_raptor_panel_v1_addon_proto_rawDesc = "" +
 	"collection\x12\x1a\n" +
 	"\bchildren\x18\b \x03(\tR\bchildren\"R\n" +
 	"\x1bLookupWorkshopItemsResponse\x123\n" +
-	"\x05items\x18\x01 \x03(\v2\x1d.raptor.panel.v1.WorkshopItemR\x05items\"\xca\x01\n" +
+	"\x05items\x18\x01 \x03(\v2\x1d.raptor.panel.v1.WorkshopItemR\x05items\"D\n" +
+	"\x19LookupReforgerModsRequest\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x10\n" +
+	"\x03ids\x18\x02 \x03(\tR\x03ids\"\xf3\x02\n" +
+	"\vReforgerMod\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
+	"\x06author\x18\x03 \x01(\tR\x06author\x12\x18\n" +
+	"\asummary\x18\x04 \x01(\tR\asummary\x12\x18\n" +
+	"\aversion\x18\x05 \x01(\tR\aversion\x12\x12\n" +
+	"\x04size\x18\x06 \x01(\x03R\x04size\x12\x1f\n" +
+	"\vpreview_url\x18\a \x01(\tR\n" +
+	"previewUrl\x129\n" +
+	"\n" +
+	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12C\n" +
+	"\fdependencies\x18\t \x03(\v2\x1f.raptor.panel.v1.ReforgerModRefR\fdependencies\x12?\n" +
+	"\tscenarios\x18\n" +
+	" \x03(\v2!.raptor.panel.v1.ReforgerScenarioR\tscenarios\"4\n" +
+	"\x0eReforgerModRef\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"6\n" +
+	"\x10ReforgerScenario\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"N\n" +
+	"\x1aLookupReforgerModsResponse\x120\n" +
+	"\x04mods\x18\x01 \x03(\v2\x1c.raptor.panel.v1.ReforgerModR\x04mods\"\\\n" +
+	"\x19SearchReforgerModsRequest\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x14\n" +
+	"\x05query\x18\x02 \x01(\tR\x05query\x12\x12\n" +
+	"\x04page\x18\x03 \x01(\x05R\x04page\"d\n" +
+	"\x1aSearchReforgerModsResponse\x120\n" +
+	"\x04mods\x18\x01 \x03(\v2\x1c.raptor.panel.v1.ReforgerModR\x04mods\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"\xca\x01\n" +
 	"\x1fResolveAddonDependenciesRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x1d\n" +
 	"\n" +
@@ -1860,12 +2330,14 @@ const file_raptor_panel_v1_addon_proto_rawDesc = "" +
 	"\aoffline\x18\x03 \x01(\bR\aoffline\"G\n" +
 	"\x1dLookupMinecraftPlayerResponse\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
-	"\x04uuid\x18\x02 \x01(\tR\x04uuid2\xa0\a\n" +
+	"\x04uuid\x18\x02 \x01(\tR\x04uuid2\x88\t\n" +
 	"\fAddonService\x12`\n" +
 	"\fSearchAddons\x12$.raptor.panel.v1.SearchAddonsRequest\x1a%.raptor.panel.v1.SearchAddonsResponse\"\x03\x90\x02\x01\x12o\n" +
 	"\x11ListAddonVersions\x12).raptor.panel.v1.ListAddonVersionsRequest\x1a*.raptor.panel.v1.ListAddonVersionsResponse\"\x03\x90\x02\x01\x12f\n" +
 	"\x0eIdentifyAddons\x12&.raptor.panel.v1.IdentifyAddonsRequest\x1a'.raptor.panel.v1.IdentifyAddonsResponse\"\x03\x90\x02\x01\x12u\n" +
-	"\x13LookupWorkshopItems\x12+.raptor.panel.v1.LookupWorkshopItemsRequest\x1a,.raptor.panel.v1.LookupWorkshopItemsResponse\"\x03\x90\x02\x01\x12\x84\x01\n" +
+	"\x13LookupWorkshopItems\x12+.raptor.panel.v1.LookupWorkshopItemsRequest\x1a,.raptor.panel.v1.LookupWorkshopItemsResponse\"\x03\x90\x02\x01\x12r\n" +
+	"\x12LookupReforgerMods\x12*.raptor.panel.v1.LookupReforgerModsRequest\x1a+.raptor.panel.v1.LookupReforgerModsResponse\"\x03\x90\x02\x01\x12r\n" +
+	"\x12SearchReforgerMods\x12*.raptor.panel.v1.SearchReforgerModsRequest\x1a+.raptor.panel.v1.SearchReforgerModsResponse\"\x03\x90\x02\x01\x12\x84\x01\n" +
 	"\x18ResolveAddonDependencies\x120.raptor.panel.v1.ResolveAddonDependenciesRequest\x1a1.raptor.panel.v1.ResolveAddonDependenciesResponse\"\x03\x90\x02\x01\x12{\n" +
 	"\x15LookupMinecraftPlayer\x12-.raptor.panel.v1.LookupMinecraftPlayerRequest\x1a..raptor.panel.v1.LookupMinecraftPlayerResponse\"\x03\x90\x02\x01\x12l\n" +
 	"\x10ListGameVersions\x12(.raptor.panel.v1.ListGameVersionsRequest\x1a).raptor.panel.v1.ListGameVersionsResponse\"\x03\x90\x02\x01\x12l\n" +
@@ -1885,7 +2357,7 @@ func file_raptor_panel_v1_addon_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_addon_proto_rawDescData
 }
 
-var file_raptor_panel_v1_addon_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
+var file_raptor_panel_v1_addon_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
 var file_raptor_panel_v1_addon_proto_goTypes = []any{
 	(*ListAddonSourcesRequest)(nil),          // 0: raptor.panel.v1.ListAddonSourcesRequest
 	(*ListAddonSourcesResponse)(nil),         // 1: raptor.panel.v1.ListAddonSourcesResponse
@@ -1903,64 +2375,80 @@ var file_raptor_panel_v1_addon_proto_goTypes = []any{
 	(*LookupWorkshopItemsRequest)(nil),       // 13: raptor.panel.v1.LookupWorkshopItemsRequest
 	(*WorkshopItem)(nil),                     // 14: raptor.panel.v1.WorkshopItem
 	(*LookupWorkshopItemsResponse)(nil),      // 15: raptor.panel.v1.LookupWorkshopItemsResponse
-	(*ResolveAddonDependenciesRequest)(nil),  // 16: raptor.panel.v1.ResolveAddonDependenciesRequest
-	(*ResolvedAddon)(nil),                    // 17: raptor.panel.v1.ResolvedAddon
-	(*ResolveAddonDependenciesResponse)(nil), // 18: raptor.panel.v1.ResolveAddonDependenciesResponse
-	(*ListGameVersionsRequest)(nil),          // 19: raptor.panel.v1.ListGameVersionsRequest
-	(*GameVersion)(nil),                      // 20: raptor.panel.v1.GameVersion
-	(*ListGameVersionsResponse)(nil),         // 21: raptor.panel.v1.ListGameVersionsResponse
-	(*LookupMinecraftPlayerRequest)(nil),     // 22: raptor.panel.v1.LookupMinecraftPlayerRequest
-	(*LookupMinecraftPlayerResponse)(nil),    // 23: raptor.panel.v1.LookupMinecraftPlayerResponse
-	nil,                                      // 24: raptor.panel.v1.IdentifyAddonsRequest.Sha256Entry
-	nil,                                      // 25: raptor.panel.v1.IdentifyAddonsRequest.NamesEntry
-	nil,                                      // 26: raptor.panel.v1.IdentifyAddonsRequest.Sha1Entry
-	nil,                                      // 27: raptor.panel.v1.IdentifyAddonsRequest.CurseforgeEntry
-	(*timestamppb.Timestamp)(nil),            // 28: google.protobuf.Timestamp
+	(*LookupReforgerModsRequest)(nil),        // 16: raptor.panel.v1.LookupReforgerModsRequest
+	(*ReforgerMod)(nil),                      // 17: raptor.panel.v1.ReforgerMod
+	(*ReforgerModRef)(nil),                   // 18: raptor.panel.v1.ReforgerModRef
+	(*ReforgerScenario)(nil),                 // 19: raptor.panel.v1.ReforgerScenario
+	(*LookupReforgerModsResponse)(nil),       // 20: raptor.panel.v1.LookupReforgerModsResponse
+	(*SearchReforgerModsRequest)(nil),        // 21: raptor.panel.v1.SearchReforgerModsRequest
+	(*SearchReforgerModsResponse)(nil),       // 22: raptor.panel.v1.SearchReforgerModsResponse
+	(*ResolveAddonDependenciesRequest)(nil),  // 23: raptor.panel.v1.ResolveAddonDependenciesRequest
+	(*ResolvedAddon)(nil),                    // 24: raptor.panel.v1.ResolvedAddon
+	(*ResolveAddonDependenciesResponse)(nil), // 25: raptor.panel.v1.ResolveAddonDependenciesResponse
+	(*ListGameVersionsRequest)(nil),          // 26: raptor.panel.v1.ListGameVersionsRequest
+	(*GameVersion)(nil),                      // 27: raptor.panel.v1.GameVersion
+	(*ListGameVersionsResponse)(nil),         // 28: raptor.panel.v1.ListGameVersionsResponse
+	(*LookupMinecraftPlayerRequest)(nil),     // 29: raptor.panel.v1.LookupMinecraftPlayerRequest
+	(*LookupMinecraftPlayerResponse)(nil),    // 30: raptor.panel.v1.LookupMinecraftPlayerResponse
+	nil,                                      // 31: raptor.panel.v1.IdentifyAddonsRequest.Sha256Entry
+	nil,                                      // 32: raptor.panel.v1.IdentifyAddonsRequest.NamesEntry
+	nil,                                      // 33: raptor.panel.v1.IdentifyAddonsRequest.Sha1Entry
+	nil,                                      // 34: raptor.panel.v1.IdentifyAddonsRequest.CurseforgeEntry
+	(*timestamppb.Timestamp)(nil),            // 35: google.protobuf.Timestamp
 }
 var file_raptor_panel_v1_addon_proto_depIdxs = []int32{
-	28, // 0: raptor.panel.v1.AddonVersion.published_at:type_name -> google.protobuf.Timestamp
+	35, // 0: raptor.panel.v1.AddonVersion.published_at:type_name -> google.protobuf.Timestamp
 	4,  // 1: raptor.panel.v1.AddonVersion.file:type_name -> raptor.panel.v1.AddonFile
 	3,  // 2: raptor.panel.v1.AddonVersion.dependencies:type_name -> raptor.panel.v1.AddonDependency
 	2,  // 3: raptor.panel.v1.SearchAddonsResponse.projects:type_name -> raptor.panel.v1.AddonProject
 	5,  // 4: raptor.panel.v1.ListAddonVersionsResponse.versions:type_name -> raptor.panel.v1.AddonVersion
-	24, // 5: raptor.panel.v1.IdentifyAddonsRequest.sha256:type_name -> raptor.panel.v1.IdentifyAddonsRequest.Sha256Entry
-	25, // 6: raptor.panel.v1.IdentifyAddonsRequest.names:type_name -> raptor.panel.v1.IdentifyAddonsRequest.NamesEntry
-	26, // 7: raptor.panel.v1.IdentifyAddonsRequest.sha1:type_name -> raptor.panel.v1.IdentifyAddonsRequest.Sha1Entry
-	27, // 8: raptor.panel.v1.IdentifyAddonsRequest.curseforge:type_name -> raptor.panel.v1.IdentifyAddonsRequest.CurseforgeEntry
+	31, // 5: raptor.panel.v1.IdentifyAddonsRequest.sha256:type_name -> raptor.panel.v1.IdentifyAddonsRequest.Sha256Entry
+	32, // 6: raptor.panel.v1.IdentifyAddonsRequest.names:type_name -> raptor.panel.v1.IdentifyAddonsRequest.NamesEntry
+	33, // 7: raptor.panel.v1.IdentifyAddonsRequest.sha1:type_name -> raptor.panel.v1.IdentifyAddonsRequest.Sha1Entry
+	34, // 8: raptor.panel.v1.IdentifyAddonsRequest.curseforge:type_name -> raptor.panel.v1.IdentifyAddonsRequest.CurseforgeEntry
 	2,  // 9: raptor.panel.v1.IdentifiedAddon.project:type_name -> raptor.panel.v1.AddonProject
 	5,  // 10: raptor.panel.v1.IdentifiedAddon.version:type_name -> raptor.panel.v1.AddonVersion
 	5,  // 11: raptor.panel.v1.IdentifiedAddon.latest:type_name -> raptor.panel.v1.AddonVersion
 	11, // 12: raptor.panel.v1.IdentifyAddonsResponse.addons:type_name -> raptor.panel.v1.IdentifiedAddon
-	28, // 13: raptor.panel.v1.WorkshopItem.updated_at:type_name -> google.protobuf.Timestamp
+	35, // 13: raptor.panel.v1.WorkshopItem.updated_at:type_name -> google.protobuf.Timestamp
 	14, // 14: raptor.panel.v1.LookupWorkshopItemsResponse.items:type_name -> raptor.panel.v1.WorkshopItem
-	2,  // 15: raptor.panel.v1.ResolvedAddon.project:type_name -> raptor.panel.v1.AddonProject
-	5,  // 16: raptor.panel.v1.ResolvedAddon.version:type_name -> raptor.panel.v1.AddonVersion
-	17, // 17: raptor.panel.v1.ResolveAddonDependenciesResponse.required:type_name -> raptor.panel.v1.ResolvedAddon
-	17, // 18: raptor.panel.v1.ResolveAddonDependenciesResponse.optional:type_name -> raptor.panel.v1.ResolvedAddon
-	2,  // 19: raptor.panel.v1.ResolveAddonDependenciesResponse.incompatible:type_name -> raptor.panel.v1.AddonProject
-	2,  // 20: raptor.panel.v1.ResolveAddonDependenciesResponse.unavailable:type_name -> raptor.panel.v1.AddonProject
-	20, // 21: raptor.panel.v1.ListGameVersionsResponse.versions:type_name -> raptor.panel.v1.GameVersion
-	6,  // 22: raptor.panel.v1.AddonService.SearchAddons:input_type -> raptor.panel.v1.SearchAddonsRequest
-	8,  // 23: raptor.panel.v1.AddonService.ListAddonVersions:input_type -> raptor.panel.v1.ListAddonVersionsRequest
-	10, // 24: raptor.panel.v1.AddonService.IdentifyAddons:input_type -> raptor.panel.v1.IdentifyAddonsRequest
-	13, // 25: raptor.panel.v1.AddonService.LookupWorkshopItems:input_type -> raptor.panel.v1.LookupWorkshopItemsRequest
-	16, // 26: raptor.panel.v1.AddonService.ResolveAddonDependencies:input_type -> raptor.panel.v1.ResolveAddonDependenciesRequest
-	22, // 27: raptor.panel.v1.AddonService.LookupMinecraftPlayer:input_type -> raptor.panel.v1.LookupMinecraftPlayerRequest
-	19, // 28: raptor.panel.v1.AddonService.ListGameVersions:input_type -> raptor.panel.v1.ListGameVersionsRequest
-	0,  // 29: raptor.panel.v1.AddonService.ListAddonSources:input_type -> raptor.panel.v1.ListAddonSourcesRequest
-	7,  // 30: raptor.panel.v1.AddonService.SearchAddons:output_type -> raptor.panel.v1.SearchAddonsResponse
-	9,  // 31: raptor.panel.v1.AddonService.ListAddonVersions:output_type -> raptor.panel.v1.ListAddonVersionsResponse
-	12, // 32: raptor.panel.v1.AddonService.IdentifyAddons:output_type -> raptor.panel.v1.IdentifyAddonsResponse
-	15, // 33: raptor.panel.v1.AddonService.LookupWorkshopItems:output_type -> raptor.panel.v1.LookupWorkshopItemsResponse
-	18, // 34: raptor.panel.v1.AddonService.ResolveAddonDependencies:output_type -> raptor.panel.v1.ResolveAddonDependenciesResponse
-	23, // 35: raptor.panel.v1.AddonService.LookupMinecraftPlayer:output_type -> raptor.panel.v1.LookupMinecraftPlayerResponse
-	21, // 36: raptor.panel.v1.AddonService.ListGameVersions:output_type -> raptor.panel.v1.ListGameVersionsResponse
-	1,  // 37: raptor.panel.v1.AddonService.ListAddonSources:output_type -> raptor.panel.v1.ListAddonSourcesResponse
-	30, // [30:38] is the sub-list for method output_type
-	22, // [22:30] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	35, // 15: raptor.panel.v1.ReforgerMod.updated_at:type_name -> google.protobuf.Timestamp
+	18, // 16: raptor.panel.v1.ReforgerMod.dependencies:type_name -> raptor.panel.v1.ReforgerModRef
+	19, // 17: raptor.panel.v1.ReforgerMod.scenarios:type_name -> raptor.panel.v1.ReforgerScenario
+	17, // 18: raptor.panel.v1.LookupReforgerModsResponse.mods:type_name -> raptor.panel.v1.ReforgerMod
+	17, // 19: raptor.panel.v1.SearchReforgerModsResponse.mods:type_name -> raptor.panel.v1.ReforgerMod
+	2,  // 20: raptor.panel.v1.ResolvedAddon.project:type_name -> raptor.panel.v1.AddonProject
+	5,  // 21: raptor.panel.v1.ResolvedAddon.version:type_name -> raptor.panel.v1.AddonVersion
+	24, // 22: raptor.panel.v1.ResolveAddonDependenciesResponse.required:type_name -> raptor.panel.v1.ResolvedAddon
+	24, // 23: raptor.panel.v1.ResolveAddonDependenciesResponse.optional:type_name -> raptor.panel.v1.ResolvedAddon
+	2,  // 24: raptor.panel.v1.ResolveAddonDependenciesResponse.incompatible:type_name -> raptor.panel.v1.AddonProject
+	2,  // 25: raptor.panel.v1.ResolveAddonDependenciesResponse.unavailable:type_name -> raptor.panel.v1.AddonProject
+	27, // 26: raptor.panel.v1.ListGameVersionsResponse.versions:type_name -> raptor.panel.v1.GameVersion
+	6,  // 27: raptor.panel.v1.AddonService.SearchAddons:input_type -> raptor.panel.v1.SearchAddonsRequest
+	8,  // 28: raptor.panel.v1.AddonService.ListAddonVersions:input_type -> raptor.panel.v1.ListAddonVersionsRequest
+	10, // 29: raptor.panel.v1.AddonService.IdentifyAddons:input_type -> raptor.panel.v1.IdentifyAddonsRequest
+	13, // 30: raptor.panel.v1.AddonService.LookupWorkshopItems:input_type -> raptor.panel.v1.LookupWorkshopItemsRequest
+	16, // 31: raptor.panel.v1.AddonService.LookupReforgerMods:input_type -> raptor.panel.v1.LookupReforgerModsRequest
+	21, // 32: raptor.panel.v1.AddonService.SearchReforgerMods:input_type -> raptor.panel.v1.SearchReforgerModsRequest
+	23, // 33: raptor.panel.v1.AddonService.ResolveAddonDependencies:input_type -> raptor.panel.v1.ResolveAddonDependenciesRequest
+	29, // 34: raptor.panel.v1.AddonService.LookupMinecraftPlayer:input_type -> raptor.panel.v1.LookupMinecraftPlayerRequest
+	26, // 35: raptor.panel.v1.AddonService.ListGameVersions:input_type -> raptor.panel.v1.ListGameVersionsRequest
+	0,  // 36: raptor.panel.v1.AddonService.ListAddonSources:input_type -> raptor.panel.v1.ListAddonSourcesRequest
+	7,  // 37: raptor.panel.v1.AddonService.SearchAddons:output_type -> raptor.panel.v1.SearchAddonsResponse
+	9,  // 38: raptor.panel.v1.AddonService.ListAddonVersions:output_type -> raptor.panel.v1.ListAddonVersionsResponse
+	12, // 39: raptor.panel.v1.AddonService.IdentifyAddons:output_type -> raptor.panel.v1.IdentifyAddonsResponse
+	15, // 40: raptor.panel.v1.AddonService.LookupWorkshopItems:output_type -> raptor.panel.v1.LookupWorkshopItemsResponse
+	20, // 41: raptor.panel.v1.AddonService.LookupReforgerMods:output_type -> raptor.panel.v1.LookupReforgerModsResponse
+	22, // 42: raptor.panel.v1.AddonService.SearchReforgerMods:output_type -> raptor.panel.v1.SearchReforgerModsResponse
+	25, // 43: raptor.panel.v1.AddonService.ResolveAddonDependencies:output_type -> raptor.panel.v1.ResolveAddonDependenciesResponse
+	30, // 44: raptor.panel.v1.AddonService.LookupMinecraftPlayer:output_type -> raptor.panel.v1.LookupMinecraftPlayerResponse
+	28, // 45: raptor.panel.v1.AddonService.ListGameVersions:output_type -> raptor.panel.v1.ListGameVersionsResponse
+	1,  // 46: raptor.panel.v1.AddonService.ListAddonSources:output_type -> raptor.panel.v1.ListAddonSourcesResponse
+	37, // [37:47] is the sub-list for method output_type
+	27, // [27:37] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_addon_proto_init() }
@@ -1974,7 +2462,7 @@ func file_raptor_panel_v1_addon_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_addon_proto_rawDesc), len(file_raptor_panel_v1_addon_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   28,
+			NumMessages:   35,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

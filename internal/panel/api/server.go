@@ -34,6 +34,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/mojang"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
+	"github.com/xena-studios/raptor/internal/panel/reforger"
 	"github.com/xena-studios/raptor/internal/panel/staff"
 	"github.com/xena-studios/raptor/internal/panel/steam"
 	"github.com/xena-studios/raptor/internal/panel/transfers"
@@ -84,6 +85,8 @@ type Config struct {
 	Hangar   *hangar.Client
 	// Steam names Workshop items (nil: Steam's Web API).
 	Steam *steam.Client
+	// Reforger names Arma Reforger mods (nil: reforger.armaplatform.com).
+	Reforger *reforger.Client
 	// UMod is where Rust's plugins are found (nil: umod.org).
 	UMod *umod.Client
 	// Factorio is Factorio's mod portal (nil: mods.factorio.com).
@@ -185,6 +188,10 @@ func Handler(cfg Config) http.Handler {
 		if st == nil {
 			st = &steam.Client{UserAgent: ua}
 		}
+		rf := cfg.Reforger
+		if rf == nil {
+			rf = &reforger.Client{UserAgent: ua}
+		}
 		um := cfg.UMod
 		if um == nil {
 			um = &umod.Client{UserAgent: ua}
@@ -206,7 +213,7 @@ func Handler(cfg Config) http.Handler {
 			mp = &modpacks.Client{UserAgent: ua}
 		}
 		// A lookup is up to 500 SHA-512s, with their SHA-256s.
-		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg, Steam: st, UMod: um, Factorio: fa, Versions: gv, Mojang: mj, Modpacks: mp, CurseForge: cfg.CurseForge}, opts(connect.WithReadMaxBytes(256<<10))...)
+		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg, Steam: st, Reforger: rf, UMod: um, Factorio: fa, Versions: gv, Mojang: mj, Modpacks: mp, CurseForge: cfg.CurseForge}, opts(connect.WithReadMaxBytes(256<<10))...)
 		api.Handle(path, handler)
 	}
 	if cfg.Orgs != nil {

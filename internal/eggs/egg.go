@@ -38,7 +38,7 @@ func IsRaptor(format string) bool { return strings.HasPrefix(format, "RPTR_") }
 
 // RaptorKeys are Raptor's settings: top-level fields in Raptor's eggs, and
 // the keys of "x-raptor" in other formats.
-var RaptorKeys = []string{"arch", "category", "library", "install", "backup", "health", "players", "addons", "workshop", "web", "modpack"}
+var RaptorKeys = []string{"arch", "category", "library", "install", "backup", "health", "players", "addons", "workshop", "reforger", "web", "modpack"}
 
 // Egg is the normalized form of every supported egg format.
 type Egg struct {
@@ -155,6 +155,9 @@ type Extension struct {
 	// Workshop turns on Steam Workshop items for games that download them
 	// themselves (docs/EGGS.md#steam-workshop); nil if the egg has none.
 	Workshop *Workshop `yaml:"workshop"`
+	// Reforger turns on Bohemia Workshop mods for Arma Reforger, listed in
+	// its JSON config (docs/EGGS.md#arma-reforger-mods); nil if none.
+	Reforger *Reforger `yaml:"reforger"`
 	// Web is a web dashboard the server serves (txAdmin, Grafana), so the
 	// app can link to it (#428); nil if it has none.
 	Web *Web `yaml:"web"`
@@ -313,6 +316,26 @@ func CheckWorkshop(w *Workshop, vars []Variable) error {
 	}
 	if w.Apply != "" && w.Apply != "restart" && w.Apply != "reinstall" {
 		return fmt.Errorf("egg: x-raptor.workshop.apply %q: want restart or reinstall", w.Apply)
+	}
+	return nil
+}
+
+// Reforger says where Arma Reforger takes Bohemia Workshop mods: the
+// game.mods list of its JSON config, which the game downloads from at
+// start. Raptor downloads nothing; it edits the list.
+type Reforger struct {
+	// Config is the server's JSON config, relative to its folder.
+	Config string `yaml:"config"`
+}
+
+// CheckReforger validates x-raptor.reforger.
+func CheckReforger(r *Reforger) error {
+	if r == nil {
+		return nil
+	}
+	c := r.Config
+	if c == "" || strings.HasPrefix(c, "/") || slices.Contains(strings.Split(c, "/"), "..") || !strings.HasSuffix(c, ".json") {
+		return fmt.Errorf("egg: x-raptor.reforger.config %q: want a .json file in the server's folder", c)
 	}
 	return nil
 }
@@ -638,6 +661,9 @@ func (e *Egg) parseRaptor(n *yaml.Node) error {
 			return err
 		}
 		if err := CheckWorkshop(e.Raptor.Workshop, e.Variables); err != nil {
+			return err
+		}
+		if err := CheckReforger(e.Raptor.Reforger); err != nil {
 			return err
 		}
 		if err := CheckWeb(e.Raptor.Web, e.Variables); err != nil {
