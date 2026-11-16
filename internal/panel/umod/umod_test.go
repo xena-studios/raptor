@@ -2,6 +2,7 @@ package umod
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -43,7 +44,7 @@ func TestClient(t *testing.T) {
 	if err != nil || got.Installable() {
 		t.Errorf("a download from elsewhere is installable: %+v %v", got, err)
 	}
-	if _, err := c.Get(ctx, "gone"); err != ErrNotFound {
+	if _, err := c.Get(ctx, "gone"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("missing: %v", err)
 	}
 }
