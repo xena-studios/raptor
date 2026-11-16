@@ -105,6 +105,10 @@ export default function RootLayout() {
                 options={{ headerShown: true, title: "" }}
               />
               <Stack.Screen name="approve" options={{ presentation: "modal" }} />
+              <Stack.Screen
+                name="console/[orgId]/[nodeId]/[serverId]"
+                options={{ headerShown: true, title: "Console" }}
+              />
             </Stack.Protected>
             <Stack.Protected guard={!signedIn}>
               <Stack.Screen name="sign-in" />

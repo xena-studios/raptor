@@ -198,4 +198,26 @@ func TestLiveConsole(t *testing.T) {
 	if m := recv(cb); m.Type != "lines" || m.Lines[0] != "history" {
 		t.Fatalf("member with console.read: %+v", m)
 	}
+
+	// Raptor's phone app: its bearer token, whatever Origin React Native
+	// sends. A cookie with that Origin is still refused.
+	phone := signInPhone(t, srv, alice, "Alice's iPhone")
+	h := http.Header{"Authorization": {"Bearer " + phone.token}, "Origin": {"http://localhost:8081"}}
+	cp, resp, err := websocket.Dial(ctx, wsURL, &websocket.DialOptions{HTTPClient: srv.Client(), HTTPHeader: h})
+	if resp != nil && resp.Body != nil {
+		_ = resp.Body.Close()
+	}
+	if err != nil {
+		t.Fatalf("the phone app's console: %v", err)
+	}
+	defer func() { _ = cp.CloseNow() }()
+	if err := wsjson.Write(ctx, cp, live.In{Op: "console", ID: "p", Node: nodeID, Server: "s1"}); err != nil {
+		t.Fatal(err)
+	}
+	if m := recv(cp); m.ID != "p" || m.Type != "lines" || m.Lines[0] != "history" {
+		t.Fatalf("the phone app's console: %+v", m)
+	}
+	if _, _, err := dial(alice, "http://localhost:8081"); err == nil {
+		t.Error("a browser's cookie from another origin connected")
+	}
 }

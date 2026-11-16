@@ -2,7 +2,7 @@
   "version": 1,
   "sessions": {
     "e7ae2692-8897-4077-af40-34210003ecd6": {
-      "updatedAt": 1794859449004,
+      "updatedAt": 1794859743549,
       "files": {
         "/Users/zachary/Projects/raptor/.claude/worktrees/mobile-tokens/mobile/src/components/ui.tsx": {
           "editCount": 2,
@@ -25,7 +25,7 @@
           "findings": []
         },
         "/Users/zachary/Projects/raptor/.claude/worktrees/mobile-tokens/mobile/src/app/_layout.tsx": {
-          "editCount": 1,
+          "editCount": 2,
           "findings": []
         },
         "/Users/zachary/Projects/raptor/.claude/worktrees/mobile-tokens/mobile/src/lib/push.ts": {
@@ -37,6 +37,14 @@
           "findings": []
         },
         "/Users/zachary/Projects/raptor/.claude/worktrees/mobile-tokens/mobile/src/app/(tabs)/index.tsx": {
+          "editCount": 3,
+          "findings": []
+        },
+        "/Users/zachary/Projects/raptor/.claude/worktrees/mobile-tokens/mobile/src/app/console/[orgId]/[nodeId]/[serverId].tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/zachary/Projects/raptor/.claude/worktrees/mobile-tokens/mobile/src/app/(tabs)/servers.tsx": {
           "editCount": 3,
           "findings": []
         }
