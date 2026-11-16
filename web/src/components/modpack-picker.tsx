@@ -33,13 +33,18 @@ function compact(n: bigint | number): string {
 // Modrinth's modpacks, pick a version, and the egg's variables are filled
 // in. The egg's install script downloads the pack, as it would from IDs
 // typed by hand.
+const siteNames: Record<string, string> = { modrinth: "Modrinth", ftb: "FTB", technic: "Technic" };
+
 export function ModpackButton({
   orgId,
+  source = "modrinth",
   current,
   onPick,
   disabled,
 }: {
   orgId: string;
+  // Where the egg's packs come from: "modrinth", "ftb", or "technic".
+  source?: string;
   // The pack the variables name now, if any.
   current?: string;
   onPick: (p: Pick) => void;
@@ -61,6 +66,7 @@ export function ModpackButton({
       {open && (
         <ModpackPicker
           orgId={orgId}
+          source={source}
           onClose={() => setOpen(false)}
           onPick={(p) => {
             onPick(p);
@@ -74,19 +80,22 @@ export function ModpackButton({
 
 function ModpackPicker({
   orgId,
+  source,
   onClose,
   onPick,
 }: {
   orgId: string;
+  source: string;
   onClose: () => void;
   onPick: (p: Pick) => void;
 }) {
+  const site = siteNames[source] ?? source;
   const [query, setQuery] = useState("");
   const [pack, setPack] = useState<AddonProject>();
   const q = useDeferredValue(query.trim());
   const search = useInfiniteQuery(
     AddonService.method.searchAddons,
-    { orgId, kind: "modpacks", loaders: [], query: q, offset: 0, source: "modrinth" },
+    { orgId, kind: "modpacks", loaders: [], query: q, offset: 0, source },
     {
       pageParamKey: "offset",
       getNextPageParam: (last, pages) => {
@@ -103,12 +112,20 @@ function ModpackPicker({
           <DialogTitle>{pack ? pack.title : "Choose a modpack"}</DialogTitle>
           <DialogDescription>
             {pack
-              ? "Pick a version. The server downloads it from Modrinth when it installs."
-              : "Modpacks from Modrinth, most downloaded first."}
+              ? `Pick a version. The server downloads it from ${site} when it installs.`
+              : source === "technic"
+                ? "Modpacks from Technic: type a pack's name."
+                : `Modpacks from ${site}, most installed first.`}
           </DialogDescription>
         </DialogHeader>
         {pack ? (
-          <Versions orgId={orgId} pack={pack} onBack={() => setPack(undefined)} onPick={onPick} />
+          <Versions
+            orgId={orgId}
+            source={source}
+            pack={pack}
+            onBack={() => setPack(undefined)}
+            onPick={onPick}
+          />
         ) : (
           <div className="flex flex-col gap-3">
             <div className="relative">
@@ -185,24 +202,30 @@ function ModpackPicker({
 
 function Versions({
   orgId,
+  source,
   pack,
   onBack,
   onPick,
 }: {
   orgId: string;
+  source: string;
   pack: AddonProject;
   onBack: () => void;
   onPick: (p: Pick) => void;
 }) {
   const versions = useQuery(AddonService.method.listAddonVersions, {
     orgId,
-    projectId: pack.slug || pack.id,
+    projectId: source === "modrinth" ? pack.slug || pack.id : pack.id,
     kind: "modpacks",
     loaders: [],
+    source,
   });
+  const modrinth = source === "modrinth";
+  // Technic's list is its recommended and latest builds already.
+  const newest = source !== "technic";
   const list = versions.data?.versions ?? [];
   // "latest": the newest release whenever the server reinstalls.
-  const [chosen, setChosen] = useState("latest");
+  const [chosen, setChosen] = useState(newest ? "latest" : "recommended");
   const v = list.find((x) => x.id === chosen) ?? list[0];
   return (
     <div className="flex flex-col gap-4">
@@ -214,7 +237,7 @@ function Versions({
           rel="noreferrer"
           className="inline-flex items-center gap-1 underline underline-offset-4"
         >
-          On Modrinth <ExternalLink className="size-3" />
+          On {siteNames[source] ?? source} <ExternalLink className="size-3" />
         </a>
       </p>
       {versions.error ? (
@@ -232,20 +255,27 @@ function Versions({
             value={chosen}
             onChange={(e) => setChosen(e.target.value)}
           >
-            <option value="latest">
-              The newest, {list[0]?.versionNumber} (updated when you reinstall)
-            </option>
+            {newest && (
+              <option value="latest">
+                The newest, {list[0]?.versionNumber} (updated when you reinstall)
+              </option>
+            )}
             {list.map((x) => (
               <option key={x.id} value={x.id}>
-                {x.versionNumber} · Minecraft {x.gameVersions.join(", ")} · {x.loaders.join(", ")}
+                {x.versionNumber}
+                {modrinth
+                  ? ` · Minecraft ${x.gameVersions.join(", ")} · ${x.loaders.join(", ")}`
+                  : ""}
                 {x.publishedAt ? ` · ${dateOnly(timestampDate(x.publishedAt))}` : ""}
               </option>
             ))}
           </select>
           {v && (
             <p className="text-xs text-muted-foreground">
-              Minecraft {v.gameVersions.join(", ")} on {v.loaders.join(", ")}. Make sure the server
-              has enough memory: big packs want 6 GB or more.
+              {modrinth
+                ? `Minecraft ${v.gameVersions.join(", ")} on ${v.loaders.join(", ")}. `
+                : ""}
+              Make sure the server has enough memory: big packs want 6 GB or more.
             </p>
           )}
         </div>
@@ -259,11 +289,13 @@ function Versions({
           onClick={() =>
             v &&
             onPick({
-              project: pack.slug || pack.id,
-              version: chosen === "latest" ? "latest" : v.id,
-              // A specific version needs a game version it's for (the egg
-              // filters by it); latest follows any.
-              gameVersion: chosen === "latest" ? "latest" : (v.gameVersions.at(-1) ?? "latest"),
+              project: modrinth ? pack.slug || pack.id : pack.id,
+              // FTB's egg takes no version ID as its newest.
+              version: chosen === "latest" ? (source === "ftb" ? "" : "latest") : chosen,
+              // A specific version needs a game version it's for (Modrinth's
+              // egg filters by it); latest follows any.
+              gameVersion:
+                !modrinth || chosen === "latest" ? "latest" : (v.gameVersions.at(-1) ?? "latest"),
               title: pack.title,
             })
           }

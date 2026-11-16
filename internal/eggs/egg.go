@@ -181,8 +181,8 @@ func CheckModpack(m *Modpack, vars []Variable) error {
 	if m == nil {
 		return nil
 	}
-	if m.Source != "modrinth" {
-		return fmt.Errorf("egg: x-raptor.modpack.source %q: want modrinth", m.Source)
+	if m.Source != "modrinth" && m.Source != "ftb" && m.Source != "technic" {
+		return fmt.Errorf("egg: x-raptor.modpack.source %q: want modrinth, ftb, or technic", m.Source)
 	}
 	for key, v := range map[string]string{"project": m.Project, "version": m.Version, "game_version": m.GameVersion} {
 		if v == "" && key == "game_version" {
