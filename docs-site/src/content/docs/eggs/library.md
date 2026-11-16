@@ -12,6 +12,8 @@ The org's **Eggs** page lists two kinds:
 - **Raptor's:** eggs for the games and apps people host (Minecraft and its server software and modpacks, Steam games, voice servers, apps, and plain language runtimes), made and tested by Raptor on real nodes and kept up to date. When Raptor updates one, its page says so, and servers move to the new version when you choose.
 - **Your org's own:** imported, made from scratch, or customised copies. Admins and owners change them; members see them.
 
+**Sort** sets the order: **Popular** (the start: what people host most, so a new Panel still opens on Paper, Fabric, Rust, and the like), **Most servers** made from each, **Newest** (recently added or updated), or **Name**; community eggs can also go by **Most copied**. Your choice is remembered in this browser. Your org's eggs stay above Raptor's, and drafts and archived eggs stay last, whatever the order. Picking a game for a new server lists them by Popular too.
+
 ## Using an egg
 
 **Use egg** on its page opens Deploy server with it picked. Each egg's page shows what it runs: its runtimes, settings and who can change them, the startup command, the install script, and the config files it edits.

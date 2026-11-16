@@ -29,7 +29,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { CatalogEgg } from "@/gen/raptor/panel/v1/catalog_pb";
-import { categories, categoryName, originNames, sortEggs, statusNames, usage } from "@/lib/eggs";
+import { type EggSort, eggSorts, isEggSort, sortEggs } from "@/lib/egg-sort";
+import { categories, categoryName, originNames, statusNames, usage } from "@/lib/eggs";
 
 // The egg library's two places: an org's Eggs page, and the admin panel's
 // official library. The pages are the same; links and wording differ.
@@ -127,6 +128,9 @@ function subtitle(e: CatalogEgg): string {
   return e.version > 0 ? `${categoryName(e.category)} · v${e.version}` : categoryName(e.category);
 }
 
+// sortKey is where the library's order is remembered.
+const sortKey = "raptor.eggs.sort";
+
 // EggList is the library: search, categories, and the eggs as cards or a
 // table.
 export function EggList({
@@ -143,10 +147,27 @@ export function EggList({
   const [query, setQuery] = useState("");
   const [view, setView] = useState<ListView>("grid");
   const [category, setCategory] = useState("all");
+  // The order, remembered in this browser; Popular to start (#457).
+  const [sort, setSortState] = useState<EggSort>(() => {
+    try {
+      const saved = localStorage.getItem(sortKey);
+      return isEggSort(saved) ? saved : "popular";
+    } catch {
+      return "popular";
+    }
+  });
+  const setSort = (s: EggSort) => {
+    setSortState(s);
+    try {
+      localStorage.setItem(sortKey, s);
+    } catch {
+      // Private windows: Popular next time.
+    }
+  };
   const present = categories.filter((c) => eggs.some((e) => e.category === c));
   const active = category === "all" || present.includes(category as never) ? category : "all";
   const q = query.trim().toLowerCase();
-  const list = sortEggs(eggs).filter(
+  const list = sortEggs(eggs, sort).filter(
     (e) =>
       (active === "all" || e.category === active) &&
       (!q ||
@@ -178,9 +199,9 @@ export function EggList({
         view={view}
         onView={setView}
       />
-      {present.length > 1 && (
-        <div className="-mt-2 flex flex-wrap gap-1.5">
-          {["all", ...present].map((c) => (
+      <div className="-mt-2 flex flex-wrap items-center gap-1.5">
+        {present.length > 1 &&
+          ["all", ...present].map((c) => (
             <Button
               key={c}
               size="sm"
@@ -191,8 +212,23 @@ export function EggList({
               {c === "all" ? "All" : categoryName(c)}
             </Button>
           ))}
-        </div>
-      )}
+        <label className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
+          Sort
+          <select
+            className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+            value={sort}
+            onChange={(e) => isEggSort(e.target.value) && setSort(e.target.value)}
+          >
+            {(Object.keys(eggSorts) as EggSort[])
+              .filter((k) => k !== "copies" || eggs.some((e) => e.scope === "community"))
+              .map((k) => (
+                <option key={k} value={k}>
+                  {eggSorts[k]}
+                </option>
+              ))}
+          </select>
+        </label>
+      </div>
       {list.length === 0 && !loading && (
         <p className="text-sm text-muted-foreground">No eggs match.</p>
       )}

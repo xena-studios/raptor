@@ -25,6 +25,7 @@ import type { CatalogEgg } from "@/gen/raptor/panel/v1/catalog_pb";
 import { EggService } from "@/gen/raptor/panel/v1/egg_pb";
 import { type Node, OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { diskName, diskSpace, serverDisks, useNodeDisks } from "@/lib/disks";
+import { sortEggs } from "@/lib/egg-sort";
 import { categoryName } from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { isAdmin } from "@/lib/format";
@@ -155,15 +156,20 @@ function NewServer({
   const eggs = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = (catalog.data?.eggs ?? []).filter((e) => e.status === "published");
-    // The org's own eggs first: someone made them to use them.
+    // The org's own eggs first: someone made them to use them. Each group
+    // most popular first (#457).
     return [
-      ...eggsFor(
-        list.filter((e) => e.scope === "org"),
-        node.arch,
+      ...sortEggs(
+        eggsFor(
+          list.filter((e) => e.scope === "org"),
+          node.arch,
+        ),
       ),
-      ...eggsFor(
-        list.filter((e) => e.scope !== "org"),
-        node.arch,
+      ...sortEggs(
+        eggsFor(
+          list.filter((e) => e.scope !== "org"),
+          node.arch,
+        ),
       ),
     ].filter((e) => !q || e.name.toLowerCase().includes(q) || e.category.includes(q));
   }, [catalog.data, node.arch, query]);
