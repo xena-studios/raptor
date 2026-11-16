@@ -65,6 +65,7 @@ function Overview() {
         serverId={serverId}
         server={server}
         node={node}
+        metrics={live.data}
         console={
           problem?.kind === "hint" && (!running || problem.whileRunning) ? (
             <ProblemHint

@@ -1,6 +1,6 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useInfiniteQuery, useQuery } from "@connectrpc/connect-query";
-import { useQueryClient, useQuery as useTanQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpCircle,
   CheckCircle2,
@@ -12,7 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
-
+import { type AddonListing, addonListKey, useInstalledAddons } from "@/components/addons-data";
 import { useConfirm } from "@/components/confirm";
 import { useFilesApi } from "@/components/file-manager/data";
 import { EmptyState } from "@/components/page";
@@ -38,11 +38,10 @@ import {
   type ResolvedAddon,
 } from "@/gen/raptor/panel/v1/addon_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
-import { addonKinds, addonSources, loaderName, onCurseForge, sourceNames } from "@/lib/eggs";
+import { addonKinds, addonSources, loaderName, sourceNames } from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { dateOnly } from "@/lib/format";
 import { formatBytes as bytes } from "@/lib/metrics";
-import { useServer } from "@/lib/org-data";
 import { gameVersion, type ServerConfig } from "@/lib/servers";
 
 // The plugin installer and mod manager (docs/EGGS.md#add-ons): what's in
@@ -51,20 +50,7 @@ import { gameVersion, type ServerConfig } from "@/lib/servers";
 // more. Wings downloads from their CDNs only and keeps a file only if its
 // hash is the one asked for.
 
-type Listing = {
-  kind: string;
-  dir: string;
-  files: {
-    name: string;
-    size: number;
-    modified_at: number;
-    sha512?: string;
-    sha256?: string;
-    sha1?: string;
-    cf_fingerprint?: number;
-    disabled?: boolean;
-  }[];
-};
+type Listing = AddonListing;
 
 const select =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
@@ -164,42 +150,14 @@ function Addons({
   const api = useFilesApi(nodeId, serverId);
   const client = useQueryClient();
   const meta = addonKinds[kind];
-  const key = ["addons", nodeId, serverId, kind];
-  const list = useTanQuery({
-    queryKey: key,
-    queryFn: () => api.run<Listing>("addons.list", { kind }),
-  });
-  const files = list.data?.files ?? [];
-  const hashes = files.flatMap((f) => (f.sha512 ? [f.sha512] : []));
-  const sha256 = Object.fromEntries(
-    files.flatMap((f) => (f.sha512 && f.sha256 ? [[f.sha512, f.sha256]] : [])),
-  );
-  // uMod has no lookup by hash: its plugins are named by file, and
-  // compared by SHA-1.
-  const umod = kind === "umod" || kind === "factorio";
-  const names = umod
-    ? Object.fromEntries(files.flatMap((f) => (f.sha512 ? [[f.sha512, f.name]] : [])))
-    : {};
-  const sha1 = umod
-    ? Object.fromEntries(files.flatMap((f) => (f.sha512 && f.sha1 ? [[f.sha512, f.sha1]] : [])))
-    : {};
-  // CurseForge (#412): on when the Panel has a key and the node can
-  // download from it; its files are looked up by fingerprint.
-  const { node } = useServer(orgId, nodeId, serverId);
-  const panelSources = useQuery(AddonService.method.listAddonSources, { orgId });
-  const curseforge =
-    !!panelSources.data?.sources.includes("curseforge") &&
-    !!node?.capabilities.includes("addons-curseforge") &&
-    onCurseForge(kind, loaders);
-  const fingerprints = curseforge
-    ? Object.fromEntries(
-        files.flatMap((f) => (f.sha512 && f.cf_fingerprint ? [[f.sha512, f.cf_fingerprint]] : [])),
-      )
-    : {};
-  const known = useQuery(
-    AddonService.method.identifyAddons,
-    { orgId, hashes, sha256, names, sha1, curseforge: fingerprints, loaders, gameVersion: version },
-    { enabled: hashes.length > 0 },
+  const key = addonListKey(nodeId, serverId, kind);
+  const { list, files, known, curseforge } = useInstalledAddons(
+    orgId,
+    nodeId,
+    serverId,
+    kind,
+    loaders,
+    version,
   );
   const byHash = new Map((known.data?.addons ?? []).map((a) => [a.sha512, a]));
   const installedProjects = new Set((known.data?.addons ?? []).map((a) => a.project?.id));

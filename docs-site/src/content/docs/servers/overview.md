@@ -26,9 +26,13 @@ Servers with a web page of their own (FiveM's txAdmin when it's on, Grafana, cod
 When something about the server needs you, a **Needs attention** list sits at the top of its Overview, each line with the button that fixes it:
 
 - **A problem in the console:** the wrong Java, running out of memory, a port in use, and the others in [Server problems](/help/server-problems/).
+- **The install failed:** the server can't start until it's reinstalled. Fix the cause the console shows, then **Reinstall**.
+- **The disk is nearly full:** 90% of its limit or more. Delete old files or backups in **Files**, or ask for more space; a full disk can't save the world.
 - **An add-on missing what it needs:** a mod or plugin that needs another one that isn't installed.
 - **Add-on updates:** how many plugins, mods, or datapacks have a newer version.
 - **A newer version of its egg** (admins and owners).
+
+The worst comes first: what stops the server starting, then what stops players joining, then updates. If you can't do the fix yourself, the line says which permission can, so you know who to ask.
 
 Dismiss a line with its ×: it stays hidden in this browser until what it says changes. With nothing to say, the list isn't there.
 
