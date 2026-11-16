@@ -13,6 +13,9 @@ const raptorKeys = [
   "players",
   "addons",
   "workshop",
+  "web",
+  "modpack",
+  "rcon",
 ];
 
 // isRaptorFile reports whether an egg's file is one of Raptor's own.

@@ -16,6 +16,12 @@ backup:
   wait_for: "World Save Complete"
   timeout: 10m
 # No player count: ARK: Survival Ascended lists through Epic, not Steam's query.
+# The Players tab talks to the game over RCON with the admin password.
+rcon:
+  protocol: source
+  port: RCON_PORT
+  password: ARK_ADMIN_PASSWORD
+  players: ark
 test:
   tier: slow
   memory_mib: 12288

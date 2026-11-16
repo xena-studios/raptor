@@ -39,7 +39,7 @@ func IsRaptor(format string) bool { return strings.HasPrefix(format, "RPTR_") }
 
 // RaptorKeys are Raptor's settings: top-level fields in Raptor's eggs, and
 // the keys of "x-raptor" in other formats.
-var RaptorKeys = []string{"arch", "category", "library", "install", "backup", "health", "players", "addons", "workshop", "reforger", "web", "modpack"}
+var RaptorKeys = []string{"arch", "category", "library", "install", "backup", "health", "players", "addons", "workshop", "reforger", "web", "modpack", "rcon"}
 
 // Egg is the normalized form of every supported egg format.
 type Egg struct {
@@ -165,6 +165,114 @@ type Extension struct {
 	// Modpack says which variables pick a modpack, so the app can offer a
 	// pack picker (#413); nil if the egg has none.
 	Modpack *Modpack `yaml:"modpack"`
+	// RCON is how Wings reaches the game's remote console (#423), for the
+	// Players tab; nil if the egg has none.
+	RCON *RCON `yaml:"rcon"`
+}
+
+// RCON is where a game's remote console listens and how to log in. Wings
+// connects from the node to the container; the password never leaves it.
+type RCON struct {
+	// Protocol is "source" (Valve's Source RCON over TCP: Source games,
+	// ARK, Palworld, and most others) or "webrcon" (Rust's, a websocket).
+	Protocol string `yaml:"protocol"`
+	// Port is where it listens: empty = the primary port (Source games
+	// take RCON on their game port), "+1" an offset from it, or a
+	// variable's name (RCON_PORT).
+	Port string `yaml:"port"`
+	// PwVar is the variable holding the password (its name, never
+	// the password). An empty value means RCON is off.
+	PwVar string `yaml:"password"`
+	// Enabled is a variable that turns RCON on ("1" or "true"); empty: on
+	// whenever there's a password.
+	Enabled string `yaml:"enabled"`
+	// Players is the game's command set for the Players tab: "source"
+	// (status, kickid, banid, say), "ark" (ListPlayers, KickPlayer,
+	// BanPlayer, ServerChat), "palworld" (ShowPlayers, KickPlayer,
+	// BanPlayer, Broadcast), or "rust" (playerlist, kick, banid, say).
+	// Empty: no Players tab.
+	Players string `yaml:"players"`
+}
+
+// PortFor is the RCON port of a server whose primary port is primary
+// and whose variables are vars; 0 if it can't be told.
+func (r *RCON) PortFor(primary int, vars map[string]string) int {
+	port := primary
+	switch p := strings.TrimSpace(r.Port); {
+	case p == "":
+	case strings.HasPrefix(p, "+") || strings.HasPrefix(p, "-"):
+		n, err := strconv.Atoi(p)
+		if err != nil {
+			return 0
+		}
+		port += n
+	default:
+		n, err := strconv.Atoi(strings.TrimSpace(vars[p]))
+		if err != nil {
+			return 0
+		}
+		port = n
+	}
+	if port <= 0 || port > 65535 {
+		return 0
+	}
+	return port
+}
+
+// PasswordFor is a server's RCON password, or "" when RCON is off: no
+// password, or the Enabled variable isn't 1 or true.
+func (r *RCON) PasswordFor(vars map[string]string) string {
+	if r.Enabled != "" {
+		switch strings.ToLower(strings.TrimSpace(vars[r.Enabled])) {
+		case "1", "true", "yes", "on":
+		default:
+			return ""
+		}
+	}
+	return vars[r.PwVar]
+}
+
+// RCONProtocols are the RCON protocols Wings speaks.
+var RCONProtocols = []string{"source", "webrcon"}
+
+// RCONPlayers are the Players tab's command sets, and the protocol each
+// is spoken over.
+var RCONPlayers = map[string]string{"source": "source", "ark": "source", "palworld": "source", "rust": "webrcon"}
+
+// CheckRCON validates x-raptor.rcon against the egg's variables.
+func CheckRCON(r *RCON, vars []Variable) error {
+	if r == nil {
+		return nil
+	}
+	if !slices.Contains(RCONProtocols, r.Protocol) {
+		return fmt.Errorf("egg: x-raptor.rcon.protocol %q: want source or webrcon", r.Protocol)
+	}
+	isVar := func(v string) bool { return slices.ContainsFunc(vars, func(x Variable) bool { return x.Env == v }) }
+	if !isVar(r.PwVar) {
+		return fmt.Errorf("egg: x-raptor.rcon.password %q: not one of the egg's variables", r.PwVar)
+	}
+	if r.Enabled != "" && !isVar(r.Enabled) {
+		return fmt.Errorf("egg: x-raptor.rcon.enabled %q: not one of the egg's variables", r.Enabled)
+	}
+	switch p := strings.TrimSpace(r.Port); {
+	case p == "":
+	case strings.HasPrefix(p, "+") || strings.HasPrefix(p, "-"):
+		if _, err := strconv.Atoi(p); err != nil {
+			return fmt.Errorf("egg: x-raptor.rcon.port %q: want an offset like +1 or a variable", r.Port)
+		}
+	case !isVar(p):
+		return fmt.Errorf("egg: x-raptor.rcon.port %q: not one of the egg's variables", r.Port)
+	}
+	if r.Players != "" {
+		proto, ok := RCONPlayers[r.Players]
+		if !ok {
+			return fmt.Errorf("egg: x-raptor.rcon.players %q: want source, ark, palworld, or rust", r.Players)
+		}
+		if proto != r.Protocol {
+			return fmt.Errorf("egg: x-raptor.rcon.players %q goes with protocol %s", r.Players, proto)
+		}
+	}
+	return nil
 }
 
 // Modpack is where a modpack egg takes its pack: the variables holding
@@ -753,6 +861,19 @@ func (e *Egg) parseRaptor(n *yaml.Node) error {
 			return err
 		}
 		if err := CheckModpack(e.Raptor.Modpack, e.Variables); err != nil {
+			return err
+		}
+		// A protocol or command set this version doesn't know is left out,
+		// not refused (as add-on kinds are), so a newer egg still runs.
+		if r := e.Raptor.RCON; r != nil {
+			if _, ok := RCONPlayers[r.Players]; r.Players != "" && !ok {
+				r.Players = ""
+			}
+			if !slices.Contains(RCONProtocols, r.Protocol) {
+				e.Raptor.RCON = nil
+			}
+		}
+		if err := CheckRCON(e.Raptor.RCON, e.Variables); err != nil {
 			return err
 		}
 	}

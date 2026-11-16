@@ -9,6 +9,12 @@ certified: true
 arch: [amd64]
 players:
   query: source
+# The Players tab talks to the game over RCON, on its game port; RCON is
+# off until a password is set.
+rcon:
+  protocol: source
+  password: RCON_PASSWORD
+  players: source
 test:
   tier: manual
   reason: "the server is about 30 GB, more than standard CI runners have room for"

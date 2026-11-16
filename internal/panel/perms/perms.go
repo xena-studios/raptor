@@ -25,7 +25,8 @@ const (
 	DatabasesRead  = "databases.read"
 	DatabasesWrite = "databases.write"
 	// Players is a Minecraft server's whitelist, operators, bans, and
-	// kicks (#422), without the console or the files.
+	// kicks (#422), and a Steam game's players over RCON (#423), without
+	// the console or the files.
 	Players = "players"
 )
 
@@ -41,11 +42,12 @@ const View = "view"
 
 var actions = map[string]string{
 	"server.metrics": View,
-	// Only Minecraft Java servers' list files and checked commands (Wings
-	// refuses other servers).
+	// Minecraft Java servers' list files and checked commands, and who's
+	// on over RCON with checked kick, ban, unban, and say (#423). Wings
+	// refuses other servers.
 	"players.lists":  Players,
-	"players.manage": Players,
 	"players.online": Players,
+	"players.manage": Players,
 	"server.ports":   View,
 	"server.console": ConsoleRead,
 	"server.command": ConsoleWrite,
@@ -270,7 +272,7 @@ func Valid(p string) bool {
 func Read(action string) bool {
 	switch action {
 	case "files.list", "addons.list", "files.stat", "files.trash", "files.read", "files.download", "files.upload.status", "keys.list",
-		"backup.browse", "backup.read", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "node.networks", "node.db.instances", "node.db.usage", "db.list", "db.schema", "db.rows", "db.query.read", "db.query.cancel", "db.processes", "node.db.databases", "node.db.users", "node.db.processes", "db.transfer.status", "db.keys", "db.key", "db.redis.command.read", "db.collections", "db.documents", "support.list",
+		"backup.browse", "backup.read", "backup.activity", "server.metrics", "server.ports", "players.online", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "node.networks", "node.db.instances", "node.db.usage", "db.list", "db.schema", "db.rows", "db.query.read", "db.query.cancel", "db.processes", "node.db.databases", "node.db.users", "node.db.processes", "db.transfer.status", "db.keys", "db.key", "db.redis.command.read", "db.collections", "db.documents", "support.list",
 		"backup.destinations", "backup.hostkey", "backup.policy", "backup.orphans":
 		return true
 	}

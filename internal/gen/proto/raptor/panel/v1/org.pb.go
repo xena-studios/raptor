@@ -2693,7 +2693,11 @@ type Server struct {
 	// It has Minecraft's player lists (#422): a Minecraft Java egg, not a
 	// proxy. For the Players tab, which members without the startup
 	// permission (who get no config) can have too.
-	PlayerLists   bool `protobuf:"varint,11,opt,name=player_lists,json=playerLists,proto3" json:"player_lists,omitempty"`
+	PlayerLists bool `protobuf:"varint,11,opt,name=player_lists,json=playerLists,proto3" json:"player_lists,omitempty"`
+	// The game's RCON player commands (#423): "source", "ark", "palworld",
+	// or "rust", from its egg's x-raptor.rcon; empty for none. Servers with
+	// one get the Players tab over RCON (who's on, kick, ban, message).
+	RconPlayers   string `protobuf:"bytes,12,opt,name=rcon_players,json=rconPlayers,proto3" json:"rcon_players,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2803,6 +2807,13 @@ func (x *Server) GetPlayerLists() bool {
 		return x.PlayerLists
 	}
 	return false
+}
+
+func (x *Server) GetRconPlayers() string {
+	if x != nil {
+		return x.RconPlayers
+	}
+	return ""
 }
 
 type ListServersResponse struct {
@@ -6207,7 +6218,7 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\x12RemoveNodeResponse\"D\n" +
 	"\x12ListServersRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x17\n" +
-	"\anode_id\x18\x02 \x01(\tR\x06nodeId\"\xca\x02\n" +
+	"\anode_id\x18\x02 \x01(\tR\x06nodeId\"\xed\x02\n" +
 	"\x06Server\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -6221,7 +6232,8 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\n" +
 	"egg_source\x18\n" +
 	" \x01(\tR\teggSource\x12!\n" +
-	"\fplayer_lists\x18\v \x01(\bR\vplayerLists\"H\n" +
+	"\fplayer_lists\x18\v \x01(\bR\vplayerLists\x12!\n" +
+	"\frcon_players\x18\f \x01(\tR\vrconPlayers\"H\n" +
 	"\x13ListServersResponse\x121\n" +
 	"\aservers\x18\x01 \x03(\v2\x17.raptor.panel.v1.ServerR\aservers\"_\n" +
 	"\x10GetServerRequest\x12\x15\n" +

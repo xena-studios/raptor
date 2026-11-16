@@ -142,6 +142,7 @@ func TestRaptorSettings(t *testing.T) {
 	e.Reforger = &eggs.Reforger{Config: "config.json"}
 	b := eggs.JavaMinecraftBackup
 	e.Backup = &b
+	e.RCON = &eggs.RCON{Protocol: "source", PwVar: "MESSAGE", Port: "+1", Players: "source"}
 	if err := e.validate(); err != nil {
 		t.Fatal(err)
 	}
@@ -180,6 +181,15 @@ func TestRaptorSettings(t *testing.T) {
 	if f := egg.Raptor.Workshop.File; f == nil || f.Path != "a/{{MESSAGE}}.lua" || f.Format != "dst" || !slices.Equal(f.Overrides, []string{"b/modoverrides.lua"}) || egg.Raptor.Workshop.Variable != "" {
 		t.Errorf("workshop file %+v", egg.Raptor.Workshop)
 	}
+	if r := egg.Raptor.RCON; r == nil || *r != *e.RCON {
+		t.Errorf("rcon %+v", r)
+	}
+	// An RCON password variable the egg doesn't have is refused.
+	e.RCON = &eggs.RCON{Protocol: "source", PwVar: "NOPE"}
+	if e.validate() == nil {
+		t.Error("an rcon variable the egg doesn't have: accepted")
+	}
+	e.RCON = nil
 	// A workshop variable the egg doesn't have is refused.
 	e.Workshop = &eggs.Workshop{AppID: 4000, Variable: "NOPE"}
 	if e.validate() == nil {

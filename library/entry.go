@@ -76,6 +76,9 @@ type Meta struct {
 	// Modpack says which variables pick a modpack (the egg's
 	// x-raptor.modpack), for the app's pack picker.
 	Modpack *eggs.Modpack `yaml:"modpack"`
+	// RCON is how to reach the game's remote console (the egg's
+	// x-raptor.rcon), for the Players tab (#423).
+	RCON *eggs.RCON `yaml:"rcon"`
 	// Backup is what's sent to the game's console around a backup (the
 	// egg's x-raptor.backup, docs/EGGS.md#backup-hooks), added like
 	// Players: save-off and save-all flush, then save-on, for Minecraft.
@@ -279,6 +282,9 @@ func (e *Entry) validate() error {
 	if err := eggs.CheckReforger(e.Reforger); err != nil {
 		return err
 	}
+	if err := eggs.CheckRCON(e.RCON, egg.Variables); err != nil {
+		return err
+	}
 	if b := e.Backup; b != nil {
 		if err := eggs.CheckBackup(*b); err != nil {
 			return err
@@ -440,6 +446,21 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 			set(n, "game_version", str(m.GameVersion))
 		}
 		set(ext, "modpack", n)
+	}
+	if r := e.RCON; r != nil {
+		n := &yaml.Node{Kind: yaml.MappingNode}
+		set(n, "protocol", str(r.Protocol))
+		if r.Port != "" {
+			set(n, "port", str(r.Port))
+		}
+		set(n, "password", str(r.PwVar))
+		if r.Enabled != "" {
+			set(n, "enabled", str(r.Enabled))
+		}
+		if r.Players != "" {
+			set(n, "players", str(r.Players))
+		}
+		set(ext, "rcon", n)
 	}
 	if b := e.Backup; b != nil {
 		n := &yaml.Node{Kind: yaml.MappingNode}
