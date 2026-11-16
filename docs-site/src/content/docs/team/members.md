@@ -31,11 +31,11 @@ Members see only the servers they've been given access to. On a server's **Acces
 | **Send console commands** | Type commands into it (includes watching) |
 | **Start and stop** | Start, stop, restart, and kill it |
 | **See files** | Browse and download its files |
-| **Change files** | Edit, upload, delete, and install add-ons |
+| **Change files** | Edit, upload, delete, and install add-ons, and change Workshop items for games that list them in a file |
 | **Use SFTP** | Make temporary SFTP logins |
 | **Backups** | Back it up and restore it |
 | **Schedules** | Make and run schedules |
-| **Startup settings** | Change its game settings and Workshop items |
+| **Startup settings** | Change its game settings and Workshop items (for games that take them in a setting) |
 | **Reinstall** | Reinstall it |
 | **See databases** | See its [databases](/servers/databases/) and their connection details, and run read-only queries |
 | **Change databases** | Make, change, and delete its databases, and see and change their passwords |

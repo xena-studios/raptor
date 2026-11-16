@@ -13,7 +13,8 @@ export type AddonSection = { key: string; label: string };
 // useAddonSections is what a server's Add-ons tab holds, in order, for
 // this user: the egg's add-on kinds (to those who can read its files; a
 // kind that needs a node capability only on nodes that have it), then the
-// Workshop (to those who change its startup). Empty: no Add-ons tab.
+// Workshop (to those who change its startup, or read its files when a
+// config file lists the items). Empty: no Add-ons tab.
 export function useAddonSections(
   orgId: string,
   nodeId: string,
@@ -45,7 +46,9 @@ export function useAddonSections(
       /^minecraft\/(bedrock|endstone)$/.test(server?.eggSource ?? "") ||
       /^Minecraft: (Bedrock|Endstone)$/.test(server?.eggName ?? "");
     if (bedrock && can(server, "files.read")) out.push({ key: "bedrock", label: "Packs" });
-    if (cfg?.egg?.workshop && can(server, "startup"))
+    // A Workshop in a config file (#408) is read with files.read.
+    const ws = cfg?.egg?.workshop;
+    if (ws && can(server, ws.file ? "files.read" : "startup"))
       out.push({ key: "workshop", label: "Workshop" });
     return out;
   }, [details.data?.configJson, server, capabilities]);

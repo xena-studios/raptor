@@ -393,6 +393,35 @@ x-raptor:
 - The Panel names the IDs (`AddonService.LookupWorkshopItems`, from Steam's public `ISteamRemoteStorage` API, which needs no key; cached like Modrinth). Items that aren't public, or are banned, are left out. Previews load only from `images.steamusercontent.com`, which the app's CSP allows. There's no search: Steam's search API needs a key, and the Workshop's own site is better at browsing, so the page links to it.
 - The library sets it in `raptor.yaml` (`workshop:`) for Garry's Mod (a collection, at start), Counter-Strike 2 (a map collection, at start), ARK (mods, at start), Conan Exiles (mods in load order, at reinstall), and Squad (items, at reinstall). `variable` must be one of the egg's variables, and `apply` `restart` or `reinstall`; anything else rejects the egg.
 
+### Workshop items in a config file
+
+Games that read their items from a config file instead of the command line say which file and how it lists them, under `file` in place of `variable` (#408, DECISIONS #363):
+
+```yaml
+x-raptor:
+  workshop:
+    app_id: 108600
+    file:
+      path: .cache/Server/{{SERVER_NAME}}.ini # from the server's folder; {{VAR}} is a variable's value
+      format: ini         # ini, json, or dst
+      key: WorkshopItems  # ini: the line's key; json: the top-level key
+      separator: ";"      # ini only; ";" when left out
+      mods_key: Mods      # ini only: a second line with the game's own mod IDs
+    apply: restart
+```
+
+| `format` | What it edits | Used by |
+|---|---|---|
+| `ini` | The `key=a;b;c` line (added at the end if it's missing). With `mods_key`, a second line of mod IDs, which the page offers from each downloaded item's `mod.info` (`steamapps/workshop/content/<app_id>/<id>/mods/*/mod.info`, or its `42/` folder), keeping the file's style (Build 42's `\ModID` or Build 41's `ModID`). | Project Zomboid (`WorkshopItems`, `Mods`) |
+| `json` | The array at a top-level key, written as numbers. IDs are read as text, since they're bigger than JavaScript's numbers hold. The rest of the file is kept as text, not re-serialized. | Unturned (`Servers/{{SRV_ID}}/WorkshopDownloadConfig.json`, `File_IDs`) |
+| `dst` | `ServerModSetup("id")` lines in the `path` file (commented-out examples and `ServerModCollectionSetup` are left alone), and a `["workshop-id"]={ enabled=true }` entry in the table each `overrides` file returns, keeping existing entries' `configuration_options`. A missing file is made. | Don't Starve Together (`mods/dedicated_server_mods_setup.lua`; `Master` and `Caves` `modoverrides.lua`) |
+
+- **The page edits the file through `files.read` and `files.write`**, as the file manager does, so it takes the same permissions: **See files** (`files.read`) shows the items and **Change files** (`files.write`) saves them. The Workshop section is shown to those who can read files, not to those with `startup`. Nothing is signed, because nothing the member couldn't already type in Files changes.
+- **Only the list changes.** The parsers and writers (`web/src/lib/workshop-files.ts`, with tests) change the list's span and leave the rest of the file byte for byte, including comments and line endings. Each save re-reads the file first, so a change the game or a member made since loading isn't lost. A file the format can't parse (a `modoverrides.lua` that doesn't `return {…}`) is refused, with a pointer to Files.
+- **ini and json files aren't made.** The game writes them on its first start with settings Raptor doesn't know, so until then the page says to start the server once. dst files are made when missing.
+- **Raptor still downloads nothing:** the game fetches what the file lists at its next start. `collection` is for variables only. `path` and `overrides` must be clean paths inside the server's folder, and `{{VAR}}` one of the egg's variables; a value that's empty or has a `/` leaves the page refusing to guess the file.
+- Not done yet: Space Engineers (a world's `Sandbox_config.sbc` `<Mods>`) and tModLoader (its install script would need to download the items first). Each game in the table still needs a conformance run of the real game ([ROADMAP](ROADMAP.md#add-ons-and-game-features)).
+
 ## Egg library
 
 `library/` in the repository is Raptor's one egg library: Raptor's eggs for the games and apps people host, and Raptor's own test server. The `library` Go package (`github.com/xena-studios/raptor/library`) embeds it, the Panel seeds it into its official egg library on **every start** ([below](#in-the-official-library)), and the conformance suite runs the same files through Wings. There is nothing to import by hand (DECISIONS #357). It covers every egg on eggs.pterodactyl.io, in the pelican-eggs repositories, and in FeatherPanel's, plus Pterodactyl's built-in eggs, with variants folded into one egg as options.

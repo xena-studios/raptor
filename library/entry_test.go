@@ -165,6 +165,17 @@ func TestRaptorSettings(t *testing.T) {
 	if egg.Raptor.Players.Query != "minecraft" {
 		t.Errorf("players %+v", egg.Raptor.Players)
 	}
+	// A config file round-trips too (#408).
+	e.Workshop = &eggs.Workshop{AppID: 4000, File: &eggs.WorkshopFile{Path: "a/{{MESSAGE}}.lua", Format: "dst", Overrides: []string{"b/modoverrides.lua"}}}
+	if file, err = e.ServerEgg(); err != nil {
+		t.Fatal(err)
+	}
+	if egg, err = eggs.Parse(file); err != nil {
+		t.Fatal(err)
+	}
+	if f := egg.Raptor.Workshop.File; f == nil || f.Path != "a/{{MESSAGE}}.lua" || f.Format != "dst" || !slices.Equal(f.Overrides, []string{"b/modoverrides.lua"}) || egg.Raptor.Workshop.Variable != "" {
+		t.Errorf("workshop file %+v", egg.Raptor.Workshop)
+	}
 	// A workshop variable the egg doesn't have is refused.
 	e.Workshop = &eggs.Workshop{AppID: 4000, Variable: "NOPE"}
 	if e.validate() == nil {

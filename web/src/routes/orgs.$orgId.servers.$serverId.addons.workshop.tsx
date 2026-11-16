@@ -15,6 +15,8 @@ export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/addons/work
         nodeId={nodeId}
         serverId={serverId}
         canWrite={can(server, "startup")}
+        canReadFiles={can(server, "files.read")}
+        canWriteFiles={can(server, "files.write")}
       />
     );
   },

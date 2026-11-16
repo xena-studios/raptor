@@ -306,6 +306,44 @@ func TestParseWorkshop(t *testing.T) {
 	}
 }
 
+func TestParseWorkshopFile(t *testing.T) {
+	base := `{"meta": {"version": "PTDL_v2"}, "docker_images": {"a": "a"}, "startup": "x",
+		"variables": [{"env_variable": "NAME"}], "x-raptor": {"workshop": {"app_id": 108600, "file": %s}}}`
+	e, err := Parse(fmt.Appendf(nil, base, `{"path": ".cache/Server/{{NAME}}.ini", "format": "ini", "key": "WorkshopItems", "mods_key": "Mods"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f := e.Raptor.Workshop.File; f == nil || f.Path != ".cache/Server/{{NAME}}.ini" || f.Key != "WorkshopItems" || f.ModsKey != "Mods" {
+		t.Errorf("file: %+v", f)
+	}
+	if _, err := Parse(fmt.Appendf(nil, base, `{"path": "mods/setup.lua", "format": "dst", "overrides": ["a/modoverrides.lua"]}`)); err != nil {
+		t.Errorf("dst: %v", err)
+	}
+	if _, err := Parse(fmt.Appendf(nil, base, `{"path": "c.json", "format": "json", "key": "File_IDs"}`)); err != nil {
+		t.Errorf("json: %v", err)
+	}
+	for _, bad := range []string{
+		`{"path": "a.ini", "format": "ini"}`,                                // no key
+		`{"path": "a.ini", "format": "yaml", "key": "k"}`,                   // unknown format
+		`{"path": "../a.ini", "format": "ini", "key": "k"}`,                 // outside
+		`{"path": "/a.ini", "format": "ini", "key": "k"}`,                   // absolute
+		`{"path": "a/./b.ini", "format": "ini", "key": "k"}`,                // not clean
+		`{"path": "{{OTHER}}.ini", "format": "ini", "key": "k"}`,            // not the egg's
+		`{"path": "a.lua", "format": "dst"}`,                                // no overrides
+		`{"path": "a.json", "format": "json", "key": "k", "mods_key": "m"}`, // ini only
+		`{"path": "a.ini", "format": "ini", "key": "k", "separator": ";;"}`,
+	} {
+		if _, err := Parse(fmt.Appendf(nil, base, bad)); err == nil {
+			t.Errorf("%s: expected an error", bad)
+		}
+	}
+	both := `{"meta": {"version": "PTDL_v2"}, "docker_images": {"a": "a"}, "startup": "x",
+		"variables": [{"env_variable": "NAME"}], "x-raptor": {"workshop": {"app_id": 1, "variable": "NAME", "file": {"path": "a.ini", "format": "ini", "key": "k"}}}}`
+	if _, err := Parse([]byte(both)); err == nil {
+		t.Error("variable and file: expected an error")
+	}
+}
+
 func TestParseRulesKeepsRegexPipes(t *testing.T) {
 	e, err := Parse([]byte(`{"meta":{"version":"PTDL_v2"},"docker_images":{"a":"b"},"startup":"x",
 		"variables":[{"env_variable":"V","rules":"required|regex:/^(a|b)$/i|max:5"}]}`))

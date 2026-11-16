@@ -218,11 +218,27 @@ export type ServerConfig = {
 
 export type Workshop = {
   app_id: number;
+  // The variable that holds the IDs; "" when a config file does (file).
   variable: string;
   // The variable takes one collection's ID; otherwise items', comma-separated.
   collection?: boolean;
+  // The config file that lists the items, for games that read them from
+  // one (#408); lib/workshop-files reads and writes it.
+  file?: WorkshopFile;
   // What makes the game download a change.
   apply: "restart" | "reinstall";
+};
+
+export type WorkshopFile = {
+  // From the server's folder; {{VAR}} is a variable's value.
+  path: string;
+  format: "ini" | "json" | "dst";
+  key?: string;
+  separator?: string;
+  // An ini line with the game's own mod IDs (Project Zomboid's Mods).
+  mods_key?: string;
+  // dst: each shard's modoverrides.lua.
+  overrides?: string[];
 };
 
 // workshopIds are the IDs in a Workshop variable's value.

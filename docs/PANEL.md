@@ -344,7 +344,7 @@ Minecraft Java servers (not proxies) get a **Worlds** tab for those who can read
 
 ## Add-ons tab
 
-A server's plugins, mods, datapacks, uMod plugins, and Steam Workshop items share one **Add-ons** tab after Files (#436), rather than a tab each, so servers keep a short row of tabs as add-on kinds grow. Which sections a user gets is decided once (`web/src/lib/addon-sections.ts`): the egg's add-on kinds for those who can read the files (a kind needing a node capability only on nodes with it), then the Workshop for those who change startup. The tab opens the first section (`/addons`), and a row of pills switches between them when there's more than one (`/addons/<kind>`, `/addons/workshop`). No sections: no tab.
+A server's plugins, mods, datapacks, uMod plugins, and Steam Workshop items share one **Add-ons** tab after Files (#436), rather than a tab each, so servers keep a short row of tabs as add-on kinds grow. Which sections a user gets is decided once (`web/src/lib/addon-sections.ts`): the egg's add-on kinds for those who can read the files (a kind needing a node capability only on nodes with it), then the Workshop for those who change startup (or who can read the files, for a game that lists its items in a config file, #408). The tab opens the first section (`/addons`), and a row of pills switches between them when there's more than one (`/addons/<kind>`, `/addons/workshop`). No sections: no tab.
 
 ## Minehut
 

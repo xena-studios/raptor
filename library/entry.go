@@ -381,7 +381,25 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 	if w := e.Workshop; w != nil {
 		n := &yaml.Node{Kind: yaml.MappingNode}
 		set(n, "app_id", &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!int", Value: strconv.FormatInt(w.AppID, 10)})
-		set(n, "variable", str(w.Variable))
+		if w.Variable != "" {
+			set(n, "variable", str(w.Variable))
+		}
+		if f := w.File; f != nil {
+			fn := &yaml.Node{Kind: yaml.MappingNode}
+			for _, kv := range [][2]string{{"path", f.Path}, {"format", f.Format}, {"key", f.Key}, {"separator", f.Separator}, {"mods_key", f.ModsKey}} {
+				if kv[1] != "" {
+					set(fn, kv[0], str(kv[1]))
+				}
+			}
+			if len(f.Overrides) > 0 {
+				seq := &yaml.Node{Kind: yaml.SequenceNode}
+				for _, o := range f.Overrides {
+					seq.Content = append(seq.Content, str(o))
+				}
+				set(fn, "overrides", seq)
+			}
+			set(n, "file", fn)
+		}
 		if w.Collection {
 			set(n, "collection", &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!bool", Value: "true"})
 		}
