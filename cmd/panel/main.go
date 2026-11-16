@@ -297,6 +297,14 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		if secret := os.Getenv("PANEL_TURNSTILE_SECRET"); secret != "" {
 			cfg.Auth.Turnstile = auth.Turnstile{Secret: secret, Hostname: os.Getenv("PANEL_TURNSTILE_HOSTNAME")}
 		}
+		review, err := auth.NewReviewSignIn(os.Getenv("PANEL_REVIEW_EMAIL"), os.Getenv("PANEL_REVIEW_CODE"))
+		if err != nil {
+			return err
+		}
+		if review.Email != "" {
+			log.Warn("the App Store review sign-in is on", "email", review.Email)
+		}
+		cfg.Auth.Review = review
 		wa, err := auth.NewWebAuthn(cfg.AppOrigin)
 		if err != nil {
 			return fmt.Errorf("PANEL_APP_URL: %w", err)

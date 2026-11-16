@@ -260,6 +260,15 @@ Alerts to Raptor's phone app ([PANEL.md](PANEL.md#alerts)) go straight from the 
 
 Then check, once the app is built: sign in on a phone, see "Raptor's app" with the phone's name under your own alert channels (the bell's settings), and send it a test. Development builds register sandbox tokens, which go to Apple's sandbox; TestFlight and App Store builds use production.
 
+### App Store review
+
+Apple's reviewer signs in to the phone app with an account and a password, and can't read an inbox. While a version is in review, the Panel gives one account a fixed sign-in code instead of emailing one (`PANEL_REVIEW_EMAIL`, `PANEL_REVIEW_CODE`, six digits; [DECISIONS #368](DECISIONS.md)). Wrong codes count as any others do.
+
+1. Make the account: sign in once as `appreview@raptorpanel.net` (any address that's yours to receive works; after this it never gets mail) and add it to the demo team only, as a member. Never give it a team with real servers.
+2. 1Password item **App Store review** in Raptor production: `email` and `code`. Deploy (`deploy/secrets/optional/app-review.env.tpl`); the Panel logs "the App Store review sign-in is on".
+3. In App Store Connect, the version's **Sign-In Information**: the email as the user name and the code as the password, with the notes saying to enter it as the emailed code.
+4. Once the version is approved, delete the item and deploy, so the code stops working.
+
 ## Static sites
 
 Four Cloudflare Workers with static assets and no code: `raptor-app` serves the web app's build (`web/dist`) and sends every unknown path to `index.html`; `raptor-verify` serves the Turnstile page (`web/verify`); `raptor-site` serves the landing page (`site/dist`); `raptor-docs` serves the docs (`docs-site/dist`) and their 404 page. Their settings are in [`web/wrangler.jsonc`](../web/wrangler.jsonc), [`web/wrangler.verify.jsonc`](../web/wrangler.verify.jsonc), [`site/wrangler.jsonc`](../site/wrangler.jsonc), and [`docs-site/wrangler.jsonc`](../docs-site/wrangler.jsonc). They're in the same account as the zones: whoever controls the DNS account controls these hostnames anyway (DECISIONS #203).
