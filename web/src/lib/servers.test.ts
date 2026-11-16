@@ -14,12 +14,14 @@ import {
   eggVersionInfo,
   gameVersion,
   missingRequired,
+  type ServerConfig,
   seconds,
   serverStatus,
   suggestMemoryMiB,
   suggestPort,
   updateEggParams,
   updateParams,
+  webLink,
   workshopIds,
   workshopRef,
 } from "./servers.ts";
@@ -417,4 +419,45 @@ test("eggVersionInfo finds the server's version by its file's hash", () => {
     latest: 3,
     outdated: true,
   });
+});
+
+test("a server's web dashboard", () => {
+  const cfg = (variables: Record<string, string>, ports = [30120, 40120]) =>
+    ({
+      image: "",
+      startup: "",
+      variables,
+      limits: { memory_mib: 1024, disk_mib: 0 },
+      settings: {},
+      host_network: false,
+      allocations: ports.map((port, i) => ({ ip: "0.0.0.0", port, primary: i === 0 })),
+      egg: {
+        images: [],
+        variables: [],
+        web: { name: "txAdmin", port: "TXHOST_TXA_PORT", enabled: "TXADMIN_ENABLE" },
+      },
+    }) as unknown as ServerConfig;
+  const host = "1a2b3c4d5e6f.raptornodes.net";
+  // Off unless turned on.
+  assert.equal(webLink(cfg({ TXADMIN_ENABLE: "0", TXHOST_TXA_PORT: "40120" }), host), undefined);
+  assert.deepEqual(webLink(cfg({ TXADMIN_ENABLE: "1", TXHOST_TXA_PORT: "40120" }), host), {
+    name: "txAdmin",
+    url: "http://1a2b3c4d5e6f.raptornodes.net:40120/",
+    port: 40120,
+    reachable: true,
+  });
+  // Its port isn't one of the server's yet.
+  assert.equal(
+    webLink(cfg({ TXADMIN_ENABLE: "1", TXHOST_TXA_PORT: "40120" }, [30120]), host)?.reachable,
+    false,
+  );
+  // A shown address with a port: its host.
+  assert.equal(
+    webLink(cfg({ TXADMIN_ENABLE: "1", TXHOST_TXA_PORT: "40120" }), "play.example.com:30120")?.url,
+    "http://play.example.com:40120/",
+  );
+  // The primary port when the egg names none.
+  const grafana = cfg({}, [3000]);
+  if (grafana.egg) grafana.egg.web = { name: "Grafana" };
+  assert.equal(webLink(grafana, host)?.url, "http://1a2b3c4d5e6f.raptornodes.net:3000/");
 });

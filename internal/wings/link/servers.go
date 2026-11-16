@@ -105,9 +105,17 @@ type eggInfo struct {
 	// Workshop is where the game takes Steam Workshop items
 	// (docs/EGGS.md#steam-workshop).
 	Workshop *eggWorkshop `json:"workshop,omitempty"`
+	// Web is a web dashboard the server serves (#428).
+	Web *eggWeb `json:"web,omitempty"`
 	// Players is how the game answers player queries ("minecraft" for the
 	// Java edition), so the Panel knows which servers get an SRV record.
 	Players string `json:"players,omitempty"`
+}
+
+type eggWeb struct {
+	Name    string `json:"name"`
+	Port    string `json:"port,omitempty"`
+	Enabled string `json:"enabled,omitempty"`
 }
 
 type eggWorkshop struct {
@@ -149,6 +157,9 @@ func describeEgg(s *server.Server) *eggInfo {
 			out.Addons = map[string]eggAddon{}
 		}
 		out.Addons[kind] = eggAddon{Loaders: a.Loaders, Dir: a.Dir, Version: a.Version}
+	}
+	if w := e.Raptor.Web; w != nil {
+		out.Web = &eggWeb{Name: w.Name, Port: w.Port, Enabled: w.Enabled}
 	}
 	if w := e.Raptor.Workshop; w != nil {
 		apply := w.Apply

@@ -9,6 +9,11 @@ certified: true
 # Cfx.re publishes FXServer for x86-64 Linux only.
 arch: [amd64]
 # No backup hooks: FiveM keeps no world of its own; resources save their data.
+# The app links to its web page (#428).
+web:
+  name: txAdmin
+  port: TXHOST_TXA_PORT
+  enabled: TXADMIN_ENABLE
 test:
   tier: manual
   reason: "FXServer only starts with a Cfx.re license key, which is tied to an account (free from portal.cfx.re)."

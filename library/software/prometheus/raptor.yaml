@@ -7,6 +7,9 @@ credits:
   - "Icon: the Prometheus logo, from https://commons.wikimedia.org/wiki/File:Prometheus_software_logo.svg (Apache-2.0)"
 certified: true
 arch: [amd64, arm64]
+# The app links to its web page (#428).
+web:
+  name: Prometheus
 test:
   tier: fast
   memory_mib: 512

@@ -7,6 +7,9 @@ credits:
   - "Icon: the code-server logo, from https://github.com/coder/code-server (MIT)"
 certified: true
 arch: [amd64, arm64]
+# The app links to its web page (#428).
+web:
+  name: code-server
 test:
   tier: fast
   memory_mib: 1024
