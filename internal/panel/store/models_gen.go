@@ -43,6 +43,14 @@ type AlertDelivery struct {
 	Label     string
 }
 
+type AlertMute struct {
+	UserID    pgtype.UUID
+	OrgID     pgtype.UUID
+	Target    string
+	Until     pgtype.Timestamptz
+	CreatedAt pgtype.Timestamptz
+}
+
 type AlertNotification struct {
 	ID          pgtype.UUID
 	UserID      pgtype.UUID

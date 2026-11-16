@@ -293,6 +293,19 @@ type People struct {
 	AdminsOnly bool
 }
 
+// MuteTargets are what an alert about this node or server can be muted by
+// (alert_mutes.target).
+func MuteTargets(nodeID, serverID string) []string {
+	var t []string
+	if serverID != "" {
+		t = append(t, "server:"+serverID)
+	}
+	if nodeID != "" {
+		t = append(t, "node:"+nodeID)
+	}
+	return t
+}
+
 // queue queues an alert to the rule's team channels and to its people: in
 // each one's inbox, and to each of their own channels that's on.
 func (s *Service) queue(ctx context.Context, q *store.Queries, org, rule pgtype.UUID, chans []pgtype.UUID, who People, m Message) error {
@@ -325,6 +338,15 @@ func (s *Service) queue(ctx context.Context, q *store.Queries, org, rule pgtype.
 		if err := q.InsertAlertNotification(ctx, store.InsertAlertNotificationParams{UserID: p.UserID, OrgID: org, RuleID: rule, Message: body}); err != nil {
 			return err
 		}
+	}
+	// People who muted alerts about this server or node get it in their
+	// inbox, but not on their own channels.
+	if targets := MuteTargets(m.NodeID, m.ServerID); len(targets) > 0 {
+		muted, err := q.MutedUsers(ctx, store.MutedUsersParams{OrgID: org, Users: ids, Targets: targets})
+		if err != nil {
+			return err
+		}
+		ids = slices.DeleteFunc(ids, func(id pgtype.UUID) bool { return slices.Contains(muted, id) })
 	}
 	own, err := q.ActiveUserAlertChannels(ctx, ids)
 	if err != nil {
@@ -404,6 +426,9 @@ func (s *Service) tick(ctx context.Context, syncNodes, prune bool) {
 		}
 		if err := q.PruneTelegramLinks(ctx); err != nil {
 			s.Log.Warn("alerts: pruning Telegram links failed", "err", err)
+		}
+		if err := q.PruneAlertMutes(ctx); err != nil {
+			s.Log.Warn("alerts: pruning mutes failed", "err", err)
 		}
 	}
 }

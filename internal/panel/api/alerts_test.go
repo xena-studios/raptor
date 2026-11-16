@@ -329,6 +329,39 @@ func TestAlerts(t *testing.T) {
 		t.Errorf("after dismissing everything: %v", box)
 	}
 
+	// Bob mutes rust: its alerts still land in his inbox, but not his email.
+	if _, err := bob.alerts.MuteAlerts(ctx, &panelv1.MuteAlertsRequest{OrgId: acme, ServerId: "s2", Minutes: 0}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Errorf("muting for no time: %v", err)
+	}
+	if _, err := carol.alerts.MuteAlerts(ctx, &panelv1.MuteAlertsRequest{OrgId: acme, ServerId: "s2", Minutes: 60}); err == nil {
+		t.Error("someone outside the org muted its alerts")
+	}
+	if _, err := bob.alerts.MuteAlerts(ctx, &panelv1.MuteAlertsRequest{OrgId: acme, ServerId: "s2", Minutes: 60}); err != nil {
+		t.Fatal(err)
+	}
+	if mutes, err := bob.alerts.ListAlertMutes(ctx, &panelv1.ListAlertMutesRequest{}); err != nil || len(mutes.GetMutes()) != 1 ||
+		mutes.GetMutes()[0].GetName() != "rust" || mutes.GetMutes()[0].GetServerId() != "s2" {
+		t.Fatalf("bob's mutes: %v, %v", mutes, err)
+	}
+	before := len(mail.mail)
+	ingest(&nodev1.Event{Type: "server.install.finished", ServerId: "s2", At: clock().UnixMilli()})
+	if len(mail.mail) != before {
+		t.Errorf("bob was emailed about a muted server: %q", mail.mail[len(mail.mail)-1])
+	}
+	if box, _ := bob.alerts.ListNotifications(ctx, &panelv1.ListNotificationsRequest{}); len(box.GetNotifications()) != 1 {
+		t.Errorf("a muted alert isn't in the inbox: %v", box)
+	}
+	if _, err := bob.alerts.UnmuteAlerts(ctx, &panelv1.UnmuteAlertsRequest{OrgId: acme, ServerId: "s2"}); err != nil {
+		t.Fatal(err)
+	}
+	ingest(&nodev1.Event{Type: "server.install.finished", ServerId: "s2", At: clock().UnixMilli()})
+	if len(mail.mail) != before+1 {
+		t.Error("bob wasn't emailed after unmuting")
+	}
+	if _, err := bob.alerts.DismissNotifications(ctx, &panelv1.DismissNotificationsRequest{}); err != nil {
+		t.Fatal(err)
+	}
+
 	// A threshold firing on the node names its rule; resolving is sent too.
 	ingest(&nodev1.Event{Type: "alert.fired", ServerId: "s2", At: at, Data: data(map[string]any{"rule_id": cpu, "condition": "cpu_high", "value": 97.2, "threshold": 90, "for_seconds": 300})},
 		&nodev1.Event{Type: "alert.fired", ServerId: "s2", At: at, Data: data(map[string]any{"rule_id": "00000000-0000-0000-0000-000000000000", "condition": "cpu_high", "value": 99})})
@@ -409,7 +442,7 @@ func TestAlerts(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	before := len(mail.mail)
+	before = len(mail.mail)
 	offline()
 	if len(mail.mail) != before {
 		t.Fatal("offline alerted before its grace counted from noticing it")

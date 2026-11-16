@@ -78,6 +78,14 @@ const (
 	// AlertServiceUnregisterPushDeviceProcedure is the fully-qualified name of the AlertService's
 	// UnregisterPushDevice RPC.
 	AlertServiceUnregisterPushDeviceProcedure = "/raptor.panel.v1.AlertService/UnregisterPushDevice"
+	// AlertServiceMuteAlertsProcedure is the fully-qualified name of the AlertService's MuteAlerts RPC.
+	AlertServiceMuteAlertsProcedure = "/raptor.panel.v1.AlertService/MuteAlerts"
+	// AlertServiceUnmuteAlertsProcedure is the fully-qualified name of the AlertService's UnmuteAlerts
+	// RPC.
+	AlertServiceUnmuteAlertsProcedure = "/raptor.panel.v1.AlertService/UnmuteAlerts"
+	// AlertServiceListAlertMutesProcedure is the fully-qualified name of the AlertService's
+	// ListAlertMutes RPC.
+	AlertServiceListAlertMutesProcedure = "/raptor.panel.v1.AlertService/ListAlertMutes"
 )
 
 // AlertServiceClient is a client for the raptor.panel.v1.AlertService service.
@@ -124,6 +132,14 @@ type AlertServiceClient interface {
 	// UnregisterPushDevice stops push notifications to this phone (the app's
 	// own session), without signing it out.
 	UnregisterPushDevice(context.Context, *v1.UnregisterPushDeviceRequest) (*v1.UnregisterPushDeviceResponse, error)
+	// MuteAlerts quiets the signed-in user's own channels about one server
+	// or node for a while: alerts about it still land in their inbox, and
+	// team channels still get them. Muting again replaces the time.
+	MuteAlerts(context.Context, *v1.MuteAlertsRequest) (*v1.MuteAlertsResponse, error)
+	// UnmuteAlerts ends a mute early.
+	UnmuteAlerts(context.Context, *v1.UnmuteAlertsRequest) (*v1.UnmuteAlertsResponse, error)
+	// ListAlertMutes lists the user's mutes still running.
+	ListAlertMutes(context.Context, *v1.ListAlertMutesRequest) (*v1.ListAlertMutesResponse, error)
 }
 
 // NewAlertServiceClient constructs a client for the raptor.panel.v1.AlertService service. By
@@ -231,6 +247,25 @@ func NewAlertServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(alertServiceMethods.ByName("UnregisterPushDevice")),
 			connect.WithClientOptions(opts...),
 		),
+		muteAlerts: connect.NewClient[v1.MuteAlertsRequest, v1.MuteAlertsResponse](
+			httpClient,
+			baseURL+AlertServiceMuteAlertsProcedure,
+			connect.WithSchema(alertServiceMethods.ByName("MuteAlerts")),
+			connect.WithClientOptions(opts...),
+		),
+		unmuteAlerts: connect.NewClient[v1.UnmuteAlertsRequest, v1.UnmuteAlertsResponse](
+			httpClient,
+			baseURL+AlertServiceUnmuteAlertsProcedure,
+			connect.WithSchema(alertServiceMethods.ByName("UnmuteAlerts")),
+			connect.WithClientOptions(opts...),
+		),
+		listAlertMutes: connect.NewClient[v1.ListAlertMutesRequest, v1.ListAlertMutesResponse](
+			httpClient,
+			baseURL+AlertServiceListAlertMutesProcedure,
+			connect.WithSchema(alertServiceMethods.ByName("ListAlertMutes")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -251,6 +286,9 @@ type alertServiceClient struct {
 	dismissNotifications *connect.Client[v1.DismissNotificationsRequest, v1.DismissNotificationsResponse]
 	registerPushDevice   *connect.Client[v1.RegisterPushDeviceRequest, v1.RegisterPushDeviceResponse]
 	unregisterPushDevice *connect.Client[v1.UnregisterPushDeviceRequest, v1.UnregisterPushDeviceResponse]
+	muteAlerts           *connect.Client[v1.MuteAlertsRequest, v1.MuteAlertsResponse]
+	unmuteAlerts         *connect.Client[v1.UnmuteAlertsRequest, v1.UnmuteAlertsResponse]
+	listAlertMutes       *connect.Client[v1.ListAlertMutesRequest, v1.ListAlertMutesResponse]
 }
 
 // ListAlertChannels calls raptor.panel.v1.AlertService.ListAlertChannels.
@@ -388,6 +426,33 @@ func (c *alertServiceClient) UnregisterPushDevice(ctx context.Context, req *v1.U
 	return nil, err
 }
 
+// MuteAlerts calls raptor.panel.v1.AlertService.MuteAlerts.
+func (c *alertServiceClient) MuteAlerts(ctx context.Context, req *v1.MuteAlertsRequest) (*v1.MuteAlertsResponse, error) {
+	response, err := c.muteAlerts.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// UnmuteAlerts calls raptor.panel.v1.AlertService.UnmuteAlerts.
+func (c *alertServiceClient) UnmuteAlerts(ctx context.Context, req *v1.UnmuteAlertsRequest) (*v1.UnmuteAlertsResponse, error) {
+	response, err := c.unmuteAlerts.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListAlertMutes calls raptor.panel.v1.AlertService.ListAlertMutes.
+func (c *alertServiceClient) ListAlertMutes(ctx context.Context, req *v1.ListAlertMutesRequest) (*v1.ListAlertMutesResponse, error) {
+	response, err := c.listAlertMutes.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // AlertServiceHandler is an implementation of the raptor.panel.v1.AlertService service.
 type AlertServiceHandler interface {
 	// ListAlertChannels lists the org's channels (or the user's own), and the
@@ -432,6 +497,14 @@ type AlertServiceHandler interface {
 	// UnregisterPushDevice stops push notifications to this phone (the app's
 	// own session), without signing it out.
 	UnregisterPushDevice(context.Context, *v1.UnregisterPushDeviceRequest) (*v1.UnregisterPushDeviceResponse, error)
+	// MuteAlerts quiets the signed-in user's own channels about one server
+	// or node for a while: alerts about it still land in their inbox, and
+	// team channels still get them. Muting again replaces the time.
+	MuteAlerts(context.Context, *v1.MuteAlertsRequest) (*v1.MuteAlertsResponse, error)
+	// UnmuteAlerts ends a mute early.
+	UnmuteAlerts(context.Context, *v1.UnmuteAlertsRequest) (*v1.UnmuteAlertsResponse, error)
+	// ListAlertMutes lists the user's mutes still running.
+	ListAlertMutes(context.Context, *v1.ListAlertMutesRequest) (*v1.ListAlertMutesResponse, error)
 }
 
 // NewAlertServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -535,6 +608,25 @@ func NewAlertServiceHandler(svc AlertServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(alertServiceMethods.ByName("UnregisterPushDevice")),
 		connect.WithHandlerOptions(opts...),
 	)
+	alertServiceMuteAlertsHandler := connect.NewUnaryHandlerSimple(
+		AlertServiceMuteAlertsProcedure,
+		svc.MuteAlerts,
+		connect.WithSchema(alertServiceMethods.ByName("MuteAlerts")),
+		connect.WithHandlerOptions(opts...),
+	)
+	alertServiceUnmuteAlertsHandler := connect.NewUnaryHandlerSimple(
+		AlertServiceUnmuteAlertsProcedure,
+		svc.UnmuteAlerts,
+		connect.WithSchema(alertServiceMethods.ByName("UnmuteAlerts")),
+		connect.WithHandlerOptions(opts...),
+	)
+	alertServiceListAlertMutesHandler := connect.NewUnaryHandlerSimple(
+		AlertServiceListAlertMutesProcedure,
+		svc.ListAlertMutes,
+		connect.WithSchema(alertServiceMethods.ByName("ListAlertMutes")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.panel.v1.AlertService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AlertServiceListAlertChannelsProcedure:
@@ -567,6 +659,12 @@ func NewAlertServiceHandler(svc AlertServiceHandler, opts ...connect.HandlerOpti
 			alertServiceRegisterPushDeviceHandler.ServeHTTP(w, r)
 		case AlertServiceUnregisterPushDeviceProcedure:
 			alertServiceUnregisterPushDeviceHandler.ServeHTTP(w, r)
+		case AlertServiceMuteAlertsProcedure:
+			alertServiceMuteAlertsHandler.ServeHTTP(w, r)
+		case AlertServiceUnmuteAlertsProcedure:
+			alertServiceUnmuteAlertsHandler.ServeHTTP(w, r)
+		case AlertServiceListAlertMutesProcedure:
+			alertServiceListAlertMutesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -634,4 +732,16 @@ func (UnimplementedAlertServiceHandler) RegisterPushDevice(context.Context, *v1.
 
 func (UnimplementedAlertServiceHandler) UnregisterPushDevice(context.Context, *v1.UnregisterPushDeviceRequest) (*v1.UnregisterPushDeviceResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AlertService.UnregisterPushDevice is not implemented"))
+}
+
+func (UnimplementedAlertServiceHandler) MuteAlerts(context.Context, *v1.MuteAlertsRequest) (*v1.MuteAlertsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AlertService.MuteAlerts is not implemented"))
+}
+
+func (UnimplementedAlertServiceHandler) UnmuteAlerts(context.Context, *v1.UnmuteAlertsRequest) (*v1.UnmuteAlertsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AlertService.UnmuteAlerts is not implemented"))
+}
+
+func (UnimplementedAlertServiceHandler) ListAlertMutes(context.Context, *v1.ListAlertMutesRequest) (*v1.ListAlertMutesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AlertService.ListAlertMutes is not implemented"))
 }

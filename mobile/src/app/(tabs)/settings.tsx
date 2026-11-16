@@ -1,3 +1,4 @@
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useQuery } from "@connectrpc/connect-query";
 import * as Application from "expo-application";
 import * as Notifications from "expo-notifications";
@@ -16,7 +17,55 @@ import { appURL } from "@/lib/config";
 import { available, method, setEnabled, useLock } from "@/lib/lock";
 import { type PushStatus, register, unregister } from "@/lib/push";
 import { useColors } from "@/lib/theme";
-import { authClient, message } from "@/lib/transport";
+import { alertClient, authClient, message } from "@/lib/transport";
+
+// Mutes is what's muted now, each with Unmute.
+function Mutes() {
+  const mutes = useQuery(AlertService.method.listAlertMutes, {});
+  const [error, setError] = useState("");
+  const list = mutes.data?.mutes ?? [];
+  if (list.length === 0) return null;
+  return (
+    <Card title="Muted" description="Their alerts still show in your inbox.">
+      <Notice text={error} />
+      {list.map((m) => (
+        <Row key={`${m.orgId}:${m.serverId}:${m.nodeId}`}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text weight="medium">{m.name || "A server"}</Text>
+              <Text variant="meta" ink="muted">
+                {m.orgName} · until{" "}
+                {m.until
+                  ? timestampDate(m.until).toLocaleTimeString([], {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })
+                  : ""}
+              </Text>
+            </View>
+            <Button
+              label="Unmute"
+              variant="ghost"
+              onPress={async () => {
+                setError("");
+                try {
+                  await alertClient.unmuteAlerts({
+                    orgId: m.orgId,
+                    serverId: m.serverId,
+                    nodeId: m.nodeId,
+                  });
+                  await mutes.refetch();
+                } catch (err) {
+                  setError(message(err));
+                }
+              }}
+            />
+          </View>
+        </Row>
+      ))}
+    </Card>
+  );
+}
 
 export default function Settings() {
   const c = useColors();
@@ -172,6 +221,8 @@ export default function Settings() {
           />
         ) : null}
       </Card>
+
+      <Mutes />
 
       <Card title="In the web app">
         {links.map(([label, to]) => (

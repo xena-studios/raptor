@@ -808,6 +808,60 @@ func (q *Queries) InsertTelegramLink(ctx context.Context, arg InsertTelegramLink
 	return err
 }
 
+const muteAlerts = `-- name: MuteAlerts :exec
+INSERT INTO alert_mutes (user_id, org_id, target, until) VALUES ($1, $2, $3, $4)
+ON CONFLICT (user_id, org_id, target) DO UPDATE SET until = EXCLUDED.until
+`
+
+type MuteAlertsParams struct {
+	UserID pgtype.UUID
+	OrgID  pgtype.UUID
+	Target string
+	Until  pgtype.Timestamptz
+}
+
+func (q *Queries) MuteAlerts(ctx context.Context, arg MuteAlertsParams) error {
+	_, err := q.db.Exec(ctx, muteAlerts,
+		arg.UserID,
+		arg.OrgID,
+		arg.Target,
+		arg.Until,
+	)
+	return err
+}
+
+const mutedUsers = `-- name: MutedUsers :many
+SELECT DISTINCT user_id FROM alert_mutes
+WHERE org_id = $1 AND user_id = ANY ($2::uuid[]) AND target = ANY ($3::text[]) AND until > now()
+`
+
+type MutedUsersParams struct {
+	OrgID   pgtype.UUID
+	Users   []pgtype.UUID
+	Targets []string
+}
+
+// Of these people, who muted alerts about any of these targets.
+func (q *Queries) MutedUsers(ctx context.Context, arg MutedUsersParams) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, mutedUsers, arg.OrgID, arg.Users, arg.Targets)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []pgtype.UUID
+	for rows.Next() {
+		var user_id pgtype.UUID
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const nodeThresholdRules = `-- name: NodeThresholdRules :many
 SELECT r.id, r.condition, r.server_id, r.threshold, r.for_minutes
 FROM alert_rules r JOIN nodes n ON n.org_id = r.org_id
@@ -1164,6 +1218,15 @@ func (q *Queries) PruneAlertDeliveries(ctx context.Context) error {
 	return err
 }
 
+const pruneAlertMutes = `-- name: PruneAlertMutes :exec
+DELETE FROM alert_mutes WHERE until < now()
+`
+
+func (q *Queries) PruneAlertMutes(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, pruneAlertMutes)
+	return err
+}
+
 const pruneAlertNotifications = `-- name: PruneAlertNotifications :exec
 DELETE FROM alert_notifications WHERE created_at < now() - interval '30 days'
 `
@@ -1232,6 +1295,21 @@ type SetTelegramLinkChannelParams struct {
 
 func (q *Queries) SetTelegramLinkChannel(ctx context.Context, arg SetTelegramLinkChannelParams) error {
 	_, err := q.db.Exec(ctx, setTelegramLinkChannel, arg.TokenHash, arg.ChannelID)
+	return err
+}
+
+const unmuteAlerts = `-- name: UnmuteAlerts :exec
+DELETE FROM alert_mutes WHERE user_id = $1 AND org_id = $2 AND target = $3
+`
+
+type UnmuteAlertsParams struct {
+	UserID pgtype.UUID
+	OrgID  pgtype.UUID
+	Target string
+}
+
+func (q *Queries) UnmuteAlerts(ctx context.Context, arg UnmuteAlertsParams) error {
+	_, err := q.db.Exec(ctx, unmuteAlerts, arg.UserID, arg.OrgID, arg.Target)
 	return err
 }
 
@@ -1416,6 +1494,49 @@ func (q *Queries) UserAlertChannels(ctx context.Context, userID pgtype.UUID) ([]
 			&i.DisabledAt,
 			&i.CreatedAt,
 			&i.SessionID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const userAlertMutes = `-- name: UserAlertMutes :many
+SELECT m.org_id, o.name AS org_name, m.target, m.until,
+    coalesce((SELECT s.name FROM m_servers s WHERE 'server:' || s.server_id = m.target LIMIT 1),
+             (SELECT n.name FROM nodes n WHERE 'node:' || n.id::text = m.target), '')::text AS name
+FROM alert_mutes m JOIN orgs o ON o.id = m.org_id
+WHERE m.user_id = $1 AND m.until > now() ORDER BY m.until
+`
+
+type UserAlertMutesRow struct {
+	OrgID   pgtype.UUID
+	OrgName string
+	Target  string
+	Until   pgtype.Timestamptz
+	Name    string
+}
+
+// A person's mutes still running, with what they're about.
+func (q *Queries) UserAlertMutes(ctx context.Context, userID pgtype.UUID) ([]UserAlertMutesRow, error) {
+	rows, err := q.db.Query(ctx, userAlertMutes, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UserAlertMutesRow
+	for rows.Next() {
+		var i UserAlertMutesRow
+		if err := rows.Scan(
+			&i.OrgID,
+			&i.OrgName,
+			&i.Target,
+			&i.Until,
+			&i.Name,
 		); err != nil {
 			return nil, err
 		}

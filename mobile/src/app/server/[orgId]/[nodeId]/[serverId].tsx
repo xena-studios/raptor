@@ -1,19 +1,23 @@
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { Archive, ExternalLink, Play, RotateCw, Square } from "lucide-react-native";
-import { useState } from "react";
+import { Archive, Bell, BellOff, ExternalLink, Play, RotateCw, Square } from "lucide-react-native";
+import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 
 import { Page, PageHeader } from "@/components/screen";
 import { Button, Card, CardBody, Notice, Row, Skeleton, StatusChip, Text } from "@/components/ui";
+import { AlertService } from "@/gen/raptor/panel/v1/alert_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { appURL } from "@/lib/config";
 import { can } from "@/lib/format";
+import { useLock } from "@/lib/lock";
+import { MUTE_MINUTES } from "@/lib/push";
 import { serverStatus } from "@/lib/status";
 import { useColors } from "@/lib/theme";
-import { commandClient, message } from "@/lib/transport";
+import { alertClient, commandClient, message } from "@/lib/transport";
 
 // A server: its state and address, power, and a backup now. The console,
 // files, settings, and anything that needs a passkey are in the web app,
@@ -21,11 +25,21 @@ import { commandClient, message } from "@/lib/transport";
 export default function ServerScreen() {
   const c = useColors();
   const client = useQueryClient();
-  const { orgId, nodeId, serverId } = useLocalSearchParams<{
+  const {
+    orgId,
+    nodeId,
+    serverId,
+    do: requested,
+  } = useLocalSearchParams<{
     orgId: string;
     nodeId: string;
     serverId: string;
+    // A notification's button: "restart" or "mute".
+    do?: string;
   }>();
+  const lock = useLock();
+  const mutes = useQuery(AlertService.method.listAlertMutes, {});
+  const muted = mutes.data?.mutes.find((m) => m.serverId === serverId);
   const server = useQuery(
     OrgService.method.getServer,
     { orgId, nodeId, serverId },
@@ -68,6 +82,38 @@ export default function ServerScreen() {
       setBusy("");
     }
   }
+
+  async function mute(on: boolean) {
+    setBusy("mute");
+    setResult(null);
+    try {
+      if (on) {
+        await alertClient.muteAlerts({ orgId, serverId, minutes: MUTE_MINUTES });
+        setResult({ ok: true, text: "Muted for an hour. Its alerts still show in your inbox." });
+      } else {
+        await alertClient.unmuteAlerts({ orgId, serverId });
+        setResult({ ok: true, text: "Unmuted." });
+      }
+      await mutes.refetch();
+    } catch (err) {
+      setResult({ ok: false, text: message(err) });
+    } finally {
+      setBusy("");
+    }
+  }
+
+  // A notification's Restart or Mute: done once the server's loaded and
+  // the app is unlocked, so the person sees it happen.
+  const did = useRef(false);
+  useEffect(() => {
+    if (did.current || !s || lock.locked || !requested) return;
+    did.current = true;
+    if (requested === "restart" && can(s.permissions, "power")) {
+      run("server.restart", "Restarting.");
+    } else if (requested === "mute") {
+      mute(true);
+    }
+  });
 
   const web = (path = "") =>
     WebBrowser.openBrowserAsync(`${appURL}/orgs/${orgId}/servers/${nodeId}/${serverId}${path}`);
@@ -149,6 +195,28 @@ export default function ServerScreen() {
                 The node is offline, so the server can't be reached.
               </Text>
             ) : null}
+          </CardBody>
+        </Card>
+      ) : null}
+
+      {s ? (
+        <Card
+          title="Notifications"
+          description={
+            muted?.until
+              ? `Muted until ${timestampDate(muted.until).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}. Its alerts still show in your inbox.`
+              : "Alerts about it come to this phone, as your orgs' alert rules say."
+          }
+        >
+          <CardBody>
+            <Button
+              label={muted ? "Unmute" : "Mute for an hour"}
+              variant="outline"
+              icon={muted ? Bell : BellOff}
+              busy={busy === "mute"}
+              disabled={!!busy}
+              onPress={() => mute(!muted)}
+            />
           </CardBody>
         </Card>
       ) : null}
