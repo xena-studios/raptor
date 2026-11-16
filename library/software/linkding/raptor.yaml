@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/linkding/egg-linkding.json
+license: MIT
+credits:
+  - "Written for Raptor from linkding's documentation, https://github.com/sissbruecker/linkding (MIT); no upstream egg"
+  - "Icon: the linkding logo, from linkding's static files (logo-512.png)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  # The first start installs linkding's Python packages.
+  done_timeout: 8m
+  variables:
+    LD_SUPERUSER_PASSWORD: "raptor-test-admin"

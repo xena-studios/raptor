@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/soft-serve/egg-soft-serve.json
+license: MIT
+credits:
+  - "Written for Raptor from Soft Serve's documentation, https://github.com/charmbracelet/soft-serve (MIT); no upstream egg"
+  - "Icon: the cone from Soft Serve's header image, https://stuff.charm.sh/soft-serve/soft-serve-header.png (Charm)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m
+  variables:
+    # A public key made for the test (its private half was thrown away).
+    ADMIN_KEYS: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHyweYeECyQsUARA/q6rjw+SxpFSxb/FKRA6XYoYED/A raptor-test"

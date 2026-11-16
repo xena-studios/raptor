@@ -1,0 +1,42 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from Komga's documentation; no upstream egg.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Komga",
+    "author": "support@raptorpanel.net",
+    "description": "Komga is a media server for comics, manga, magazines and eBooks, with a web reader and OPDS for reading apps. The egg runs it with SQLite: open its address to create the admin account, and upload your books to the library folder.",
+    "features": [],
+    "docker_images": {
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:98fbedc047cc55fcead2cea64cb4dd31e3954e942ff33ed863f4dc5fb01d9406",
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:176d985fb81cd3f771a29e4afcd3ef6934e12e8ef747305ce817d6bb32f8f8c7"
+    },
+    "file_denylist": [],
+    "startup": "exec java -Xms128M -XX:MaxRAMPercentage=75.0 -Dkomga.config-dir=/home/container/config -Dserver.port={{SERVER_PORT}} -jar komga.jar",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"regex:Started \\\\w+ in [0-9.]+ seconds\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Komga: downloads Komga's jar from its GitHub releases, checked against\n# GitHub's SHA-256. The database, settings and your comics (config, and\n# any folder you upload) are never touched, and the jar is only replaced\n# once the new one is complete.\nset -euo pipefail\ncd /mnt/server\n\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag gotson/komga \"${VERSION:-latest}\") || exit 1\n\nif [ -f komga.jar ] && [ \"$(cat .komga-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Komga $tag is already installed.\"\nelse\n    echo \"Downloading Komga $tag\"\n    gh-release download gotson/komga \"$tag\" \"komga-$tag.jar\" komga.jar.new\n    mv -f komga.jar.new komga.jar\n    echo \"$tag\" > .komga-version\nfi\nmkdir -p config library\necho \"Installed Komga $tag. Open the server's address to create the admin account, then add the library folder.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Komga version to install, such as 1.30.1, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        }
+    ]
+}

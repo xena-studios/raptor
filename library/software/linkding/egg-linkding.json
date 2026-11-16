@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from linkding's documentation; no upstream egg.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "linkding",
+    "author": "support@raptorpanel.net",
+    "description": "linkding is a minimal, fast bookmark manager with tags, search and browser extensions. The egg runs it with SQLite and makes the admin account from its settings; there are no sign-ups.",
+    "features": [],
+    "docker_images": {
+        "Python 3.13": "ghcr.io/xena-studios/yolks:python_3.13@sha256:72e9beb9618e5ebecf1d3211271308dc506ada537fa458911b866a23c787e617"
+    },
+    "file_denylist": [],
+    "startup": "cd app; want=\"$(sha256sum raptor-requirements.txt | cut -d' ' -f1) $(python3 --version)\"; if [ \"$want\" != \"$(cat ../venv/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing linkding's packages\"; rm -rf ../venv; python3 -m venv ../venv && ../venv/bin/pip install -q --no-cache-dir --disable-pip-version-check -r raptor-requirements.txt && echo \"$want\" > ../venv/.raptor-installed || { echo \"Linkding's packages couldn't be installed. Restart to try again.\"; exit 1; }; fi; export PATH=/home/container/venv/bin:$PATH DJANGO_SETTINGS_MODULE=bookmarks.settings.prod; [ -n \"$LD_SUPERUSER_PASSWORD\" ] || unset LD_SUPERUSER_PASSWORD; if [ ! -f data/db.sqlite3 ] && [ -z \"${LD_SUPERUSER_PASSWORD:-}\" ]; then echo \"Set Admin password first: without it, nobody could sign in.\"; exit 1; fi; python manage.py generate_secret_key && python manage.py migrate && python manage.py enable_wal && python manage.py create_initial_superuser && python manage.py migrate_tasks || exit 1; exec uwsgi --http 0.0.0.0:{{SERVER_PORT}} --ini raptor-uwsgi.ini",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"regex:spawned uWSGI worker 2\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# linkding: linkding publishes its releases only as a container image, so\n# this takes the app (with its built web assets) out of the official image\n# on Docker Hub, every layer checked against its SHA-256, and lists the\n# exact Python packages that release was built with. They're installed into\n# the server's venv folder on the next start, by the server's own Python.\n# Your bookmarks (the data folder) are never touched.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\nua=\"raptor-installer (+https://raptorpanel.net)\"\nget() { curl -fsS --retry 3 -A \"$ua\" \"$@\"; }\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"linkding has no build for this CPU ($(uname -m)).\" ;;\nesac\n\n# The release, from GitHub (gh-release says why when it doesn't exist); the\n# image's tag is the version without the v.\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\ntag=$(gh-release tag sissbruecker/linkding \"$version\") || exit 1\nv=${tag#v}\n\nif [ -f app/manage.py ] && [ \"$(cat .linkding-version 2>/dev/null)\" = \"$v\" ]; then\n    echo \"linkding $v is already installed.\"\nelse\n    echo \"Downloading linkding $v\"\n    repo=sissbruecker/linkding\n    reg=https://registry-1.docker.io/v2/$repo\n    token=$(get \"https://auth.docker.io/token?service=registry.docker.io&scope=repository:$repo:pull\" | jq -r .token) ||\n        fail \"Docker Hub can't be reached right now. Reinstall to try again.\"\n    auth=\"Authorization: Bearer $token\"\n    index=$(get -H \"$auth\" -H \"Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json\" \"$reg/manifests/$v\") ||\n        fail \"linkding's image for $v isn't on Docker Hub. Set Version to latest, or to another release, then reinstall.\"\n    digest=$(jq -r --arg a \"$arch\" 'first(.manifests[] | select(.platform.os == \"linux\" and .platform.architecture == $a) | .digest) // empty' <<<\"$index\")\n    [ -n \"$digest\" ] || fail \"linkding $v has no image for this CPU ($arch).\"\n    layers=$(get -H \"$auth\" -H \"Accept: application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json\" \"$reg/manifests/$digest\" | jq -r '.layers[].digest') ||\n        fail \"Docker Hub can't be reached right now. Reinstall to try again.\"\n    mkdir -p \"$work/root\"\n    for layer in $layers; do\n        get -L -H \"$auth\" -o \"$work/layer\" \"$reg/blobs/$layer\" || fail \"The download failed. Reinstall to try again.\"\n        [ \"sha256:$(sha256sum \"$work/layer\" | cut -d' ' -f1)\" = \"$layer\" ] || fail \"The download didn't match its checksum. Reinstall to try again.\"\n        # Only the app's folder: the rest is the image's operating system.\n        tar -xf \"$work/layer\" -C \"$work/root\" --no-same-owner --wildcards 'etc/linkding/*' 2>/dev/null || true\n        rm -f \"$work/layer\"\n    done\n    app=\"$work/root/etc/linkding\"\n    [ -f \"$app/manage.py\" ] && [ -d \"$app/static\" ] && [ -d \"$app/.venv\" ] || fail \"linkding's image didn't have the files it should. Reinstall to try again.\"\n    # The packages the image was built with, at the same versions. Its\n    # programs are built for a newer Debian, so the server builds its own\n    # venv; uWSGI comes as pyuwsgi, the same server packaged as a wheel\n    # (published a little after uWSGI itself, so the newest 2.0).\n    find \"$app/.venv/lib\" -maxdepth 3 -name '*.dist-info' -printf '%f\\n' | sed 's/\\.dist-info$//' |\n        awk '{ i = index($0, \"-\"); n = substr($0, 1, i - 1); ver = substr($0, i + 1); gsub(\"_\", \"-\", n); n = tolower(n)\n               if (n == \"uwsgi\") print \"pyuwsgi>=2.0.30,<2.1\"; else if (n != \"psycopg-c\" && n != \"supervisor\") print n \"==\" ver }' |\n        sort > \"$app/raptor-requirements.txt\"\n    grep -q '^django==' \"$app/raptor-requirements.txt\" || fail \"linkding's image didn't list its packages. Reinstall to try again.\"\n    # Its SQLite search extension is built for that newer Debian too.\n    rm -rf \"$app/.venv\" \"$app/data\" \"$app/libicu.so\"\n    rm -rf app.old\n    [ ! -d app ] || mv app app.old\n    mv \"$app\" app\n    rm -rf app.old\n    echo \"$v\" > .linkding-version\nfi\n# uWSGI's settings: the image's, without its root-only parts (switching\n# user, the stats port), with the background tasks (favicons, previews,\n# archiving) run by uWSGI itself. The port comes from the startup.\ncat > app/raptor-uwsgi.ini <<'INI'\n[uwsgi]\nmodule = bookmarks.wsgi:application\nenv = DJANGO_SETTINGS_MODULE=bookmarks.settings.prod\nroute = ^/static/ addheader:Content-Security-Policy: sandbox\nstatic-map = /static=static\nstatic-map = /static=data/favicons\nstatic-map = /static=data/previews\nstatic-map = /robots.txt=static/robots.txt\nprocesses = 2\nthreads = 2\nbuffer-size = 8192\nvacuum = true\ndie-on-term = true\nmaster = true\nif-not-env = LD_DISABLE_BACKGROUND_TASKS\nattach-daemon2 = cmd=python manage.py run_huey -f,stopsignal=15\nendif =\nINI\n# Bookmarks live next to the app, so a new version never touches them.\nmkdir -p data/favicons data/previews data/assets\nln -sfn ../data app/data\necho \"Installed linkding $v.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The linkding version to install, such as 1.47.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin username",
+            "description": "The admin account made on the first start.",
+            "env_variable": "LD_SUPERUSER_NAME",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:150|regex:/^[\\w.@+-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The admin account's password, used when the account is made. Change it in linkding's settings afterwards.",
+            "env_variable": "LD_SUPERUSER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        }
+    ]
+}

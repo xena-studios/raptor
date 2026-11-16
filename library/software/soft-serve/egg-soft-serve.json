@@ -1,0 +1,101 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from Soft Serve's documentation; no upstream egg.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Soft Serve",
+    "author": "support@raptorpanel.net",
+    "description": "Soft Serve is a self-hostable Git server for the command line: browse, clone and push repositories over SSH. The egg runs it with SQLite, makes your SSH key the admin's, and keeps repositories private unless you open them.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "export SOFT_SERVE_DATA_PATH=/home/container/data; if [ ! -f data/soft-serve.db ] && [ -z \"{{ADMIN_KEYS}}\" ]; then echo \"Set Admin SSH keys first: without one, nobody could manage Soft Serve.\"; exit 1; fi; [ -n \"{{ADMIN_KEYS}}\" ] && export SOFT_SERVE_INITIAL_ADMIN_KEYS=\"{{ADMIN_KEYS}}\"; h=\"{{PUBLIC_HOST}}\"; h=${h:-$SERVER_IP}; h=${h:-localhost}; SOFT_SERVE_NAME=\"{{SERVER_NAME}}\" SOFT_SERVE_ANON_ACCESS={{ANON_ACCESS}} SOFT_SERVE_SSH_LISTEN_ADDR=:{{SERVER_PORT}} SOFT_SERVE_SSH_PUBLIC_URL=ssh://$h:{{SERVER_PORT}} SOFT_SERVE_HTTP_ENABLED={{HTTP_ENABLED}} SOFT_SERVE_HTTP_LISTEN_ADDR=:{{HTTP_PORT}} SOFT_SERVE_HTTP_PUBLIC_URL=http://$h:{{HTTP_PORT}} SOFT_SERVE_GIT_ENABLED=false SOFT_SERVE_STATS_ENABLED=false exec ./soft serve",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"regex:[Ss]tarting SSH server\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Soft Serve: downloads Soft Serve from its GitHub releases, checked\n# against GitHub's SHA-256. Repositories, the database, keys and settings\n# (the data folder) are never touched, and the binary is only replaced\n# once the new one is complete.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=x86_64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Soft Serve has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag charmbracelet/soft-serve \"$version\") || exit 1\n\nif [ -x soft ] && [ \"$(cat .soft-serve-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Soft Serve $tag is already installed.\"\nelse\n    echo \"Downloading Soft Serve $tag\"\n    file=\"soft-serve_${tag#v}_Linux_${arch}.tar.gz\"\n    gh-release download charmbracelet/soft-serve \"$tag\" \"$file\" \"$work/soft.tar.gz\"\n    tar -xzf \"$work/soft.tar.gz\" -C \"$work\"\n    bin=$(find \"$work\" -type f -name soft | head -n 1)\n    [ -n \"$bin\" ] || fail \"Soft Serve's download didn't have the soft program. Reinstall to try again.\"\n    install -m 0755 \"$bin\" soft.new\n    mv -f soft.new soft\n    echo \"$tag\" > .soft-serve-version\nfi\nmkdir -p data\necho \"Installed Soft Serve $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Soft Serve version to install, such as 0.12.4, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin SSH keys",
+            "description": "Your SSH public key (such as ssh-ed25519 AAAA... you@laptop), made the admin's on the first start. More admins can be added over SSH later.",
+            "env_variable": "ADMIN_KEYS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:2000",
+            "field_type": "text"
+        },
+        {
+            "name": "Name",
+            "description": "The server's name, shown in its menu.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "Soft Serve",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:80",
+            "field_type": "text"
+        },
+        {
+            "name": "Anonymous access",
+            "description": "What people without an account can do: no-access, read-only or read-write. Each repository can still be made public or private.",
+            "env_variable": "ANON_ACCESS",
+            "default_value": "no-access",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:no-access,read-only,read-write",
+            "field_type": "text"
+        },
+        {
+            "name": "Public address",
+            "description": "The host name or IP address shown in clone links. Empty uses the server's IP address.",
+            "env_variable": "PUBLIC_HOST",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^[A-Za-z0-9.:\\[\\]-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Git over HTTP",
+            "description": "Also serve Git over HTTP on its own port, added to the server first.",
+            "env_variable": "HTTP_ENABLED",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "HTTP port",
+            "description": "The port Git over HTTP listens on, when it's on.",
+            "env_variable": "HTTP_PORT",
+            "default_value": "23232",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        }
+    ]
+}

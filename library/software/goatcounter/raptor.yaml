@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/goatcounter/egg-goatcounter.json
+license: MIT
+credits:
+  - "Written for Raptor from GoatCounter's documentation, https://github.com/arp242/goatcounter (EUPL-1.2); no upstream egg"
+  - "Icon: the GoatCounter logo, from https://github.com/arp242/goatcounter (public/logo.png)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m

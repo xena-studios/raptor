@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/srs/egg-srs.json
+license: MIT
+credits:
+  - "Written for Raptor from SRS's documentation, https://ossrs.net (MIT); no upstream egg"
+  - "Icon: the SRS logo, from https://github.com/ossrs"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 3m

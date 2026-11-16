@@ -1,0 +1,92 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from Strapi's documentation; no upstream egg.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Strapi",
+    "author": "support@raptorpanel.net",
+    "description": "Strapi is an open-source headless CMS with a REST and GraphQL API. The egg runs your project from a Git repository, or makes a new one with SQLite; open /admin to create the first administrator. Building the admin interface needs about 3 GB of memory.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:d0378084b323d05e146b21d85cd8243b660ecf9dc17ccf967d09ec0347896307",
+        "Node.js 22": "ghcr.io/xena-studios/yolks:nodejs_22@sha256:78b7b07924320324d3181eb51d83df41d42774d988e1e084b246dcb0e4c58405"
+    },
+    "file_denylist": [],
+    "startup": "export STRAPI_TELEMETRY_DISABLED=true STRAPI_DISABLE_UPDATE_NOTIFICATION=true NODE_ENV=production HOST=0.0.0.0 PORT={{SERVER_PORT}} NPM_CONFIG_UPDATE_NOTIFIER=false NPM_CONFIG_FUND=false NPM_CONFIG_AUDIT=false; if [ -d .git ] && [ \"{{AUTO_UPDATE}}\" = 1 ]; then git pull --ff-only || echo \"git pull failed: starting what is here\"; fi; if [ ! -f package.json ]; then echo \"Making a new Strapi project\"; rm -rf .raptor-new; npx -y \"create-strapi@{{STRAPI_VERSION}}\" .raptor-new --non-interactive --no-run --skip-cloud --dbclient sqlite --use-npm --no-example --typescript --no-git-init --no-install || exit 1; (shopt -s dotglob; mv .raptor-new/* .) && rmdir .raptor-new || exit 1; fi; h=$(cat package.json package-lock.json 2>/dev/null | sha256sum | cut -d' ' -f1); if [ \"$h\" != \"$(cat node_modules/.raptor-installed 2>/dev/null)\" ]; then if [ -f package-lock.json ]; then npm ci; else npm install; fi || exit 1; node_modules/.bin/strapi telemetry:disable >/dev/null 2>&1; h=$(cat package.json package-lock.json | sha256sum | cut -d' ' -f1); echo \"$h\" > node_modules/.raptor-installed; fi; b=$({ cat package-lock.json 2>/dev/null; find src config -type f -print0 2>/dev/null | sort -z | xargs -0 cat; } | sha256sum | cut -d' ' -f1); if [ \"$b\" != \"$(cat .raptor-built 2>/dev/null)\" ]; then echo \"Building the admin panel\"; npm run build || { echo \"The build failed. If it was killed, give the server more memory (about 3 GB).\"; exit 1; }; echo \"$b\" > .raptor-built; fi; exec node_modules/.bin/strapi start",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Strapi started successfully\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Strapi: clones your project's Git repository, if one is set, or checks\n# the Strapi version a new project is made with on the first start. Files\n# already in the server's folder (your project, its database and uploads)\n# are never deleted or overwritten.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n\nif [ -n \"${GIT_ADDRESS:-}\" ]; then\n    url=\"${GIT_ADDRESS}\"\n    case \"$url\" in *.git) ;; *) url=\"$url.git\" ;; esac\n    if [ -n \"${GIT_USERNAME:-}\" ] && [ -n \"${GIT_TOKEN:-}\" ]; then\n        url=\"https://${GIT_USERNAME}:${GIT_TOKEN}@${url#https://}\"\n    fi\n    if [ -d .git ]; then\n        echo \"The repository is already here: pulling the latest changes.\"\n        git pull --ff-only\n    elif [ -f package.json ]; then\n        echo \"The folder already has a project that isn't a Git repository, so nothing was cloned.\"\n    else\n        git clone --depth 1 ${GIT_BRANCH:+--branch \"$GIT_BRANCH\"} \"$url\" .raptor-clone\n        (shopt -s dotglob; mv .raptor-clone/* .)\n        rmdir .raptor-clone\n    fi\n    echo \"Installed. Strapi's packages are installed and its admin panel built on the first start.\"\n    exit 0\nfi\n\nif [ -f package.json ]; then\n    echo \"The project is already here. Strapi's packages and admin panel are updated at start when they change.\"\n    exit 0\nfi\nversion=\"${STRAPI_VERSION:-latest}\"\ncode=$(curl -sS --retry 3 -A \"raptor-installer (+https://raptorpanel.net)\" -o /dev/null -w '%{http_code}' \"https://registry.npmjs.org/create-strapi/$version\") ||\n    fail \"npm's registry can't be reached right now. Reinstall to try again.\"\n[ \"$code\" = 200 ] || fail \"Strapi has no version $version. Set Version to latest, or to a release such as 5.62.0, then reinstall.\"\necho \"Installed. A new Strapi $version project is made on the first start.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Strapi version a new project is made with, such as 5.62.0, or latest. A project from Git or one already made keeps its own.",
+            "env_variable": "STRAPI_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Git repository",
+            "description": "An https link to your Strapi project's repository, cloned when the server is installed. Leave it empty to make a new project.",
+            "env_variable": "GIT_ADDRESS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Git branch",
+            "description": "The branch to clone. Empty uses the repository's default branch.",
+            "env_variable": "GIT_BRANCH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git username",
+            "description": "Your username on the Git host, for a private repository.",
+            "env_variable": "GIT_USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git access token",
+            "description": "An access token that can read the private repository.",
+            "env_variable": "GIT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Pull updates at start",
+            "description": "Pull the repository's latest changes every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}

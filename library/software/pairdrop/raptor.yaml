@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/pairdrop/egg-pairdrop.json
+license: MIT
+credits:
+  - "Written for Raptor from PairDrop's documentation, https://github.com/schlagmichdoch/PairDrop (GPL-3.0); no upstream egg"
+  - "Icon: PairDrop's app icon, from https://github.com/schlagmichdoch/PairDrop (public/images/android-chrome-512x512.png)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 4m

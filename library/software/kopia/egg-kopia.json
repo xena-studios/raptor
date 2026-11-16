@@ -1,0 +1,91 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from Kopia's documentation; no upstream egg.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Kopia",
+    "author": "support@raptorpanel.net",
+    "description": "Kopia is fast, encrypted, deduplicated backup. The egg runs a Kopia repository server that keeps your computers' backups in the server's folder, with its web interface behind a login.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "export KOPIA_CHECK_FOR_UPDATES=false KOPIA_CONFIG_PATH=/home/container/config/repository.config KOPIA_CACHE_DIRECTORY=/home/container/cache KOPIA_LOG_DIR=/home/container/logs; [ -n \"{{KOPIA_PASSWORD}}\" ] && [ -n \"{{UI_PASSWORD}}\" ] || { echo \"Set Repository password and Web password first.\"; exit 1; }; if ! ./kopia repository status >/dev/null 2>&1; then if [ -f repository/kopia.repository.f ]; then ./kopia repository connect filesystem --path /home/container/repository || exit 1; else ./kopia repository create filesystem --path /home/container/repository || exit 1; fi; fi; if [ -n \"{{CLIENT_USER}}\" ] && [ -n \"{{CLIENT_PASSWORD}}\" ]; then ./kopia server user set \"{{CLIENT_USER}}\" --user-password \"{{CLIENT_PASSWORD}}\" >/dev/null 2>&1 || ./kopia server user add \"{{CLIENT_USER}}\" --user-password \"{{CLIENT_PASSWORD}}\" || exit 1; fi; echo \"Certificate fingerprint (for --server-cert-fingerprint): $(openssl x509 -in tls/server.crt -outform DER | sha256sum | cut -d' ' -f1)\"; exec ./kopia server start --address 0.0.0.0:{{SERVER_PORT}} --tls-cert-file tls/server.crt --tls-key-file tls/server.key --server-username \"{{UI_USERNAME}}\" --server-password \"{{UI_PASSWORD}}\" --disable-file-logging",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"regex:SERVER ADDRESS: https://\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Kopia: downloads Kopia from its GitHub releases, checked against GitHub's\n# SHA-256. The repository (your backups), its settings and the server's\n# certificate are never touched, and the binary is only replaced once the\n# new one is complete.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=x64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Kopia has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag kopia/kopia \"$version\") || exit 1\n\nif [ -x kopia ] && [ \"$(cat .kopia-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Kopia $tag is already installed.\"\nelse\n    echo \"Downloading Kopia $tag\"\n    gh-release download kopia/kopia \"$tag\" \"kopia-${tag#v}-linux-$arch.tar.gz\" \"$work/kopia.tar.gz\"\n    tar -xzf \"$work/kopia.tar.gz\" -C \"$work\"\n    bin=$(find \"$work\" -type f -name kopia | head -n 1)\n    [ -n \"$bin\" ] || fail \"Kopia's download didn't have the kopia program. Reinstall to try again.\"\n    install -m 0755 \"$bin\" kopia.new\n    mv -f kopia.new kopia\n    echo \"$tag\" > .kopia-version\nfi\nmkdir -p repository config tls\n# The server's TLS certificate, made once and kept: clients trust it by its\n# fingerprint, which the server prints at every start.\nif [ ! -f tls/server.key ] || [ ! -f tls/server.crt ]; then\n    openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 3650 \\\n        -subj \"/CN=kopia\" -keyout tls/server.key -out tls/server.crt 2>/dev/null\n    chmod 600 tls/server.key\n    echo \"Made the server's TLS certificate.\"\nfi\necho \"Installed Kopia $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Kopia version to install, such as 0.23.1, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Repository password",
+            "description": "The password that encrypts the repository, set on the first start. Keep it safe: without it the backups can't be read, and it can't be changed here later.",
+            "env_variable": "KOPIA_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Web username",
+            "description": "The username for the server's web interface.",
+            "env_variable": "UI_USERNAME",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:50|regex:/^[A-Za-z0-9_.@-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Web password",
+            "description": "The password for the server's web interface.",
+            "env_variable": "UI_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Client user",
+            "description": "A computer that may back up here, as user@host (such as alex@laptop). Add more with kopia server user add.",
+            "env_variable": "CLIENT_USER",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100|regex:/^[A-Za-z0-9_.-]+@[A-Za-z0-9_.-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Client password",
+            "description": "The client user's password, used with kopia repository connect server.",
+            "env_variable": "CLIENT_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        }
+    ]
+}

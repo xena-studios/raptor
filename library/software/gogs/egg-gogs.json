@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from Gogs' documentation; no upstream egg.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Gogs",
+    "author": "support@raptorpanel.net",
+    "description": "Gogs is a painless, lightweight self-hosted Git service. The egg runs it with SQLite, and you finish the setup in the browser on the first visit, where you create the admin account.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "exec ./gogs web --config custom/conf/app.ini --port {{SERVER_PORT}}",
+    "config": {
+        "files": "{\"custom/conf/app.ini\": {\"parser\": \"ini\", \"find\": {\"server.HTTP_ADDR\": \"0.0.0.0\", \"server.HTTP_PORT\": \"{{server.build.default.port}}\", \"server.START_SSH_SERVER\": \"true\", \"server.DISABLE_SSH\": \"{{server.build.env.DISABLE_SSH}}\", \"server.SSH_PORT\": \"{{server.build.env.SSH_PORT}}\", \"server.SSH_LISTEN_PORT\": \"{{server.build.env.SSH_PORT}}\", \"log.MODE\": \"console\"}}}",
+        "startup": "{\"done\": [\"regex:Available on https?://\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Gogs: downloads Gogs from its GitHub releases, checked against GitHub's\n# SHA-256, and writes a first configuration (SQLite). Repositories, the\n# database and settings are never touched, and the binary is only replaced\n# once the new one has arrived whole.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Gogs has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag gogs/gogs \"$version\") || exit 1\n\nif [ -x gogs ] && [ \"$(cat .gogs-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Gogs $tag is already installed.\"\nelse\n    echo \"Downloading Gogs $tag\"\n    gh-release download gogs/gogs \"$tag\" \"gogs_${tag}_linux_${arch}.tar.gz\" \"$work/gogs.tar.gz\"\n    tar -xzf \"$work/gogs.tar.gz\" -C \"$work\" gogs/gogs\n    install -m 0755 \"$work/gogs/gogs\" gogs.new\n    mv -f gogs.new gogs\n    echo \"$tag\" > .gogs-version\nfi\n\nmkdir -p custom/conf data/ssh log\n# Host keys for Gogs' own SSH server (it would call ssh-keygen, which the\n# server's image doesn't have). Made once and kept, so clients keep\n# trusting the server.\n[ -f data/ssh/gogs.rsa ] || openssl genrsa -traditional -out data/ssh/gogs.rsa 3072 2>/dev/null\n[ -f data/ssh/gogs.ecdsa ] || openssl ecparam -name prime256v1 -genkey -noout -out data/ssh/gogs.ecdsa 2>/dev/null\n[ -f data/ssh/gogs.ed25519 ] || openssl genpkey -algorithm ed25519 -out data/ssh/gogs.ed25519 2>/dev/null\nchmod 600 data/ssh/gogs.*\n\n# A first configuration: SQLite, logs on the console. The owner finishes\n# the setup on the first visit (admin account, site name, address), which\n# Gogs then saves here. Sign-ups start closed (the setup page can open\n# them). Ports, and logs on the console, are kept up to date at every start.\nif [ ! -f custom/conf/app.ini ]; then\n    cat > custom/conf/app.ini <<INI\nBRAND_NAME = Gogs\nRUN_USER = container\nRUN_MODE = prod\n\n[server]\nPROTOCOL = http\nHTTP_ADDR = 0.0.0.0\nHTTP_PORT = ${SERVER_PORT:-3000}\nAPP_DATA_PATH = /home/container/data\nDISABLE_SSH = ${DISABLE_SSH:-true}\nSTART_SSH_SERVER = true\nSSH_PORT = ${SSH_PORT:-2022}\nSSH_LISTEN_PORT = ${SSH_PORT:-2022}\n\n[database]\nTYPE = sqlite3\nPATH = /home/container/data/gogs.db\n\n[repository]\nROOT = /home/container/repositories\n\n[log]\nMODE = console\nLEVEL = Info\nROOT_PATH = /home/container/log\n\n[auth]\nDISABLE_REGISTRATION = true\n\n[security]\nINSTALL_LOCK = false\nINI\n    echo \"Wrote a first configuration. Open the server's address to finish setting Gogs up.\"\nfi\necho \"Installed Gogs $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Gogs version to install, such as 0.14.4, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.]+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Disable SSH",
+            "description": "Set it to false to clone and push over SSH as well as HTTP. SSH needs its own port, added to the server first.",
+            "env_variable": "DISABLE_SSH",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "SSH port",
+            "description": "The port Gogs' own SSH server listens on and shows in clone links, when SSH is on.",
+            "env_variable": "SSH_PORT",
+            "default_value": "2022",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        }
+    ]
+}

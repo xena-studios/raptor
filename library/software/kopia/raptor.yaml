@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/kopia/egg-kopia.json
+license: MIT
+credits:
+  - "Written for Raptor from Kopia's documentation, https://kopia.io (Apache-2.0); no upstream egg"
+  - "Icon: the Kopia logo, from https://github.com/kopia"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m
+  variables:
+    KOPIA_PASSWORD: "raptor-test-repository"
+    UI_PASSWORD: "raptor-test-web"
+    CLIENT_USER: "test@raptor"
+    CLIENT_PASSWORD: "raptor-test-client"

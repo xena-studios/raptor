@@ -1,0 +1,62 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from PairDrop's documentation; no upstream egg.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "PairDrop",
+    "author": "support@raptorpanel.net",
+    "description": "PairDrop sends files and messages between devices straight from the browser, peer to peer, like AirDrop for every platform. Devices on the same network find each other, and others pair with a code.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:d0378084b323d05e146b21d85cd8243b660ecf9dc17ccf967d09ec0347896307",
+        "Node.js 22": "ghcr.io/xena-studios/yolks:nodejs_22@sha256:78b7b07924320324d3181eb51d83df41d42774d988e1e084b246dcb0e4c58405"
+    },
+    "file_denylist": [],
+    "startup": "cd app && h=$(cat package.json package-lock.json | sha256sum | cut -d' ' -f1); if [ \"$h\" != \"$(cat node_modules/.raptor-installed 2>/dev/null)\" ]; then npm ci --omit=dev --no-fund --no-audit --no-update-notifier && echo \"$h\" > node_modules/.raptor-installed || exit 1; fi; [ -f ../rtc_config.json ] && export RTC_CONFIG=../rtc_config.json; PORT={{SERVER_PORT}} RATE_LIMIT={{RATE_LIMIT}} WS_FALLBACK={{WS_FALLBACK}} exec node server/index.js",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"PairDrop is running on port\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# PairDrop: downloads the release's source from GitHub (PairDrop runs\n# from its source; its few packages are installed at the first start).\n# rtc_config.json, your STUN/TURN settings, is never touched, and the app\n# is only replaced once the new one is complete.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag schlagmichdoch/PairDrop \"$version\") || exit 1\n\nif [ -f app/server/index.js ] && [ \"$(cat .pairdrop-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"PairDrop $tag is already installed.\"\nelse\n    echo \"Downloading PairDrop $tag\"\n    # A release's source has no published checksum; Git checks the tag's\n    # objects as it clones.\n    git -c advice.detachedHead=false clone -q --depth 1 --branch \"$tag\" https://github.com/schlagmichdoch/PairDrop.git \"$work/app\" ||\n        fail \"PairDrop's source couldn't be downloaded. Reinstall to try again.\"\n    rm -rf \"$work/app/.git\"\n    [ -f \"$work/app/server/index.js\" ] || fail \"PairDrop's source didn't have the server in it. Reinstall to try again.\"\n    rm -rf app.old\n    [ ! -d app ] || mv app app.old\n    mv \"$work/app\" app\n    rm -rf app.old\n    echo \"$tag\" > .pairdrop-version\nfi\necho \"Installed PairDrop $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The PairDrop version to install, such as 1.11.2, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Rate limit",
+            "description": "Limit each address to 1000 requests in 5 minutes. Behind a proxy, it trusts one proxy's forwarded address.",
+            "env_variable": "RATE_LIMIT",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Fallback through the server",
+            "description": "Send files through the server when devices can't connect directly. It uses the server's bandwidth and isn't end-to-end encrypted.",
+            "env_variable": "WS_FALLBACK",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        }
+    ]
+}

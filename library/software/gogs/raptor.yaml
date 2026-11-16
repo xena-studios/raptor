@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/gogs/egg-gogs.json
+license: MIT
+credits:
+  - "Written for Raptor from Gogs' documentation, https://gogs.io (MIT); no upstream egg"
+  - "Icon: the Gogs logo, from https://github.com/gogs"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m
+  config:
+    custom/conf/app.ini: "HTTP_PORT = {{port}}"

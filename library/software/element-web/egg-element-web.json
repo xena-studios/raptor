@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from Element Web's documentation; no upstream egg.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Element Web",
+    "author": "support@raptorpanel.net",
+    "description": "Element Web is the Matrix chat client in the browser. The egg serves it with Caddy and points it at your homeserver, with no integration manager or bug reports sent anywhere else.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "if [ -n \"{{HOMESERVER_URL}}\" ]; then n=\"{{HOMESERVER_NAME}}\"; [ -n \"$n\" ] || n=$(echo \"{{HOMESERVER_URL}}\" | sed -E 's#^https?://##; s#[:/].*##'); jq --arg u \"{{HOMESERVER_URL}}\" --arg n \"$n\" '.default_server_config[\"m.homeserver\"] = {base_url: $u, server_name: $n}' config.json > config.json.new && mv -f config.json.new config.json || { rm -f config.json.new; echo \"config.json isn't valid JSON, so the homeserver wasn't set in it.\"; }; fi; exec ./caddy run --config Caddyfile --adapter caddyfile",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"serving initial configuration\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Element Web: downloads Element from its GitHub releases and Caddy, the\n# web server that serves it, from Caddy's, both checked against GitHub's\n# SHA-256. config.json and the Caddyfile are never touched once there, and\n# the app is only replaced once the new one is complete.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Caddy has no build for this CPU ($(uname -m)).\" ;;\nesac\n\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\ntag=$(gh-release tag element-hq/element-web \"$version\") || exit 1\ncaddy=$(gh-release tag caddyserver/caddy latest) || exit 1\n\nif [ -x caddy ] && [ \"$(cat .caddy-version 2>/dev/null)\" = \"$caddy\" ]; then\n    echo \"Caddy $caddy is already installed.\"\nelse\n    echo \"Downloading Caddy $caddy\"\n    gh-release download caddyserver/caddy \"$caddy\" \"caddy_${caddy#v}_linux_${arch}.tar.gz\" \"$work/caddy.tar.gz\"\n    tar -xzf \"$work/caddy.tar.gz\" -C \"$work\" caddy\n    install -m 0755 \"$work/caddy\" caddy.new\n    mv -f caddy.new caddy\n    echo \"$caddy\" > .caddy-version\nfi\n\nif [ -f element/index.html ] && [ \"$(cat .element-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Element $tag is already installed.\"\nelse\n    echo \"Downloading Element $tag\"\n    gh-release download element-hq/element-web \"$tag\" \"element-$tag.tar.gz\" \"$work/element.tar.gz\"\n    mkdir -p \"$work/element\"\n    tar -xzf \"$work/element.tar.gz\" -C \"$work/element\" --strip-components=1\n    [ -f \"$work/element/index.html\" ] || fail \"Element's download didn't have the app in it. Reinstall to try again.\"\n    # Element's own sample settings stay in the app's folder; yours are\n    # config.json next to it.\n    rm -f \"$work/element/config.json\"\n    rm -rf element.old\n    [ ! -d element ] || mv element element.old\n    mv \"$work/element\" element\n    rm -rf element.old\n    echo \"$tag\" > .element-version\nfi\n\nif [ ! -f config.json ]; then\n    # Element's settings: https://github.com/element-hq/element-web/blob/develop/docs/config.md\n    # The homeserver comes from the server's settings at every start. No\n    # integration manager or bug report address: nothing is sent to anyone\n    # but your homeserver unless you add them.\n    cat > config.json <<'JSON'\n{\n    \"default_server_config\": {\n        \"m.homeserver\": {\n            \"base_url\": \"https://matrix.org\",\n            \"server_name\": \"matrix.org\"\n        }\n    },\n    \"brand\": \"Element\",\n    \"disable_guests\": true,\n    \"disable_3pid_login\": false,\n    \"integrations_ui_url\": \"\",\n    \"integrations_rest_url\": \"\",\n    \"integrations_widgets_urls\": [],\n    \"show_labs_settings\": false,\n    \"room_directory\": {\n        \"servers\": []\n    }\n}\nJSON\nfi\nif [ ! -f Caddyfile ]; then\n    cat > Caddyfile <<'CADDY'\n# Caddy's settings: https://caddyserver.com/docs/caddyfile\n# Serves Element from the element folder on the server's port, with your\n# config.json. Restart the server after changing this file.\n{\n\tadmin off\n\tlog {\n\t\tformat console\n\t}\n}\n\n:{$SERVER_PORT} {\n\tencode\n\theader {\n\t\tX-Frame-Options SAMEORIGIN\n\t\tX-Content-Type-Options nosniff\n\t\tX-XSS-Protection \"1; mode=block\"\n\t\tContent-Security-Policy \"frame-ancestors 'self'\"\n\t}\n\t@fresh path / /index.html /config.json /version /i18n/* /sw.js\n\theader @fresh Cache-Control \"no-cache\"\n\thandle /config.json {\n\t\troot * .\n\t\tfile_server\n\t}\n\thandle {\n\t\troot * element\n\t\tfile_server\n\t}\n}\nCADDY\nfi\necho \"Installed Element $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Element Web version to install, such as 1.12.35, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Homeserver address",
+            "description": "The address of the Matrix homeserver Element signs in to, starting with https.",
+            "env_variable": "HOMESERVER_URL",
+            "default_value": "https://matrix.org",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^https?:\\/\\/[^\\s\\/]+(\\/[^\\s]*)?$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Homeserver name",
+            "description": "The server name in your users' Matrix IDs, such as example.com. Empty uses the homeserver address's host.",
+            "env_variable": "HOMESERVER_NAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^[A-Za-z0-9.:-]+$/",
+            "field_type": "text"
+        }
+    ]
+}
