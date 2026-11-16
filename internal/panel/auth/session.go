@@ -134,7 +134,8 @@ func (s *Service) setHint(h http.Header, on bool) {
 	if s.HintDomain == "" {
 		return
 	}
-	c := &http.Cookie{
+	// Not HttpOnly on purpose: the site's script reads it, and it holds no secret.
+	c := &http.Cookie{ //nolint:gosec // G124: a token-free hint the site must read (DECISIONS #366)
 		Name: HintCookie, Value: "1", Path: "/", Domain: s.HintDomain, MaxAge: int(SessionMax.Seconds()),
 		Secure: true, SameSite: http.SameSiteLaxMode,
 	}
