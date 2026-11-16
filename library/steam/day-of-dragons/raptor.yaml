@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/day-of-dragons/egg-day-of-dragons.json
+license: MIT
+credits:
+  - "Written for Raptor from the game's own server files; the current Game.ini keys checked against https://github.com/CubeCoders/AMPTemplates (MIT)"
+  - "Icon: Day of Dragons' Steam client icon (Beawesome Games)"
+certified: true
+arch: [amd64]
+# No player count: the server answers Steam's query only once it has
+# signed in to Steam, which can't be counted on (and doesn't happen on CI).
+# No backup hooks: no console; it saves on its own (Autosave interval).
+test:
+  tier: slow
+  memory_mib: 6144
+  done_timeout: 30m

@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/steam/beasts-of-bermuda/egg-beasts-of-bermuda.json
+license: MIT
+credits:
+  - "Written for Raptor from the game's own server files and its wiki's hosting guide"
+  - "Icon: Beasts of Bermuda's logo, from its Steam store page (Sastrei Studios)"
+certified: true
+arch: [amd64]
+# No player count: the server answers Steam's query only once it has
+# signed in to Steam, which can't be counted on (and doesn't happen on CI).
+# No backup hooks: no console; it saves on its own (AutosaveTime in Game.ini).
+test:
+  tier: slow
+  memory_mib: 8192
+  done_timeout: 40m
