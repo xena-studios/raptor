@@ -1,0 +1,41 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "TriliumNext Notes",
+    "author": "support@raptorpanel.net",
+    "description": "TriliumNext Notes is a self-hosted app for building a large personal knowledge base of hierarchical notes. Open the server's address to set the password, or connect Trilium desktop to sync.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "export TRILIUM_DATA_DIR=/home/container/data TRILIUM_NETWORK_HOST=0.0.0.0 TRILIUM_NETWORK_PORT={{SERVER_PORT}}; unset TRILIUM_PORT; cd trilium && exec ./node/bin/node main.mjs",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Listening on port\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# TriliumNext Notes: downloads the Trilium server (with its own Node.js)\n# from its GitHub releases, checked against GitHub's SHA-256, into\n# trilium/. Your notes (data/: the database, backups, config.ini) are\n# never touched; trilium/ is only replaced once the new one is unpacked.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\n\ncase \"$(uname -m)\" in\n    x86_64) arch=x64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Trilium has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nwant=\"${VERSION:-latest}\"\n[ \"$want\" = latest ] || want=\"v${want#v}\"\ntag=$(gh-release tag TriliumNext/Trilium \"$want\") || fail \"Set Version to latest, or to a release such as 0.107.0, then reinstall.\"\n\nif [ -x trilium/node/bin/node ] && [ \"$(cat .trilium-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Trilium $tag is already installed.\"\nelse\n    echo \"Downloading Trilium $tag\"\n    gh-release download TriliumNext/Trilium \"$tag\" \"TriliumNotes-Server-$tag-linux-$arch.tar.xz\" \"$work/trilium.tar.xz\"\n    mkdir \"$work/new\"\n    tar -xJf \"$work/trilium.tar.xz\" -C \"$work/new\" --strip-components=1\n    [ -x \"$work/new/node/bin/node\" ] && [ -f \"$work/new/main.mjs\" ] || fail \"The download isn't a Trilium server. Reinstall to try again.\"\n    # Trilium's web interface asks GitHub for new releases by default: new\n    # notes databases start with that off (turn it on in Options, About).\n    if grep -lq '{name:\"checkForUpdates\",value:\"true\"' \"$work\"/new/chunks/*.mjs 2>/dev/null; then\n        sed -i 's/{name:\"checkForUpdates\",value:\"true\"/{name:\"checkForUpdates\",value:\"false\"/' \"$work\"/new/chunks/*.mjs\n    fi\n    rm -rf trilium.old\n    [ ! -d trilium ] || mv trilium trilium.old\n    mv \"$work/new\" trilium\n    rm -rf trilium.old\n    echo \"$tag\" > .trilium-version\nfi\nmkdir -p data\necho \"Installed Trilium $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Trilium version to install, such as 0.107.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        }
+    ]
+}

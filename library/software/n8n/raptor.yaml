@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/n8n/egg-n8n.json
+license: MIT
+credits:
+  - "Written for Raptor from n8n's documentation, https://docs.n8n.io (n8n is under the Sustainable Use License)"
+  - "Icon: the n8n logo, from https://github.com/n8n-io"
+certified: true
+arch: [amd64, arm64]
+test:
+  # The first start installs n8n's packages (about 2.7 GB, a few minutes).
+  tier: fast
+  memory_mib: 2048
+  done_timeout: 20m

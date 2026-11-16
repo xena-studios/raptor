@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/actual-budget/egg-actual-budget.json
+license: MIT
+credits:
+  - "Written for Raptor from Actual's documentation, https://actualbudget.org/docs (MIT)"
+  - "Icon: the Actual Budget logo, from https://github.com/actualbudget (MIT)"
+certified: true
+arch: [amd64, arm64]
+test:
+  # The first start installs Actual's packages.
+  tier: fast
+  memory_mib: 512
+  done_timeout: 10m

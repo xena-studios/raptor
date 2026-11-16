@@ -1,0 +1,42 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Actual Budget",
+    "author": "support@raptorpanel.net",
+    "description": "Actual Budget is a local-first personal finance app for envelope budgeting. Runs its sync server and web app; open the server's address to set the password.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:d0378084b323d05e146b21d85cd8243b660ecf9dc17ccf967d09ec0347896307",
+        "Node.js 22": "ghcr.io/xena-studios/yolks:nodejs_22@sha256:78b7b07924320324d3181eb51d83df41d42774d988e1e084b246dcb0e4c58405"
+    },
+    "file_denylist": [],
+    "startup": "h=$( (node --version; cat package.json) | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat node_modules/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing Actual Budget's packages\"; rm -rf node_modules; npm install --omit=dev --no-audit --no-fund --no-progress --no-update-notifier --loglevel=error && npm cache clean --force --loglevel=error && echo \"$h\" > node_modules/.raptor-installed || exit 1; fi; export ACTUAL_PORT={{SERVER_PORT}} ACTUAL_HOSTNAME=0.0.0.0 ACTUAL_DATA_DIR=/home/container/data; exec node node_modules/@actual-app/sync-server/build/app.js",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Listening on\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Actual Budget: picks the sync server's version from npm and writes the\n# package.json for it. Its packages are installed when the server starts,\n# for the Node.js version it runs (and only again when the version or the\n# Node.js version changes). Budgets and settings (data/) are never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\npkg=@actual-app/sync-server\nreg=https://registry.npmjs.org/@actual-app%2Fsync-server\n\nwant=\"${VERSION:-latest}\"\nwant=\"${want#v}\"\nmeta=$(curl -fsSL --retry 3 -H 'Accept: application/vnd.npm.install-v1+json' \"$reg\") ||\n    fail \"The npm registry can't be reached right now. Reinstall to try again.\"\nif [ \"$want\" = latest ]; then\n    version=$(jq -r '.\"dist-tags\".latest' <<<\"$meta\")\nelse\n    version=$(jq -r --arg v \"$want\" 'if .versions[$v] then $v else empty end' <<<\"$meta\")\n    [ -n \"$version\" ] || fail \"Actual Budget has no version $want. Set Version to latest, or to a release such as $(jq -r '.\"dist-tags\".latest' <<<\"$meta\"), then reinstall.\"\nfi\n\ncat > package.json.new <<JSON\n{\n  \"name\": \"actual-budget\",\n  \"private\": true,\n  \"description\": \"Actual Budget's sync server, installed by the server's egg. Change Version and reinstall to update.\",\n  \"dependencies\": {\n    \"$pkg\": \"$version\"\n  }\n}\nJSON\nmv -f package.json.new package.json\nmkdir -p data\necho \"Installed Actual Budget $version (its packages are installed when the server starts).\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Actual Budget version to install, such as 26.11.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        }
+    ]
+}

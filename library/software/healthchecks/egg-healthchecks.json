@@ -1,0 +1,142 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Healthchecks",
+    "author": "support@raptorpanel.net",
+    "description": "Healthchecks monitors cron jobs and scheduled tasks by listening for their pings, and alerts you when one is late. Runs it with SQLite, the admin account from its settings, and sign-ups closed.",
+    "features": [],
+    "docker_images": {
+        "Python 3.14": "ghcr.io/xena-studios/yolks:python_3.14@sha256:fb52a42f00788ae6bf2b1dca5ab499e325a737c20aab9a6f8c9f800c9fced225",
+        "Python 3.13": "ghcr.io/xena-studios/yolks:python_3.13@sha256:72e9beb9618e5ebecf1d3211271308dc506ada537fa458911b866a23c787e617"
+    },
+    "file_denylist": [],
+    "startup": "h=$( (python3 --version; cat .healthchecks-version app/requirements.txt) | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat .venv/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing Healthchecks' Python packages\"; rm -rf .venv; python3 -m venv .venv && .venv/bin/pip install -q --no-cache-dir --disable-pip-version-check -r app/requirements.txt gunicorn && (cd app && DEBUG=False SECRET_KEY=build /home/container/.venv/bin/python manage.py collectstatic --noinput -v 0 && DEBUG=False SECRET_KEY=build /home/container/.venv/bin/python manage.py compress -v 0) && echo \"$h\" > .venv/.raptor-installed || exit 1; fi; site=\"{{SITE_ROOT}}\"; if [ -z \"$site\" ]; then case \"${SERVER_IP:-}\" in \"\"|0.0.0.0) site=\"http://localhost:{{SERVER_PORT}}\" ;; *) site=\"http://${SERVER_IP}:{{SERVER_PORT}}\" ;; esac; fi; export SITE_ROOT=\"$site\" SECRET_KEY=\"$(cat .secret-key)\" DEBUG=False DB=sqlite DB_NAME=/home/container/data/hc.sqlite ALLOWED_HOSTS=\"*\" USE_GZIP_MIDDLEWARE=True PYTHONUNBUFFERED=1 REGISTRATION_OPEN=$([ \"{{OPEN_SIGNUPS}}\" = 1 ] && echo True || echo False); for v in EMAIL_HOST EMAIL_HOST_USER EMAIL_HOST_PASSWORD DEFAULT_FROM_EMAIL; do [ -n \"${!v:-}\" ] || unset \"$v\"; done; cd app && /home/container/.venv/bin/python manage.py migrate --noinput -v 0 || exit 1; if [ -n \"{{ADMIN_EMAIL}}\" ] && [ -n \"{{ADMIN_PASSWORD}}\" ] && [ ! -f ../data/.raptor-admin ]; then /home/container/.venv/bin/python manage.py createsuperuser --email \"{{ADMIN_EMAIL}}\" --password \"{{ADMIN_PASSWORD}}\" && touch ../data/.raptor-admin || echo \"The admin account wasn't created (it may already exist).\"; fi; /home/container/.venv/bin/python manage.py sendalerts --skip-checks & /home/container/.venv/bin/python manage.py sendreports --loop --skip-checks & /home/container/.venv/bin/gunicorn hc.wsgi:application --bind 0.0.0.0:{{SERVER_PORT}} --workers {{GUNICORN_WORKERS}} --forwarded-allow-ips \"*\" & wait -n; s=$?; kill $(jobs -p) 2>/dev/null; wait; exit $s",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Listening at: http\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Healthchecks: downloads the chosen Healthchecks release's source from\n# GitHub into app/, and makes the server's own secret key once. Its Python\n# packages are installed when the server starts, for the Python version it\n# runs. The database (data/) and the secret key are never touched; app/ is\n# only replaced once the new one is unpacked.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\n\nwant=\"${VERSION:-latest}\"\n[ \"$want\" = latest ] || want=\"v${want#v}\"\ntag=$(gh-release tag healthchecks/healthchecks \"$want\") || fail \"Set Version to latest, or to a release such as 5.0.3, then reinstall.\"\n\nif [ -f app/manage.py ] && [ \"$(cat .healthchecks-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Healthchecks $tag is already installed.\"\nelse\n    echo \"Downloading Healthchecks $tag\"\n    curl -fsSL --retry 3 -o \"$work/hc.tar.gz\" \"https://github.com/healthchecks/healthchecks/archive/refs/tags/$tag.tar.gz\" ||\n        fail \"The download failed. Reinstall to try again.\"\n    mkdir \"$work/new\"\n    tar -xzf \"$work/hc.tar.gz\" -C \"$work/new\" --strip-components=1\n    [ -f \"$work/new/manage.py\" ] && [ -f \"$work/new/requirements.txt\" ] || fail \"The download isn't Healthchecks' source. Reinstall to try again.\"\n    rm -rf \"$work/new/.github\" \"$work/new/docker\" \"$work/new/stuff\" \"$work/new/hc/local_settings.py\"\n    rm -rf app.old\n    [ ! -d app ] || mv app app.old\n    mv \"$work/new\" app\n    rm -rf app.old\n    echo \"$tag\" > .healthchecks-version\nfi\n\nmkdir -p data\n# Django's secret key (it signs sessions and links), made here once.\nif [ ! -s .secret-key ]; then\n    head -c 48 /dev/urandom | base64 | tr -d '\\n' > .secret-key\n    chmod 600 .secret-key\nfi\necho \"Installed Healthchecks $tag (its Python packages are installed when the server starts).\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Healthchecks version to install, such as 5.0.3, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+(\\.\\d+)+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Address",
+            "description": "The full public address of Healthchecks, starting with http or https, used in ping URLs and emails. Empty uses the server's IP and port.",
+            "env_variable": "SITE_ROOT",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^https?:\\/\\/[^\\s\"]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin email",
+            "description": "The admin account's email, created at the first start with Admin password.",
+            "env_variable": "ADMIN_EMAIL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^[^@\\s]+@[^@\\s]+$/|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The admin account's password (at least 8 characters), used only at the first start.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Open sign-ups",
+            "description": "Let anyone who can reach the server make an account (they sign in with an emailed link, so set up email too).",
+            "env_variable": "OPEN_SIGNUPS",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "SMTP host",
+            "description": "The mail server alerts and sign-in links are sent through. Empty sends no email.",
+            "env_variable": "EMAIL_HOST",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "SMTP port",
+            "description": "The mail server's port (587 for STARTTLS).",
+            "env_variable": "EMAIL_PORT",
+            "default_value": "587",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "SMTP username",
+            "description": "The username for the mail server.",
+            "env_variable": "EMAIL_HOST_USER",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "SMTP password",
+            "description": "The password for the mail server.",
+            "env_variable": "EMAIL_HOST_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "From address",
+            "description": "The address emails come from, such as hc@example.com.",
+            "env_variable": "DEFAULT_FROM_EMAIL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^[^@\\s]+@[^@\\s]+$/|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Workers",
+            "description": "How many web worker processes to run.",
+            "env_variable": "GUNICORN_WORKERS",
+            "default_value": "2",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,16",
+            "field_type": "text"
+        }
+    ]
+}

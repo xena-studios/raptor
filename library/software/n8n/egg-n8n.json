@@ -1,0 +1,81 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "n8n",
+    "author": "support@raptorpanel.net",
+    "description": "n8n is a workflow automation tool that connects apps and APIs with a visual editor. Runs n8n with its SQLite database and usage reporting off; open the server's address to create the owner account.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:d0378084b323d05e146b21d85cd8243b660ecf9dc17ccf967d09ec0347896307"
+    },
+    "file_denylist": [],
+    "startup": "h=$( (node --version; cat package.json) | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat node_modules/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing n8n's packages (this takes a few minutes)\"; rm -rf node_modules; npm install --omit=dev --no-audit --no-fund --no-progress --no-update-notifier --loglevel=error && npm cache clean --force --loglevel=error && echo \"$h\" > node_modules/.raptor-installed || exit 1; fi; export N8N_USER_FOLDER=/home/container N8N_PORT={{SERVER_PORT}} N8N_LISTEN_ADDRESS=0.0.0.0 N8N_DIAGNOSTICS_ENABLED={{N8N_DIAGNOSTICS_ENABLED}} N8N_VERSION_NOTIFICATIONS_ENABLED={{N8N_DIAGNOSTICS_ENABLED}} N8N_HIRING_BANNER_ENABLED=false N8N_SECURE_COOKIE={{N8N_SECURE_COOKIE}} GENERIC_TIMEZONE={{GENERIC_TIMEZONE}} N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true; unset WEBHOOK_URL N8N_EDITOR_BASE_URL; if [ -n \"{{PUBLIC_URL}}\" ]; then export WEBHOOK_URL=\"{{PUBLIC_URL}}\" N8N_EDITOR_BASE_URL=\"{{PUBLIC_URL}}\"; fi; exec node node_modules/n8n/bin/n8n start",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Editor is now accessible via\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# n8n: picks n8n's version from npm and writes the package.json for it.\n# Its packages are installed when the server starts, for the Node.js\n# version it runs (and only again when the version or the Node.js version\n# changes). Workflows, credentials and settings (.n8n/) are never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\npkg=n8n\nreg=https://registry.npmjs.org/n8n\n\nwant=\"${VERSION:-latest}\"\nwant=\"${want#v}\"\nmeta=$(curl -fsSL --retry 3 -H 'Accept: application/vnd.npm.install-v1+json' \"$reg\") ||\n    fail \"The npm registry can't be reached right now. Reinstall to try again.\"\nif [ \"$want\" = latest ]; then\n    version=$(jq -r '.\"dist-tags\".latest' <<<\"$meta\")\nelse\n    version=$(jq -r --arg v \"$want\" 'if .versions[$v] then $v else empty end' <<<\"$meta\")\n    [ -n \"$version\" ] || fail \"n8n has no version $want. Set Version to latest, or to a release such as $(jq -r '.\"dist-tags\".latest' <<<\"$meta\"), then reinstall.\"\nfi\n\ncat > package.json.new <<JSON\n{\n  \"name\": \"n8n-server\",\n  \"private\": true,\n  \"description\": \"n8n, installed by the server's egg. Change Version and reinstall to update.\",\n  \"dependencies\": {\n    \"$pkg\": \"$version\"\n  }\n}\nJSON\nmv -f package.json.new package.json\nmkdir -p .n8n\necho \"Installed n8n $version (its packages are installed when the server starts).\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The n8n version to install, such as 2.47.7, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Address",
+            "description": "The full public address of n8n, starting with http or https, used for webhook URLs and links. Leave it empty to use the server's address.",
+            "env_variable": "PUBLIC_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^https?:\\/\\/[^\\s\"]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Secure cookie",
+            "description": "Send the sign-in cookie over HTTPS only. Turn it on once n8n is behind HTTPS; with it on, signing in over plain HTTP fails.",
+            "env_variable": "N8N_SECURE_COOKIE",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Time zone",
+            "description": "The time zone schedules run in, such as Europe/Berlin.",
+            "env_variable": "GENERIC_TIMEZONE",
+            "default_value": "UTC",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9_+\\/-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Usage reporting",
+            "description": "Send anonymous usage data to n8n and check for new versions.",
+            "env_variable": "N8N_DIAGNOSTICS_ENABLED",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        }
+    ]
+}

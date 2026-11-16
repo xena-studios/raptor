@@ -1,0 +1,91 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Vikunja",
+    "author": "support@raptorpanel.net",
+    "description": "Vikunja is a self-hosted to-do app for tasks and projects, with lists, kanban boards and CalDAV. Sign-ups stay closed unless you open them; the first account comes from the server's settings.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "export VIKUNJA_SERVICE_INTERFACE=\":{{SERVER_PORT}}\"; if [ \"{{OPEN_SIGNUPS}}\" = 1 ]; then export VIKUNJA_SERVICE_ENABLEREGISTRATION=true; else export VIKUNJA_SERVICE_ENABLEREGISTRATION=false; fi; unset VIKUNJA_SERVICE_PUBLICURL VIKUNJA_CORS_ENABLE; if [ -n \"{{PUBLIC_URL}}\" ]; then export VIKUNJA_SERVICE_PUBLICURL=\"{{PUBLIC_URL}}\"; else export VIKUNJA_CORS_ENABLE=false; fi; if [ -n \"{{ADMIN_USERNAME}}\" ] && [ -n \"{{ADMIN_PASSWORD}}\" ] && [ ! -f .raptor-first-user ]; then ./vikunja user create -u \"{{ADMIN_USERNAME}}\" -e \"{{ADMIN_EMAIL}}\" -p \"{{ADMIN_PASSWORD}}\" && touch .raptor-first-user || echo \"The first account wasn't created (it may already exist).\"; fi; exec ./vikunja",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"HTTP server listening on\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Vikunja: downloads Vikunja (with its web interface built in) from its\n# GitHub releases, checked against GitHub's and Vikunja's SHA-256, and\n# writes a first config.yml with a secret of its own. The database,\n# attachments and an existing config.yml are never touched.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Vikunja has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nwant=\"${VERSION:-latest}\"\n[ \"$want\" = latest ] || want=\"v${want#v}\"\ntag=$(gh-release tag go-vikunja/vikunja \"$want\") || fail \"Set Version to latest, or to a release such as 2.8.0, then reinstall.\"\n\nif [ -x vikunja ] && [ \"$(cat .vikunja-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Vikunja $tag is already installed.\"\nelse\n    echo \"Downloading Vikunja $tag\"\n    bin=\"vikunja-$tag-linux-$arch\"\n    gh-release download go-vikunja/vikunja \"$tag\" \"$bin-full.zip\" \"$work/vikunja.zip\"\n    unzip -qo \"$work/vikunja.zip\" -d \"$work/v\"\n    [ \"$(sha256sum \"$work/v/$bin\" | cut -d' ' -f1)\" = \"$(cut -d' ' -f1 \"$work/v/$bin.sha256\")\" ] ||\n        fail \"The download didn't match Vikunja's checksum. Reinstall to try again.\"\n    install -m 0755 \"$work/v/$bin\" vikunja.new\n    mv -f vikunja.new vikunja\n    echo \"$tag\" > .vikunja-version\nfi\n\nmkdir -p files\n# A first configuration: SQLite in the server's folder and a secret for\n# sign-ins made here, so sessions survive restarts. The port, sign-ups\n# and address come from the server's settings at every start.\nif [ ! -f config.yml ]; then\n    secret=$(head -c 48 /dev/urandom | base64 | tr -d '/+=\\n' | head -c 48)\n    cat > config.yml <<YAML\n# Vikunja's settings: https://vikunja.io/docs/config-options\nservice:\n  secret: \"$secret\"\n  rootpath: \"/home/container\"\n  timezone: \"UTC\"\ndatabase:\n  type: \"sqlite\"\n  path: \"/home/container/vikunja.db\"\nfiles:\n  basepath: \"/home/container/files\"\nsentry:\n  enabled: false\n  frontendenabled: false\nYAML\n    chmod 600 config.yml\n    echo \"Wrote a first config.yml.\"\nfi\necho \"Installed Vikunja $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Vikunja version to install, such as 2.8.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "First username",
+            "description": "The username of the first account, created at the next start with First email and First password.",
+            "env_variable": "ADMIN_USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|alpha_dash|max:250",
+            "field_type": "text"
+        },
+        {
+            "name": "First email",
+            "description": "The first account's email address.",
+            "env_variable": "ADMIN_EMAIL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^[^@\\s]+@[^@\\s]+$/|max:250",
+            "field_type": "text"
+        },
+        {
+            "name": "First password",
+            "description": "The first account's password (at least 8 characters). Change it in Vikunja afterwards; this is used only once.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:72",
+            "field_type": "text"
+        },
+        {
+            "name": "Open sign-ups",
+            "description": "Let anyone who can reach the server make an account.",
+            "env_variable": "OPEN_SIGNUPS",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Address",
+            "description": "The full public address of Vikunja, starting with http or https, used in emails and links. Needed for the desktop app; leave it empty to use the address it's opened at.",
+            "env_variable": "PUBLIC_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^https?:\\/\\/[^\\s\"]+$/",
+            "field_type": "text"
+        }
+    ]
+}

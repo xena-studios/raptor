@@ -1,0 +1,14 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/cloudflare-tunnel/egg-cloudflare-tunnel.json
+license: MIT
+credits:
+  - "Written for Raptor from cloudflared's documentation, https://github.com/cloudflare/cloudflared (Apache-2.0)"
+  - "Icon: the Cloudflare logo, from https://github.com/cloudflare (Cloudflare, Inc.)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: manual
+  reason: "cloudflared only connects with a tunnel token from a Cloudflare account, which CI doesn't have."
+  memory_mib: 128
+  done_timeout: 2m

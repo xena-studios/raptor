@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Cloudflare Tunnel",
+    "author": "support@raptorpanel.net",
+    "description": "Runs cloudflared, which connects a Cloudflare Tunnel so services on this node can be reached through Cloudflare without opening ports. Create the tunnel in Cloudflare's dashboard and paste its token.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "if [ -z \"${TUNNEL_TOKEN:-}\" ]; then echo \"Set Tunnel token in the server's settings first: create a tunnel in Cloudflare's dashboard and copy its token.\"; exit 1; fi; exec ./cloudflared tunnel --no-autoupdate --metrics 0.0.0.0:{{SERVER_PORT}} --protocol {{TUNNEL_TRANSPORT_PROTOCOL}} --loglevel {{TUNNEL_LOGLEVEL}} run",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Registered tunnel connection\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Cloudflare Tunnel: downloads cloudflared from its GitHub releases,\n# checked against GitHub's SHA-256. The tunnel itself is set up in\n# Cloudflare's dashboard; its token is a server setting.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"cloudflared has no build for this CPU ($(uname -m)).\" ;;\nesac\n\ntag=$(gh-release tag cloudflare/cloudflared \"${VERSION:-latest}\") || fail \"Set Version to latest, or to a release such as 2026.11.0, then reinstall.\"\n\nif [ -x cloudflared ] && [ \"$(cat .cloudflared-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"cloudflared $tag is already installed.\"\nelse\n    echo \"Downloading cloudflared $tag\"\n    gh-release download cloudflare/cloudflared \"$tag\" \"cloudflared-linux-$arch\" cloudflared.new\n    chmod 0755 cloudflared.new\n    mv -f cloudflared.new cloudflared\n    echo \"$tag\" > .cloudflared-version\nfi\necho \"Installed cloudflared $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The cloudflared version to install, such as 2026.11.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|\\d{4}\\.\\d{1,2}\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Tunnel token",
+            "description": "The tunnel's token from Cloudflare's dashboard (the long value after --token). The server won't start without one.",
+            "env_variable": "TUNNEL_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:1000|regex:/^[A-Za-z0-9+\\/=_-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Protocol",
+            "description": "How cloudflared connects to Cloudflare: auto, quic, or http2 (for networks that block UDP).",
+            "env_variable": "TUNNEL_TRANSPORT_PROTOCOL",
+            "default_value": "auto",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:auto,quic,http2",
+            "field_type": "text"
+        },
+        {
+            "name": "Log level",
+            "description": "How much cloudflared logs: debug, info, warn, error or fatal.",
+            "env_variable": "TUNNEL_LOGLEVEL",
+            "default_value": "info",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:debug,info,warn,error,fatal",
+            "field_type": "text"
+        }
+    ]
+}
