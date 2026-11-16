@@ -21,6 +21,7 @@ export default function Console({
   canWrite,
   support,
   fill,
+  onOutput,
 }: {
   nodeId: string;
   serverId: string;
@@ -29,7 +30,12 @@ export default function Console({
   support?: string;
   // Fill the parent's height (a pop-out window) instead of a fixed one.
   fill?: boolean;
+  // Every batch of lines, for spotting problems (lib/problems); reset
+  // means the lines start over (a reconnect replays the history).
+  onOutput?: (lines: string[], reset: boolean) => void;
 }) {
+  const output = useRef(onOutput);
+  output.current = onOutput;
   const box = useRef<HTMLDivElement>(null);
   const [problem, setProblem] = useState<{ text: string; retrying: boolean }>();
   const [command, setCommand] = useState("");
@@ -85,6 +91,7 @@ export default function Console({
           if (reset) term.reset();
           setProblem(undefined);
           if (lines.length > 0) term.write(`${lines.join("\r\n")}\r\n`);
+          output.current?.(lines, reset);
         },
         onProblem: (text, retrying) => setProblem({ text, retrying }),
       },

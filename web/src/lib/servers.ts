@@ -313,6 +313,23 @@ export function updateParams(cfg: ServerConfig, c: SettingsChange) {
   };
 }
 
+// imageParams is server.update's params to run a server on another of its
+// egg's images (a Java version), everything else as it is. A new image
+// changes what code runs, so it's signed.
+export function imageParams(cfg: ServerConfig, name: string, image: string) {
+  const primary = cfg.allocations.find((a) => a.primary) ?? cfg.allocations[0];
+  const params = updateParams(cfg, {
+    name,
+    image,
+    variables: {},
+    memoryMiB: cfg.limits.memory_mib,
+    diskMiB: cfg.limits.disk_mib,
+    port: primary?.port ?? 0,
+  });
+  // A server without ports keeps none (updateParams would add one).
+  return primary ? params : { ...params, allocations: cfg.allocations };
+}
+
 // changesCode: a new image or startup command changes what code runs, so
 // the user's passkey must sign it (Wings: Manager.ChangesCode).
 export function changesCode(cfg: ServerConfig, c: SettingsChange): boolean {

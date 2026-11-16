@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 
 import { ServerAddress } from "@/components/address";
 import { ChartSubject } from "@/components/chart-export";
+import { JavaFix } from "@/components/java-fix";
 import { DetailList } from "@/components/page";
 import { PopoutButton } from "@/components/popout";
 import { ServerGraphs, ServerLastHour, ServerStats } from "@/components/server-stats";
@@ -12,6 +13,7 @@ import { message } from "@/lib/errors";
 import { useIds } from "@/lib/ids";
 import { type MetricRange, useMetrics } from "@/lib/metrics";
 import { can, useServer } from "@/lib/org-data";
+import { findProblem, type Problem, problemWindow } from "@/lib/problems";
 
 const Console = lazy(() => import("@/components/console"));
 
@@ -22,16 +24,45 @@ export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/")({
 // The server's overview: how it's doing now, its console, where players
 // reach it, and its resources over time.
 function Overview() {
+  const session = Route.useRouteContext();
   const { orgId, nodeId, serverId } = useIds();
   const { node, server } = useServer(orgId, nodeId, serverId);
   const [range, setRange] = useState<MetricRange>("1h");
   const live = useMetrics(nodeId, serverId, "1h");
   const history = useMetrics(nodeId, serverId, range);
+  // A problem the console shows that the app can fix (lib/problems), from
+  // its newest lines.
+  const tail = useRef<string[]>([]);
+  const [problem, setProblem] = useState<Problem>();
+  const onOutput = useCallback((lines: string[], reset: boolean) => {
+    tail.current = (reset ? lines : [...tail.current, ...lines]).slice(-problemWindow);
+    setProblem(findProblem(tail.current));
+  }, []);
+  const state = server?.state;
+  // Starting again clears it; if it's still wrong, the console says so again.
+  useEffect(() => {
+    if (state === "starting" || state === "running") {
+      tail.current = [];
+      setProblem(undefined);
+    }
+  }, [state]);
   if (!server) return null;
   const running = server.state === "running" || server.state === "starting";
 
   return (
     <div className="flex flex-col gap-6">
+      {problem?.kind === "java" && !running && (
+        <JavaFix
+          problem={problem}
+          orgId={orgId}
+          nodeId={nodeId}
+          serverId={serverId}
+          userId={session.user?.id ?? ""}
+          canChange={can(server, "startup")}
+          canStart={can(server, "power")}
+          onDone={() => setProblem(undefined)}
+        />
+      )}
       <ServerStats metrics={live.data} running={running && !!node?.connected} />
 
       <div className="grid items-start gap-6 lg:grid-cols-3">
@@ -54,6 +85,7 @@ function Overview() {
                   nodeId={nodeId}
                   serverId={serverId}
                   canWrite={can(server, "console.write")}
+                  onOutput={onOutput}
                 />
               </Suspense>
             ) : (
