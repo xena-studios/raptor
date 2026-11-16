@@ -34,15 +34,17 @@ type servers struct {
 	space int64
 }
 
-func (s *servers) FilesDir(string) (string, error)                  { return s.dir, nil }
-func (s *servers) CheckFiles(context.Context, string, bool) error   { return nil }
-func (s *servers) Denylist(string) ([]string, error)                { return []string{"plugins/locked.jar"}, nil }
+func (s *servers) FilesDir(string) (string, error)                { return s.dir, nil }
+func (s *servers) CheckFiles(context.Context, string, bool) error { return nil }
+func (s *servers) Denylist(string) ([]string, error)              { return []string{"plugins/locked.jar"}, nil }
+
 func (s *servers) SpaceLeft(context.Context, string) (int64, error) {
 	if s.space == 0 {
 		return -1, nil
 	}
 	return s.space, nil
 }
+
 func (s *servers) TrashDir(id string) (string, error) {
 	return filepath.Join(filepath.Dir(s.dir), ".trash", id), nil
 }
