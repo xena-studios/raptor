@@ -141,7 +141,7 @@ func TestRaptorSettings(t *testing.T) {
 	e.Workshop = &eggs.Workshop{AppID: 4000, Variable: "MESSAGE", Collection: true}
 	b := eggs.JavaMinecraftBackup
 	e.Backup = &b
-	e.RCON = &eggs.RCON{Protocol: "source", Password: "MESSAGE", Port: "+1", Players: "source"}
+	e.RCON = &eggs.RCON{Protocol: "source", PasswordVar: "MESSAGE", Port: "+1", Players: "source"}
 	if err := e.validate(); err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +170,7 @@ func TestRaptorSettings(t *testing.T) {
 		t.Errorf("rcon %+v", r)
 	}
 	// An RCON password variable the egg doesn't have is refused.
-	e.RCON = &eggs.RCON{Protocol: "source", Password: "NOPE"}
+	e.RCON = &eggs.RCON{Protocol: "source", PasswordVar: "NOPE"}
 	if e.validate() == nil {
 		t.Error("an rcon variable the egg doesn't have: accepted")
 	}

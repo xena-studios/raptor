@@ -39,7 +39,7 @@ func dialWeb(ctx context.Context, addr, password string) (*webConn, error) {
 			return nil, ErrAuth
 		}
 		// The password is in the URL; never repeat it.
-		return nil, errors.New(strings.ReplaceAll(err.Error(), password, "…"))
+		return nil, errors.New(hideSecret(err.Error(), password))
 	}
 	c.SetReadLimit(maxReply)
 	return &webConn{c: c, id: 1000}, nil
@@ -75,4 +75,16 @@ func (w *webConn) Exec(ctx context.Context, cmd string) (string, error) {
 		}
 		return m.Message, nil
 	}
+}
+
+// hideSecret takes a secret out of a message, as it's written and as a
+// URL path escapes it (a password with a space or a % shows up encoded).
+func hideSecret(msg, secret string) string {
+	if secret == "" {
+		return msg
+	}
+	for _, form := range []string{secret, url.PathEscape(secret), url.QueryEscape(secret)} {
+		msg = strings.ReplaceAll(msg, form, "…")
+	}
+	return msg
 }
