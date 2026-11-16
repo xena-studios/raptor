@@ -2,6 +2,7 @@ import { useQueryClient, useQuery as useTanQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Loader2, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { useConfirm } from "@/components/confirm";
 import { type Content, useFilesApi } from "@/components/file-manager/data";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,8 +16,11 @@ import {
   type Backend,
   paperForVelocity,
   readBackends,
+  readBungeeBackends,
+  spigotForBungee,
   validBackendName,
   writeBackends,
+  writeBungeeBackends,
 } from "@/lib/proxy-backends";
 import { base64 } from "@/lib/servers";
 import { commandClient } from "@/lib/transport";
@@ -26,6 +30,29 @@ const select =
 
 // Paper and the forks that take Velocity's modern forwarding.
 const paperFamily = /^Minecraft: (Paper|Purpur|Folia|Leaf|DivineMC|CanvasMC|Pufferfish)\b/;
+// BungeeCord's forwarding is Spigot's, so Spigot itself too.
+const spigotFamily = /^Minecraft: (Spigot|Paper|Purpur|Folia|Leaf|DivineMC|CanvasMC|Pufferfish)\b/;
+
+export type ProxyKind = "velocity" | "bungee";
+
+const kinds = {
+  velocity: {
+    file: "velocity.toml",
+    name: "Velocity",
+    read: readBackends,
+    write: writeBackends,
+    family: paperFamily,
+    servers: "Paper",
+  },
+  bungee: {
+    file: "config.yml",
+    name: "the proxy",
+    read: readBungeeBackends,
+    write: writeBungeeBackends,
+    family: spigotFamily,
+    servers: "Spigot or Paper",
+  },
+} as const;
 
 async function readFile(
   nodeId: string,
@@ -62,27 +89,34 @@ const slug = (s: string) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 32) || "server";
 
-// ProxyBackends sets a Velocity proxy's backends from the org's servers
-// (#427): its [servers] list and try order, modern forwarding, and each
+// ProxyBackends sets a proxy's backends from the org's servers (#427).
+// Velocity: its [servers] list and try order, modern forwarding, and each
 // Paper backend set to take players only from this proxy (its forwarding
 // secret, so nobody can skip the proxy and join as someone else).
+// BungeeCord and Waterfall: config.yml's servers and priorities,
+// ip_forward, and each backend's bungeecord setting; their forwarding has
+// no secret, so the card says to keep backends unreachable from outside.
 export function ProxyBackends({
   orgId,
   nodeId,
   serverId,
   canWrite,
+  kind = "velocity",
 }: {
   orgId: string;
   nodeId: string;
   serverId: string;
   canWrite: boolean;
+  kind?: ProxyKind;
 }) {
+  const k = kinds[kind];
   const api = useFilesApi(nodeId, serverId);
   const client = useQueryClient();
+  const { confirm } = useConfirm();
   const toml = useTanQuery({
-    queryKey: api.contentKey("velocity.toml"),
+    queryKey: api.contentKey(k.file),
     queryFn: async () => {
-      const f = await api.run<Content>("files.read", { path: "velocity.toml" });
+      const f = await api.run<Content>("files.read", { path: k.file });
       return new TextDecoder().decode(fromBase64(f?.data ?? ""));
     },
     retry: false,
@@ -93,13 +127,13 @@ export function ProxyBackends({
       servers.filter(
         (s) =>
           s.id !== serverId &&
-          paperFamily.test(s.eggName) &&
+          k.family.test(s.eggName) &&
           can(s, "files.write") &&
           s.ports.length > 0,
       ),
-    [servers, serverId],
+    [servers, serverId, k.family],
   );
-  const current = useMemo(() => readBackends(toml.data ?? ""), [toml.data]);
+  const current = useMemo(() => k.read(toml.data ?? ""), [toml.data, k]);
   const [list, setList] = useState<Backend[] | undefined>(undefined);
   const backends =
     list ??
@@ -123,7 +157,8 @@ export function ProxyBackends({
         <CardHeader>
           <CardTitle>Backends</CardTitle>
           <CardDescription>
-            Start Velocity once so it makes velocity.toml; then pick its backends here.
+            Start {k.name === "Velocity" ? "Velocity" : "the proxy"} once so it makes {k.file}; then
+            pick its backends here.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -150,24 +185,42 @@ export function ProxyBackends({
   }
 
   async function save() {
+    const adding = Object.keys(added).filter((n) => backends.some((x) => x.name === n));
+    if (kind === "bungee" && adding.length > 0) {
+      const ok = await confirm({
+        title: "Keep these servers behind the proxy",
+        description:
+          "BungeeCord's forwarding has no secret: anyone who can reach a backend's port directly can join it as any player, admins included. Only add servers whose ports aren't open to the internet (a private network, or a firewall that only lets the proxy in). Velocity's forwarding doesn't have this problem.",
+        confirm: "I understand, save",
+        destructive: true,
+      });
+      if (!ok) return;
+    }
     setBusy(true);
     setError("");
     setNote("");
     try {
-      const secret = (await readFile(nodeId, serverId, "forwarding.secret"))?.trim();
-      if (!secret)
+      const secret =
+        kind === "velocity" ? (await readFile(nodeId, serverId, "forwarding.secret"))?.trim() : "";
+      if (kind === "velocity" && !secret)
         throw new Error("Velocity has no forwarding.secret yet: start it once, then save again.");
       const pending: string[] = [];
-      for (const [bname, b] of Object.entries(added)) {
-        if (!backends.some((x) => x.name === bname)) continue;
-        const yml = await readFile(b.nodeId, b.serverId, "config/paper-global.yml");
+      for (const bname of adding) {
+        const b = added[bname];
+        if (!b) continue;
+        const path = kind === "velocity" ? "config/paper-global.yml" : "spigot.yml";
+        const yml = await readFile(b.nodeId, b.serverId, path);
         const props = await readFile(b.nodeId, b.serverId, "server.properties");
-        const paper = yml ? paperForVelocity(yml, secret) : undefined;
-        if (!paper || props === undefined) {
+        const changed = yml
+          ? kind === "velocity"
+            ? paperForVelocity(yml, secret ?? "")
+            : spigotForBungee(yml)
+          : undefined;
+        if (!changed || props === undefined) {
           pending.push(bname);
           continue;
         }
-        await writeFile(b.nodeId, b.serverId, "config/paper-global.yml", paper);
+        await writeFile(b.nodeId, b.serverId, path, changed);
         await writeFile(
           b.nodeId,
           b.serverId,
@@ -178,18 +231,18 @@ export function ProxyBackends({
       await writeFile(
         nodeId,
         serverId,
-        "velocity.toml",
-        writeBackends(
+        k.file,
+        k.write(
           toml.data ?? "",
           backends,
           backends.map((b) => b.name),
         ),
       );
-      await client.invalidateQueries({ queryKey: api.contentKey("velocity.toml") });
+      await client.invalidateQueries({ queryKey: api.contentKey(k.file) });
       setList(undefined);
       setAdded({});
       setNote(
-        `Saved. Restart Velocity and the servers you added.${pending.length ? ` ${pending.join(", ")} ${pending.length === 1 ? "hasn't" : "haven't"} made Paper's settings yet: start ${pending.length === 1 ? "it" : "them"} once, then save here again to finish.` : ""}`,
+        `Saved. Restart ${k.name} and the servers you added.${pending.length ? ` ${pending.join(", ")} ${pending.length === 1 ? "hasn't" : "haven't"} made ${kind === "velocity" ? "Paper's" : "Spigot's"} settings yet: start ${pending.length === 1 ? "it" : "them"} once, then save here again to finish.` : ""}`,
       );
     } catch (err) {
       setError(message(err));
@@ -204,9 +257,9 @@ export function ProxyBackends({
       <CardHeader>
         <CardTitle>Backends</CardTitle>
         <CardDescription>
-          The servers behind this proxy, tried in this order when players join. Adding one of your
-          Paper servers sets it to take players only through this proxy (Velocity's modern
-          forwarding, with its secret), so nobody can join it directly as someone else.
+          {kind === "velocity"
+            ? "The servers behind this proxy, tried in this order when players join. Adding one of your Paper servers sets it to take players only through this proxy (Velocity's modern forwarding, with its secret), so nobody can join it directly as someone else."
+            : "The servers behind this proxy, tried in this order when players join. Adding one of your Spigot or Paper servers turns on BungeeCord forwarding on it and on the proxy, and turns its own login check off."}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3 text-sm">
@@ -268,7 +321,7 @@ export function ProxyBackends({
                 if (s && !name) setName(slug(s.name));
               }}
             >
-              <option value="">Add one of your Paper servers…</option>
+              <option value="">Add one of your {k.servers} servers…</option>
               {candidates.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name} ({s.node.name})
@@ -276,7 +329,7 @@ export function ProxyBackends({
               ))}
             </select>
             <Input
-              aria-label="Its name in Velocity"
+              aria-label="Its name in the proxy"
               placeholder="Name"
               className="w-36"
               value={name}
@@ -292,9 +345,16 @@ export function ProxyBackends({
             {busy && <Loader2 className="animate-spin" />} Save
           </Button>
         )}
+        {kind === "bungee" && (
+          <p className="rounded-lg border border-destructive/40 px-3 py-2 text-xs">
+            BungeeCord forwarding has no secret: a backend whose port is open to the internet can be
+            joined directly as any player. Keep backends reachable only by the proxy, or use
+            Velocity, whose forwarding is signed.
+          </p>
+        )}
         <p className="text-xs text-muted-foreground">
-          Removing a backend only takes it out of Velocity; it keeps taking players only from this
-          proxy until you change its Paper settings.
+          Removing a backend only takes it out of {k.name}; it keeps its forwarding settings until
+          you change them.
         </p>
         {note && <p className="text-muted-foreground">{note}</p>}
         {error && <p className="text-destructive">{error}</p>}

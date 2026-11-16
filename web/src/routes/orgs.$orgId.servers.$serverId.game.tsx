@@ -22,13 +22,19 @@ export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/game")({
       ? (JSON.parse(res.data.configJson) as ServerConfig)
       : undefined;
     const proxy = isProxy(cfg);
-    const velocity = Object.values(cfg?.egg?.addons ?? {}).some((a) => a.loaders[0] === "velocity");
+    const first = Object.values(cfg?.egg?.addons ?? {}).map((a) => a.loaders[0]);
+    const backends = first.includes("velocity")
+      ? "velocity"
+      : first.includes("waterfall") || first.includes("bungeecord")
+        ? "bungee"
+        : undefined;
     if (!server) return null;
     return (
       <div className="flex flex-col gap-6">
         <VersionSwitch orgId={orgId} nodeId={nodeId} serverId={serverId} server={server} />
-        {velocity && (
+        {backends && (
           <ProxyBackends
+            kind={backends}
             orgId={orgId}
             nodeId={nodeId}
             serverId={serverId}
