@@ -217,9 +217,10 @@ type AddonFile struct {
 	Url      string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
 	Filename string                 `protobuf:"bytes,2,opt,name=filename,proto3" json:"filename,omitempty"`
 	Size     int64                  `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
-	// Modrinth's files have a SHA-512, Hangar's a SHA-256.
+	// Modrinth's files have a SHA-512, Hangar's a SHA-256, uMod's a SHA-1.
 	Sha512        string `protobuf:"bytes,4,opt,name=sha512,proto3" json:"sha512,omitempty"`
 	Sha256        string `protobuf:"bytes,5,opt,name=sha256,proto3" json:"sha256,omitempty"`
+	Sha1          string `protobuf:"bytes,6,opt,name=sha1,proto3" json:"sha1,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -285,6 +286,13 @@ func (x *AddonFile) GetSha512() string {
 func (x *AddonFile) GetSha256() string {
 	if x != nil {
 		return x.Sha256
+	}
+	return ""
+}
+
+func (x *AddonFile) GetSha1() string {
+	if x != nil {
+		return x.Sha1
 	}
 	return ""
 }
@@ -410,7 +418,8 @@ type SearchAddonsRequest struct {
 	GameVersion string `protobuf:"bytes,4,opt,name=game_version,json=gameVersion,proto3" json:"game_version,omitempty"`
 	Query       string `protobuf:"bytes,5,opt,name=query,proto3" json:"query,omitempty"`
 	Offset      int32  `protobuf:"varint,6,opt,name=offset,proto3" json:"offset,omitempty"`
-	// "modrinth" (the default) or "hangar" (plugins only).
+	// "modrinth" (the default), "hangar" (plugins only), or "umod" (the
+	// umod kind, which has only uMod).
 	Source string `protobuf:"bytes,7,opt,name=source,proto3" json:"source,omitempty"`
 	// Mods only: include client-only ones (left out by default, since they
 	// don't run on a server).
@@ -563,7 +572,7 @@ type ListAddonVersionsRequest struct {
 	ProjectId   string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	Loaders     []string               `protobuf:"bytes,3,rep,name=loaders,proto3" json:"loaders,omitempty"`
 	GameVersion string                 `protobuf:"bytes,4,opt,name=game_version,json=gameVersion,proto3" json:"game_version,omitempty"`
-	// The project's source: "modrinth" (the default) or "hangar".
+	// The project's source: "modrinth" (the default), "hangar", or "umod".
 	Source string `protobuf:"bytes,5,opt,name=source,proto3" json:"source,omitempty"`
 	// "modpacks" for a modpack's versions (no loaders needed); empty for
 	// add-ons.
@@ -697,7 +706,12 @@ type IdentifyAddonsRequest struct {
 	GameVersion string   `protobuf:"bytes,4,opt,name=game_version,json=gameVersion,proto3" json:"game_version,omitempty"`
 	// The files' SHA-256s, by SHA-512: files Modrinth doesn't know are
 	// looked up on Hangar.
-	Sha256        map[string]string `protobuf:"bytes,5,rep,name=sha256,proto3" json:"sha256,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Sha256 map[string]string `protobuf:"bytes,5,rep,name=sha256,proto3" json:"sha256,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// uMod plugins (the umod kind) are named by file: each file's name and
+	// SHA-1, by SHA-512. uMod lists only a plugin's newest file, so a file
+	// that isn't it is offered the update.
+	Names         map[string]string `protobuf:"bytes,6,rep,name=names,proto3" json:"names,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Sha1          map[string]string `protobuf:"bytes,7,rep,name=sha1,proto3" json:"sha1,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -763,6 +777,20 @@ func (x *IdentifyAddonsRequest) GetGameVersion() string {
 func (x *IdentifyAddonsRequest) GetSha256() map[string]string {
 	if x != nil {
 		return x.Sha256
+	}
+	return nil
+}
+
+func (x *IdentifyAddonsRequest) GetNames() map[string]string {
+	if x != nil {
+		return x.Names
+	}
+	return nil
+}
+
+func (x *IdentifyAddonsRequest) GetSha1() map[string]string {
+	if x != nil {
+		return x.Sha1
 	}
 	return nil
 }
@@ -1322,13 +1350,14 @@ const file_raptor_panel_v1_addon_proto_rawDesc = "" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x1d\n" +
 	"\n" +
 	"version_id\x18\x02 \x01(\tR\tversionId\x12\x12\n" +
-	"\x04type\x18\x03 \x01(\tR\x04type\"}\n" +
+	"\x04type\x18\x03 \x01(\tR\x04type\"\x91\x01\n" +
 	"\tAddonFile\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x1a\n" +
 	"\bfilename\x18\x02 \x01(\tR\bfilename\x12\x12\n" +
 	"\x04size\x18\x03 \x01(\x03R\x04size\x12\x16\n" +
 	"\x06sha512\x18\x04 \x01(\tR\x06sha512\x12\x16\n" +
-	"\x06sha256\x18\x05 \x01(\tR\x06sha256\"\xec\x02\n" +
+	"\x06sha256\x18\x05 \x01(\tR\x06sha256\x12\x12\n" +
+	"\x04sha1\x18\x06 \x01(\tR\x04sha1\"\xec\x02\n" +
 	"\fAddonVersion\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -1361,14 +1390,23 @@ const file_raptor_panel_v1_addon_proto_rawDesc = "" +
 	"\x06source\x18\x05 \x01(\tR\x06source\x12\x12\n" +
 	"\x04kind\x18\x06 \x01(\tR\x04kind\"V\n" +
 	"\x19ListAddonVersionsResponse\x129\n" +
-	"\bversions\x18\x01 \x03(\v2\x1d.raptor.panel.v1.AddonVersionR\bversions\"\x8a\x02\n" +
+	"\bversions\x18\x01 \x03(\v2\x1d.raptor.panel.v1.AddonVersionR\bversions\"\x8c\x04\n" +
 	"\x15IdentifyAddonsRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x16\n" +
 	"\x06hashes\x18\x02 \x03(\tR\x06hashes\x12\x18\n" +
 	"\aloaders\x18\x03 \x03(\tR\aloaders\x12!\n" +
 	"\fgame_version\x18\x04 \x01(\tR\vgameVersion\x12J\n" +
-	"\x06sha256\x18\x05 \x03(\v22.raptor.panel.v1.IdentifyAddonsRequest.Sha256EntryR\x06sha256\x1a9\n" +
+	"\x06sha256\x18\x05 \x03(\v22.raptor.panel.v1.IdentifyAddonsRequest.Sha256EntryR\x06sha256\x12G\n" +
+	"\x05names\x18\x06 \x03(\v21.raptor.panel.v1.IdentifyAddonsRequest.NamesEntryR\x05names\x12D\n" +
+	"\x04sha1\x18\a \x03(\v20.raptor.panel.v1.IdentifyAddonsRequest.Sha1EntryR\x04sha1\x1a9\n" +
 	"\vSha256Entry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a8\n" +
+	"\n" +
+	"NamesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a7\n" +
+	"\tSha1Entry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd2\x01\n" +
 	"\x0fIdentifiedAddon\x12\x16\n" +
@@ -1433,7 +1471,7 @@ func file_raptor_panel_v1_addon_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_addon_proto_rawDescData
 }
 
-var file_raptor_panel_v1_addon_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_raptor_panel_v1_addon_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_raptor_panel_v1_addon_proto_goTypes = []any{
 	(*AddonProject)(nil),                     // 0: raptor.panel.v1.AddonProject
 	(*AddonDependency)(nil),                  // 1: raptor.panel.v1.AddonDependency
@@ -1453,42 +1491,46 @@ var file_raptor_panel_v1_addon_proto_goTypes = []any{
 	(*ResolvedAddon)(nil),                    // 15: raptor.panel.v1.ResolvedAddon
 	(*ResolveAddonDependenciesResponse)(nil), // 16: raptor.panel.v1.ResolveAddonDependenciesResponse
 	nil,                                      // 17: raptor.panel.v1.IdentifyAddonsRequest.Sha256Entry
-	(*timestamppb.Timestamp)(nil),            // 18: google.protobuf.Timestamp
+	nil,                                      // 18: raptor.panel.v1.IdentifyAddonsRequest.NamesEntry
+	nil,                                      // 19: raptor.panel.v1.IdentifyAddonsRequest.Sha1Entry
+	(*timestamppb.Timestamp)(nil),            // 20: google.protobuf.Timestamp
 }
 var file_raptor_panel_v1_addon_proto_depIdxs = []int32{
-	18, // 0: raptor.panel.v1.AddonVersion.published_at:type_name -> google.protobuf.Timestamp
+	20, // 0: raptor.panel.v1.AddonVersion.published_at:type_name -> google.protobuf.Timestamp
 	2,  // 1: raptor.panel.v1.AddonVersion.file:type_name -> raptor.panel.v1.AddonFile
 	1,  // 2: raptor.panel.v1.AddonVersion.dependencies:type_name -> raptor.panel.v1.AddonDependency
 	0,  // 3: raptor.panel.v1.SearchAddonsResponse.projects:type_name -> raptor.panel.v1.AddonProject
 	3,  // 4: raptor.panel.v1.ListAddonVersionsResponse.versions:type_name -> raptor.panel.v1.AddonVersion
 	17, // 5: raptor.panel.v1.IdentifyAddonsRequest.sha256:type_name -> raptor.panel.v1.IdentifyAddonsRequest.Sha256Entry
-	0,  // 6: raptor.panel.v1.IdentifiedAddon.project:type_name -> raptor.panel.v1.AddonProject
-	3,  // 7: raptor.panel.v1.IdentifiedAddon.version:type_name -> raptor.panel.v1.AddonVersion
-	3,  // 8: raptor.panel.v1.IdentifiedAddon.latest:type_name -> raptor.panel.v1.AddonVersion
-	9,  // 9: raptor.panel.v1.IdentifyAddonsResponse.addons:type_name -> raptor.panel.v1.IdentifiedAddon
-	18, // 10: raptor.panel.v1.WorkshopItem.updated_at:type_name -> google.protobuf.Timestamp
-	12, // 11: raptor.panel.v1.LookupWorkshopItemsResponse.items:type_name -> raptor.panel.v1.WorkshopItem
-	0,  // 12: raptor.panel.v1.ResolvedAddon.project:type_name -> raptor.panel.v1.AddonProject
-	3,  // 13: raptor.panel.v1.ResolvedAddon.version:type_name -> raptor.panel.v1.AddonVersion
-	15, // 14: raptor.panel.v1.ResolveAddonDependenciesResponse.required:type_name -> raptor.panel.v1.ResolvedAddon
-	15, // 15: raptor.panel.v1.ResolveAddonDependenciesResponse.optional:type_name -> raptor.panel.v1.ResolvedAddon
-	0,  // 16: raptor.panel.v1.ResolveAddonDependenciesResponse.incompatible:type_name -> raptor.panel.v1.AddonProject
-	0,  // 17: raptor.panel.v1.ResolveAddonDependenciesResponse.unavailable:type_name -> raptor.panel.v1.AddonProject
-	4,  // 18: raptor.panel.v1.AddonService.SearchAddons:input_type -> raptor.panel.v1.SearchAddonsRequest
-	6,  // 19: raptor.panel.v1.AddonService.ListAddonVersions:input_type -> raptor.panel.v1.ListAddonVersionsRequest
-	8,  // 20: raptor.panel.v1.AddonService.IdentifyAddons:input_type -> raptor.panel.v1.IdentifyAddonsRequest
-	11, // 21: raptor.panel.v1.AddonService.LookupWorkshopItems:input_type -> raptor.panel.v1.LookupWorkshopItemsRequest
-	14, // 22: raptor.panel.v1.AddonService.ResolveAddonDependencies:input_type -> raptor.panel.v1.ResolveAddonDependenciesRequest
-	5,  // 23: raptor.panel.v1.AddonService.SearchAddons:output_type -> raptor.panel.v1.SearchAddonsResponse
-	7,  // 24: raptor.panel.v1.AddonService.ListAddonVersions:output_type -> raptor.panel.v1.ListAddonVersionsResponse
-	10, // 25: raptor.panel.v1.AddonService.IdentifyAddons:output_type -> raptor.panel.v1.IdentifyAddonsResponse
-	13, // 26: raptor.panel.v1.AddonService.LookupWorkshopItems:output_type -> raptor.panel.v1.LookupWorkshopItemsResponse
-	16, // 27: raptor.panel.v1.AddonService.ResolveAddonDependencies:output_type -> raptor.panel.v1.ResolveAddonDependenciesResponse
-	23, // [23:28] is the sub-list for method output_type
-	18, // [18:23] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	18, // 6: raptor.panel.v1.IdentifyAddonsRequest.names:type_name -> raptor.panel.v1.IdentifyAddonsRequest.NamesEntry
+	19, // 7: raptor.panel.v1.IdentifyAddonsRequest.sha1:type_name -> raptor.panel.v1.IdentifyAddonsRequest.Sha1Entry
+	0,  // 8: raptor.panel.v1.IdentifiedAddon.project:type_name -> raptor.panel.v1.AddonProject
+	3,  // 9: raptor.panel.v1.IdentifiedAddon.version:type_name -> raptor.panel.v1.AddonVersion
+	3,  // 10: raptor.panel.v1.IdentifiedAddon.latest:type_name -> raptor.panel.v1.AddonVersion
+	9,  // 11: raptor.panel.v1.IdentifyAddonsResponse.addons:type_name -> raptor.panel.v1.IdentifiedAddon
+	20, // 12: raptor.panel.v1.WorkshopItem.updated_at:type_name -> google.protobuf.Timestamp
+	12, // 13: raptor.panel.v1.LookupWorkshopItemsResponse.items:type_name -> raptor.panel.v1.WorkshopItem
+	0,  // 14: raptor.panel.v1.ResolvedAddon.project:type_name -> raptor.panel.v1.AddonProject
+	3,  // 15: raptor.panel.v1.ResolvedAddon.version:type_name -> raptor.panel.v1.AddonVersion
+	15, // 16: raptor.panel.v1.ResolveAddonDependenciesResponse.required:type_name -> raptor.panel.v1.ResolvedAddon
+	15, // 17: raptor.panel.v1.ResolveAddonDependenciesResponse.optional:type_name -> raptor.panel.v1.ResolvedAddon
+	0,  // 18: raptor.panel.v1.ResolveAddonDependenciesResponse.incompatible:type_name -> raptor.panel.v1.AddonProject
+	0,  // 19: raptor.panel.v1.ResolveAddonDependenciesResponse.unavailable:type_name -> raptor.panel.v1.AddonProject
+	4,  // 20: raptor.panel.v1.AddonService.SearchAddons:input_type -> raptor.panel.v1.SearchAddonsRequest
+	6,  // 21: raptor.panel.v1.AddonService.ListAddonVersions:input_type -> raptor.panel.v1.ListAddonVersionsRequest
+	8,  // 22: raptor.panel.v1.AddonService.IdentifyAddons:input_type -> raptor.panel.v1.IdentifyAddonsRequest
+	11, // 23: raptor.panel.v1.AddonService.LookupWorkshopItems:input_type -> raptor.panel.v1.LookupWorkshopItemsRequest
+	14, // 24: raptor.panel.v1.AddonService.ResolveAddonDependencies:input_type -> raptor.panel.v1.ResolveAddonDependenciesRequest
+	5,  // 25: raptor.panel.v1.AddonService.SearchAddons:output_type -> raptor.panel.v1.SearchAddonsResponse
+	7,  // 26: raptor.panel.v1.AddonService.ListAddonVersions:output_type -> raptor.panel.v1.ListAddonVersionsResponse
+	10, // 27: raptor.panel.v1.AddonService.IdentifyAddons:output_type -> raptor.panel.v1.IdentifyAddonsResponse
+	13, // 28: raptor.panel.v1.AddonService.LookupWorkshopItems:output_type -> raptor.panel.v1.LookupWorkshopItemsResponse
+	16, // 29: raptor.panel.v1.AddonService.ResolveAddonDependencies:output_type -> raptor.panel.v1.ResolveAddonDependenciesResponse
+	25, // [25:30] is the sub-list for method output_type
+	20, // [20:25] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_addon_proto_init() }
@@ -1502,7 +1544,7 @@ func file_raptor_panel_v1_addon_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_addon_proto_rawDesc), len(file_raptor_panel_v1_addon_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -29,6 +29,15 @@ Restart the server for changes to take effect. Installing needs the **Change fil
 
 SpigotMC isn't offered: its downloads often go to other sites without a hash, so the machine couldn't check what it got. Install those by uploading the jar, or with [Upload → From a link](/servers/files/#download-from-a-link).
 
+## Rust plugins (uMod)
+
+Rust servers get a **Plugins** tab for Oxide and Carbon plugins from [uMod](https://umod.org). Set **Mod framework** to Oxide or Carbon in Startup first (vanilla Rust doesn't load plugins); the tab puts plugins in the folder that framework reads (`oxide/plugins` or `carbon/plugins`).
+
+- uMod only offers each plugin's newest version, so that's what's installed, checked against the hash uMod lists.
+- **Installed** names plugins by their file (`Kits.cs` is Kits) and offers an update when yours isn't uMod's newest. Plugins you changed yourself look out of date too.
+- Plugins' settings are in `oxide/config` (or `carbon/configs`) in the file manager.
+- Codefling and other paid plugin sites aren't offered: their downloads need a login. Upload those in the file manager.
+
 ## Steam Workshop
 
 Games that load Steam Workshop items themselves get a **Workshop** section in Add-ons: Garry's Mod (a collection), Counter-Strike 2 (a map collection), ARK (mods), Conan Exiles (mods, loaded in the order you list them), and Squad (items).

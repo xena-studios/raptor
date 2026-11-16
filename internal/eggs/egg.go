@@ -329,29 +329,45 @@ type Addon struct {
 	// to offer add-ons for it. Empty, or a value that isn't a version
 	// ("latest"): any.
 	Version string `yaml:"version"`
+	// DirVariable and Dirs pick the folder by a variable's value, for
+	// software that keeps add-ons in different places (Rust's FRAMEWORK:
+	// Oxide's oxide/plugins, Carbon's carbon/plugins). A value Dirs
+	// doesn't name uses Dir.
+	DirVariable string            `yaml:"dir_variable"`
+	Dirs        map[string]string `yaml:"dirs"`
+}
+
+// DirFor is the folder for a server with these variables.
+func (a Addon) DirFor(vars map[string]string) string {
+	if d, ok := a.Dirs[vars[a.DirVariable]]; ok && a.DirVariable != "" {
+		return d
+	}
+	return a.Dir
 }
 
 // AddonKinds are the add-on kinds and the loaders each takes. Datapacks
 // run on any Java server; Modrinth names their one loader "datapack".
+// umod is Rust's plugins from uMod, for Oxide and Carbon.
 var AddonKinds = map[string][]string{
 	"plugins":   {"paper", "spigot", "bukkit", "purpur", "folia", "velocity", "bungeecord", "waterfall", "sponge"},
 	"mods":      {"fabric", "forge", "neoforge", "quilt"},
 	"datapacks": {"datapack"},
+	"umod":      {"oxide", "carbon"},
 }
 
 // AddonDir is where a kind's files go by default: datapacks in the world
 // (server.properties' level-name, "world" unless changed).
-var AddonDir = map[string]string{"plugins": "plugins", "mods": "mods", "datapacks": "world/datapacks"}
+var AddonDir = map[string]string{"plugins": "plugins", "mods": "mods", "datapacks": "world/datapacks", "umod": "oxide/plugins"}
 
-// AddonExt is a kind's file extension.
-var AddonExt = map[string]string{"plugins": ".jar", "mods": ".jar", "datapacks": ".zip"}
+// AddonExt is a kind's file extension: uMod's plugins are C# source.
+var AddonExt = map[string]string{"plugins": ".jar", "mods": ".jar", "datapacks": ".zip", "umod": ".cs"}
 
 // CheckAddons validates x-raptor.addons.
 func CheckAddons(addons map[string]Addon) error {
 	for kind, a := range addons {
 		known, ok := AddonKinds[kind]
 		if !ok {
-			return fmt.Errorf("egg: x-raptor.addons.%s: want plugins, mods, or datapacks", kind)
+			return fmt.Errorf("egg: x-raptor.addons.%s: want plugins, mods, datapacks, or umod", kind)
 		}
 		if len(a.Loaders) == 0 {
 			return fmt.Errorf("egg: x-raptor.addons.%s: name its loaders", kind)
@@ -361,9 +377,32 @@ func CheckAddons(addons map[string]Addon) error {
 				return fmt.Errorf("egg: x-raptor.addons.%s: unknown loader %q", kind, l)
 			}
 		}
-		clean := path.Clean(a.Dir)
-		if a.Dir == "" || clean != a.Dir || path.IsAbs(a.Dir) || clean == "." || clean == ".." || strings.HasPrefix(clean, "../") {
+		if !insideDir(a.Dir) {
 			return fmt.Errorf("egg: x-raptor.addons.%s.dir %q: want a folder inside the server, like plugins", kind, a.Dir)
+		}
+		if (a.DirVariable == "") != (len(a.Dirs) == 0) {
+			return fmt.Errorf("egg: x-raptor.addons.%s: dir_variable and dirs go together", kind)
+		}
+		for v, d := range a.Dirs {
+			if !insideDir(d) {
+				return fmt.Errorf("egg: x-raptor.addons.%s.dirs.%s %q: want a folder inside the server", kind, v, d)
+			}
+		}
+	}
+	return nil
+}
+
+// insideDir is a clean relative folder inside the server.
+func insideDir(d string) bool {
+	clean := path.Clean(d)
+	return d != "" && clean == d && !path.IsAbs(d) && clean != "." && clean != ".." && !strings.HasPrefix(clean, "../")
+}
+
+// CheckAddonVariables checks that the variables add-ons name are the egg's.
+func CheckAddonVariables(addons map[string]Addon, vars []Variable) error {
+	for kind, a := range addons {
+		if a.DirVariable != "" && !slices.ContainsFunc(vars, func(v Variable) bool { return v.Env == a.DirVariable }) {
+			return fmt.Errorf("egg: x-raptor.addons.%s.dir_variable %q: not one of the egg's variables", kind, a.DirVariable)
 		}
 	}
 	return nil
@@ -575,6 +614,9 @@ func (e *Egg) parseRaptor(n *yaml.Node) error {
 			}
 		}
 		if err := CheckAddons(e.Raptor.Addons); err != nil {
+			return err
+		}
+		if err := CheckAddonVariables(e.Raptor.Addons, e.Variables); err != nil {
 			return err
 		}
 		if err := CheckWorkshop(e.Raptor.Workshop, e.Variables); err != nil {

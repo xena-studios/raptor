@@ -10,6 +10,15 @@ arch: [amd64]
 players:
   query: source
   port: QUERY_PORT
+# Plugins from uMod (Oxide's and Carbon's both load them), in the folder
+# of the framework chosen in Startup.
+addons:
+  umod:
+    loaders: [oxide, carbon]
+    dir: oxide/plugins
+    dir_variable: FRAMEWORK
+    dirs:
+      carbon: carbon/plugins
 # Rust can't pause saving, so a backup saves first and has nothing to undo.
 backup:
   pre: ["server.save"]

@@ -1,7 +1,8 @@
 // Package addons installs plugins and mods into servers whose egg turns on
 // an add-on (docs/EGGS.md#add-ons). Files come only from Modrinth's and
-// Hangar's CDNs, over https, and are kept only if their hash is the one
-// asked for (SHA-512 from Modrinth, SHA-256 from Hangar), so the Panel
+// Hangar's CDNs and uMod, over https, and are kept only if their hash is
+// the one asked for (SHA-512 from Modrinth, SHA-256 from Hangar, SHA-1
+// from uMod, the only one it publishes), so the Panel
 // can't make a node fetch anything else, and a swapped file on the way is
 // refused. They're written through the server's file system
 // like the file manager's (symlink-safe, the egg's denylist, the disk
@@ -10,6 +11,7 @@ package addons
 
 import (
 	"context"
+	"crypto/sha1" //nolint:gosec // uMod publishes only SHA-1s
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
@@ -48,23 +50,26 @@ const (
 const (
 	ModrinthHost = "cdn.modrinth.com"
 	HangarHost   = "hangarcdn.papermc.io"
+	UModHost     = "umod.org"
 )
 
 // DefaultHosts are where files may come from.
-var DefaultHosts = []string{ModrinthHost, HangarHost}
+var DefaultHosts = []string{ModrinthHost, HangarHost, UModHost}
 
 // Errors.
 var (
 	ErrNoAddon  = errors.New("this server's egg doesn't have that add-on")
-	ErrSource   = errors.New("add-ons are downloaded from Modrinth and Hangar only")
+	ErrSource   = errors.New("add-ons are downloaded from Modrinth, Hangar, and uMod only")
 	ErrHash     = errors.New("the download doesn't match the file its source lists; nothing was installed")
 	ErrName     = errors.New("that isn't an add-on file name")
 	ErrTooLarge = fmt.Errorf("add-on files are at most %d MiB", MaxFile>>20)
 )
 
-// Servers is what add-ons need of the server manager: the server's egg.
+// Servers is what add-ons need of the server manager: the server's egg,
+// and its variables (an add-on's folder can depend on one).
 type Servers interface {
 	Egg(ctx context.Context, id string) (*eggs.Egg, error)
+	Variables(ctx context.Context, id string) (map[string]string, error)
 }
 
 // Service lists and installs add-on files.
@@ -81,7 +86,7 @@ type Service struct {
 	hashes sync.Map // hashKey -> fileHashes
 }
 
-type fileHashes struct{ sha512, sha256 string }
+type fileHashes struct{ sha512, sha256, sha1 string }
 
 type hashKey struct {
 	server, name string
@@ -95,6 +100,7 @@ type File struct {
 	Modified int64  `json:"modified_at"` // unix ms
 	Sha512   string `json:"sha512,omitempty"`
 	Sha256   string `json:"sha256,omitempty"`
+	Sha1     string `json:"sha1,omitempty"`
 	// Disabled: renamed to .disabled, which the software skips.
 	Disabled bool `json:"disabled,omitempty"`
 }
@@ -136,6 +142,13 @@ func (s *Service) addon(ctx context.Context, id, kind string) (eggs.Addon, error
 	a, ok := egg.Raptor.Addons[kind]
 	if !ok {
 		return a, ErrNoAddon
+	}
+	if a.DirVariable != "" {
+		vars, err := s.Servers.Variables(ctx, id)
+		if err != nil {
+			return a, err
+		}
+		a.Dir = a.DirFor(vars)
 	}
 	return a, nil
 }
@@ -183,7 +196,7 @@ func (s *Service) List(ctx context.Context, id, kind string) (Listing, error) {
 		if err != nil {
 			return out, err
 		}
-		file.Sha512, file.Sha256 = h.sha512, h.sha256
+		file.Sha512, file.Sha256, file.Sha1 = h.sha512, h.sha256, h.sha1
 		out.Files = append(out.Files, file)
 	}
 	return out, nil
@@ -204,11 +217,11 @@ func (s *Service) hash(ctx context.Context, f *files.FS, id, name string, fi fs.
 		return fileHashes{}, err
 	}
 	defer func() { _ = file.Close() }()
-	h512, h256 := sha512.New(), sha256.New()
-	if _, err := io.Copy(io.MultiWriter(h512, h256), io.LimitReader(file, MaxFile)); err != nil {
+	h512, h256, h1 := sha512.New(), sha256.New(), sha1.New() //nolint:gosec // uMod's
+	if _, err := io.Copy(io.MultiWriter(h512, h256, h1), io.LimitReader(file, MaxFile)); err != nil {
 		return fileHashes{}, err
 	}
-	sum := fileHashes{hex.EncodeToString(h512.Sum(nil)), hex.EncodeToString(h256.Sum(nil))}
+	sum := fileHashes{hex.EncodeToString(h512.Sum(nil)), hex.EncodeToString(h256.Sum(nil)), hex.EncodeToString(h1.Sum(nil))}
 	s.hashes.Store(key, sum)
 	return sum, nil
 }
@@ -220,6 +233,7 @@ type Install struct {
 	URL      string `json:"url"`
 	Sha512   string `json:"sha512,omitempty"`
 	Sha256   string `json:"sha256,omitempty"`
+	Sha1     string `json:"sha1,omitempty"`
 	Filename string `json:"filename"`
 	// Replace is the file this one updates, moved to the trash once the
 	// new one is in place.
@@ -297,7 +311,7 @@ func (s *Service) Install(ctx context.Context, id, user string, p Install) (File
 	if err != nil {
 		return File{}, err
 	}
-	return File{Name: p.Filename, Size: fi.Size(), Modified: fi.ModTime().UnixMilli(), Sha512: p.Sha512, Sha256: p.Sha256}, nil
+	return File{Name: p.Filename, Size: fi.Size(), Modified: fi.ModTime().UnixMilli(), Sha512: p.Sha512, Sha256: p.Sha256, Sha1: p.Sha1}, nil
 }
 
 // expected is the hash a download must have.
@@ -311,8 +325,11 @@ type expected struct {
 // SHA-256, so the weaker hash is never enough for Modrinth's files.
 func wantHash(host string, p Install) (expected, error) {
 	hexSum, size, newHash, name := p.Sha512, sha512.Size, sha512.New, "SHA-512"
-	if strings.EqualFold(host, HangarHost) {
+	switch {
+	case strings.EqualFold(host, HangarHost):
 		hexSum, size, newHash, name = p.Sha256, sha256.Size, sha256.New, "SHA-256"
+	case strings.EqualFold(host, UModHost):
+		hexSum, size, newHash, name = p.Sha1, sha1.Size, sha1.New, "SHA-1"
 	}
 	sum, err := hex.DecodeString(hexSum)
 	if err != nil || len(sum) != size {

@@ -338,6 +338,9 @@ func (s *Spec) Validate() error {
 	if err := eggs.CheckAddons(s.Addons); err != nil {
 		return bad("%s", strings.TrimPrefix(strings.ReplaceAll(err.Error(), "x-raptor.addons.", "add-ons, "), "egg: "))
 	}
+	if err := eggs.CheckAddonVariables(s.Addons, s.Variables); err != nil {
+		return bad("%s", strings.TrimPrefix(strings.ReplaceAll(err.Error(), "x-raptor.addons.", "add-ons, "), "egg: "))
+	}
 	return nil
 }
 
@@ -466,6 +469,14 @@ func Write(base []byte, s *Spec) ([]byte, error) {
 				set(n, "dir", str(a.Dir))
 				if a.Version != "" {
 					set(n, "version", str(a.Version))
+				}
+				if a.DirVariable != "" {
+					set(n, "dir_variable", str(a.DirVariable))
+					dirs := &yaml.Node{Kind: yaml.MappingNode}
+					for _, v := range slices.Sorted(maps.Keys(a.Dirs)) {
+						set(dirs, v, str(a.Dirs[v]))
+					}
+					set(n, "dirs", dirs)
 				}
 				set(addons, kind, n)
 			}
