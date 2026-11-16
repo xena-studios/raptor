@@ -297,6 +297,41 @@ x-raptor:
 - **Rust's plugins** (the `umod` kind, loaders `oxide` and `carbon`, #409) come from uMod: `.cs` files, checked by the SHA-1 uMod lists for each plugin's newest file (the only file and hash it publishes). Oxide loads them from `oxide/plugins` and Carbon from `carbon/plugins`, so the Rust egg's add-on sets `dir_variable: FRAMEWORK` and `dirs: {carbon: carbon/plugins}`: Wings picks the folder from the server's variable when listing and installing (any add-on can do this; the variable must be one of the egg's). Installed plugins are named by file name; one whose SHA-1 isn't the newest file's is offered it. The page says to choose Oxide or Carbon when the framework is vanilla. Only nodes with the `addons-umod` capability get the page; older Wings ignore the kind.
 - Installing is the node's `addons.install` (the `files.write` permission): Wings downloads from `cdn.modrinth.com`, `hangarcdn.papermc.io`, `umod.org`, `mods.factorio.com`, and CurseForge's CDN only, over https (redirects too), keeps the file only if its hash is the one the Panel passed from the source's listing (a SHA-512 from Modrinth's CDN, a SHA-256 from Hangar's), and writes it through the server's file system like the file manager (symlink-safe, the denylist, the disk limit). A file from Modrinth's CDN always needs its SHA-512. Hangar versions hosted elsewhere (an external link, no hash) aren't offered. The Panel finds things (`AddonService`, which asks Modrinth and Hangar with its own user agent and caches answers for 5 minutes), so the browser talks only to Raptor; only the projects' icons load from their CDNs.
 
+## Add-on lists
+
+Each add-on kind's section in Add-ons has a menu (**⋯**) with **Export list** and **Import list** (#437, `web/src/lib/addon-list.ts`, `web/src/components/addon-list.tsx`): add-ons as code, for networks that run the same plugins on several servers, or the same mods on test and live. It's the add-on part of servers-as-code deploys (#374), where a repo would hold the list and a deploy apply it.
+
+```json
+{
+  "version": 1,
+  "kinds": {
+    "plugins": {
+      "loaders": ["paper", "spigot", "bukkit"],
+      "game_version": "1.21.4",
+      "addons": [
+        {
+          "source": "modrinth",
+          "project": "Vebnzrzj",
+          "version_id": "fEQ2Bc8t",
+          "name": "LuckPerms",
+          "version_number": "v5.4.145-bukkit",
+          "file": "LuckPerms-Bukkit-5.4.145.jar",
+          "sha512": "…"
+        }
+      ],
+      "by_hand": [{ "file": "OurPlugin.jar", "sha512": "…" }]
+    }
+  }
+}
+```
+
+- **`version`** is the format's (1). A list with a higher one is from a newer Raptor and is refused, not half read. **`kinds`** is keyed like the egg's `addons` (plugins, mods, datapacks, umod, factorio); exporting writes the section's own kind, and importing reads only that kind (a list for another kind says which it has).
+- **Each add-on is named, never linked:** `source`, `project` (the source's project ID: Modrinth's ID, Hangar's slug, uMod's slug, the Factorio mod's name, CurseForge's ID), and `version_id` (Factorio's is `mod@version`). `name`, `version_number`, and `file` are for people reading it. The hashes (`sha512`, `sha256`, `sha1`) are the file's as the source lists it. There's no URL field: applying asks the Panel for the version again (`AddonService.ListAddonVersions` with the server's loaders and game version), installs through `addons.install` with the hash the Panel lists, and Wings checks it as on any install. A listed hash that no longer matches the source's ("its file changed at the source") is refused.
+- **`by_hand`** is the files no source knows (added by hand): name and SHA-512 only. Raptor can't fetch them, so importing lists those the server lacks as **Copy these yourself**.
+- **Applying shows the diff first** in a dialog, and changes nothing until **Apply**: to install (with required dependencies neither the list nor the server has, from `ResolveAddonDependencies`, for Modrinth, Factorio, and CurseForge), to change version (newer or older: the list wins), to remove (identified add-ons not in the list, and second copies of one; a switch keeps them; removed files go to the trash), already there, and kept (files added by hand on this server, which the list can't name, are never removed). Add-ons match by source and project; hand-added files by SHA-512.
+- **A version the server can't install** (not listed for its loaders and game version, or past the 50 newest that are listed; uMod has only its newest; CurseForge files their authors keep to CurseForge) is skipped and named, unless **use the newest for this server** is on. When the list came from other loaders or another game version, the dialog says so.
+- It's all in the browser on the existing calls: nothing new on the Panel or Wings, and no permission beyond `files.read` (export) and `files.write` (import), like the rest of the tab. Applying one list to several servers at once, and the same through API tokens and MCP (#374), are still to come.
+
 ## Server icon and MOTD
 
 Minecraft Java servers (an egg whose `players.query` is `minecraft`) that have a `server.properties` get **In the server list** on the Game tab (#425, `web/src/components/server-list-look.tsx`): the icon and MOTD players see, previewed as the client draws them. The icon is any image, cropped square and drawn to a 64×64 PNG in the browser, written as `server-icon.png` (or removed); the MOTD has colour and style buttons that insert § codes, and is written to `server.properties` the way Minecraft writes it (non-ASCII as `\uXXXX`, the line rewritten in place, `web/src/lib/minecraft-text.ts`). Both go through `files.write` (and `files.delete`), so they need that permission. Proxies (no `server.properties`) don't get it; their MOTD is in their own config. It's on the Game tab with the settings form (#424).

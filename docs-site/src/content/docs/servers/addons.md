@@ -31,6 +31,17 @@ Restart the server for changes to take effect. Installing needs the **Change fil
 
 SpigotMC isn't offered: its downloads often go to other sites without a hash, so the machine couldn't check what it got. Install those by uploading the jar, or with [Upload → From a link](/servers/files/#download-from-a-link).
 
+## Copy add-ons between servers
+
+Running a lobby and several game servers with the same plugins, or the same mods on a test and a live server? Each section's **⋯** menu has:
+
+- **Export list** saves the installed add-ons as a small JSON file: each one by where it's from, its project, and its version, plus the files you added by hand (by name and hash).
+- **Import list** takes such a file (choose it or paste it) and shows what it would change first: what it installs, what changes version, what it removes, what's already there, and the hand-added files to copy yourself. Nothing changes until you press **Apply**.
+
+Applying looks every add-on up again for this server, and the machine checks each download against the hash its source publishes, as with any install. It also installs what they need that the list doesn't have. Removing is a switch (on by default): turn it off to only add, and removed files go to the [trash](/servers/files/#the-trash). Files added by hand on this server are never removed.
+
+If a listed version doesn't run on this server's game version, it's skipped and named; turn on **use the newest for this server** to install the newest one instead. The file format is in [EGGS.md](https://github.com/xena-studios/raptor/blob/main/docs/EGGS.md#add-on-lists), for keeping lists in Git.
+
 ## Factorio mods
 
 Factorio servers get a **Mods** section for mods from the [Factorio mod portal](https://mods.factorio.com), for the server's Factorio version, most downloaded first.
