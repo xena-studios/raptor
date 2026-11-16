@@ -21,6 +21,15 @@ var connectHeaders = strings.Join([]string{
 func browserGuard(appOrigin string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
+		// Raptor's phone app authenticates with a bearer token, which a
+		// page can't make a browser send (and its preflight is refused
+		// below), so its requests needn't come from the web app's origin:
+		// React Native's WebSocket sends an Origin of its own. They get no
+		// CORS headers.
+		if strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") && r.Method != http.MethodOptions {
+			next.ServeHTTP(w, r)
+			return
+		}
 		if origin != "" && origin != appOrigin {
 			http.Error(w, "this API only answers the Raptor web app", http.StatusForbidden)
 			return

@@ -22,6 +22,8 @@ const daylight = {
   warnWash: "#ffe4b3",
   dangerWash: "#ffd8df",
   brandWash: "#fce1de",
+  // Graphs (the web's series-1).
+  series: "#2a78d6",
   // The card's hairline: the foreground at 10%.
   ring: "rgba(25, 15, 14, 0.1)",
   // The key highlight on a primary button's top edge.
@@ -44,6 +46,7 @@ const consoleDark: typeof daylight = {
   warnWash: "#402900",
   dangerWash: "#540f22",
   brandWash: "#471715",
+  series: "#3987e5",
   ring: "rgba(245, 240, 240, 0.1)",
   keyLight: "rgba(255, 255, 255, 0.22)",
 };

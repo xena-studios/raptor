@@ -72,15 +72,23 @@ type Out struct {
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := auth.WithRequest(r.Context(), w, r)
-	if _, err := h.Auth.Current(ctx); err != nil {
+	sess, err := h.Auth.Current(ctx)
+	if err != nil {
 		http.Error(w, "sign in first", http.StatusUnauthorized)
 		return
 	}
-	var patterns []string
+	opts := &websocket.AcceptOptions{}
 	if u, err := url.Parse(h.AppOrigin); err == nil && u.Host != "" {
-		patterns = []string{u.Host}
+		opts.OriginPatterns = []string{u.Host}
 	}
-	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{OriginPatterns: patterns})
+	// Raptor's phone app signs in with a bearer token in the request, which
+	// no web page can make a browser send, so the Origin check (against
+	// pages riding the session cookie) doesn't apply; React Native sends an
+	// Origin of its own.
+	if sess.App() {
+		opts.InsecureSkipVerify = true
+	}
+	c, err := websocket.Accept(w, r, opts)
 	if err != nil {
 		return
 	}

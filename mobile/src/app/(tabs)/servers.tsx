@@ -7,8 +7,9 @@ import { View } from "react-native";
 
 import { Page, PageHeader } from "@/components/screen";
 import { Card, Empty, Notice, Row, Skeleton, StatusChip, Text } from "@/components/ui";
-import { type Node, type Org, OrgService } from "@/gen/raptor/panel/v1/org_pb";
+import { type Node, type Org, OrgService, Role } from "@/gen/raptor/panel/v1/org_pb";
 import { ago } from "@/lib/format";
+import { formatPercent, type ServerUse, useNodeServers } from "@/lib/metrics";
 import { nodeStatus, serverStatus } from "@/lib/status";
 import { message } from "@/lib/transport";
 
@@ -88,15 +89,33 @@ function OrgSection({ org, named }: { org: Org; named: boolean }) {
         />
       ) : null}
       {(nodes.data?.nodes ?? []).map((n) => (
-        <NodeCard key={n.id} orgId={org.id} node={n} />
+        <NodeCard key={n.id} orgId={org.id} node={n} admin={org.role >= Role.ADMIN} />
       ))}
     </View>
   );
 }
 
-function NodeCard({ orgId, node }: { orgId: string; node: Node }) {
+// Usage is a running server's players and CPU, in the mono readout voice.
+function Usage({ u }: { u?: ServerUse }) {
+  if (!u) return null;
+  const parts = [
+    u.players !== undefined
+      ? `${Math.round(u.players)} ${Math.round(u.players) === 1 ? "player" : "players"}`
+      : "",
+    `${formatPercent(u.cpu)} CPU`,
+  ].filter(Boolean);
+  return (
+    <Text variant="label" mono ink="muted">
+      {parts.join(" · ")}
+    </Text>
+  );
+}
+
+function NodeCard({ orgId, node, admin }: { orgId: string; node: Node; admin: boolean }) {
   const servers = useQuery(OrgService.method.listServers, { orgId, nodeId: node.id });
   const list = servers.data?.servers ?? [];
+  // What each server uses now: admins and owners only, as on the web.
+  const use = useNodeServers(node.id, admin && node.connected);
   return (
     <Card
       title={node.name}
@@ -128,11 +147,12 @@ function NodeCard({ orgId, node }: { orgId: string; node: Node }) {
             </Text>
             <StatusChip status={serverStatus(s, node.connected)} />
           </View>
-          {s.eggName ? (
-            <Text variant="meta" ink="muted" numberOfLines={1}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Text variant="meta" ink="muted" numberOfLines={1} style={{ flex: 1 }}>
               {s.eggName}
             </Text>
-          ) : null}
+            <Usage u={s.state === "running" ? use.data?.get(s.id) : undefined} />
+          </View>
         </Row>
       ))}
       {servers.data && list.length === 0 ? (

@@ -1,12 +1,22 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { Archive, Bell, BellOff, ExternalLink, Play, RotateCw, Square } from "lucide-react-native";
+import {
+  Archive,
+  Bell,
+  BellOff,
+  ExternalLink,
+  Play,
+  RotateCw,
+  Square,
+  Terminal,
+} from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 
+import { type Readout, Readouts } from "@/components/readouts";
 import { Page, PageHeader } from "@/components/screen";
 import { Button, Card, CardBody, Notice, Row, Skeleton, StatusChip, Text } from "@/components/ui";
 import { AlertService } from "@/gen/raptor/panel/v1/alert_pb";
@@ -14,14 +24,47 @@ import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { appURL } from "@/lib/config";
 import { can } from "@/lib/format";
 import { useLock } from "@/lib/lock";
+import { formatBytes, formatPercent, type Metrics, useServerMetrics } from "@/lib/metrics";
 import { MUTE_MINUTES } from "@/lib/push";
 import { serverStatus } from "@/lib/status";
 import { useColors } from "@/lib/theme";
 import { alertClient, commandClient, message } from "@/lib/transport";
 
-// A server: its state and address, power, and a backup now. The console,
-// files, settings, and anything that needs a passkey are in the web app,
-// which this links to.
+// Now is what the server uses now, with the last hour behind CPU.
+function Now({ metrics, running }: { metrics?: Metrics; running: boolean }) {
+  const p = metrics?.latest;
+  const l = metrics?.limits;
+  const live = running && p?.running;
+  const recent = (metrics?.points ?? []).slice(-60).map((x) => (x.running ? x.cpu : null));
+  const items: Readout[] = [
+    {
+      label: "CPU",
+      value: live ? formatPercent(p.cpu) : "—",
+      sub: l?.cpu_percent ? `of ${l.cpu_percent}% limit` : "100% is one core",
+      spark: recent,
+    },
+    {
+      label: "Memory",
+      value: live ? formatBytes(p.memory) : "—",
+      sub: l?.memory_bytes ? `of ${formatBytes(l.memory_bytes)}` : undefined,
+    },
+    {
+      label: "Disk",
+      value: p?.disk ? formatBytes(p.disk) : "—",
+      sub: l?.disk_bytes ? `of ${formatBytes(l.disk_bytes)}` : "No limit",
+    },
+    {
+      label: "Players",
+      value: live && p.players !== undefined ? String(Math.round(p.players)) : "—",
+      sub: live && p.players === undefined ? "This game doesn't report them" : "Online now",
+    },
+  ];
+  return <Readouts items={items} />;
+}
+
+// A server: what it uses now, its state and address, power, a backup now,
+// and its console. Files, settings, and anything that needs a passkey are
+// in the web app, which this links to.
 export default function ServerScreen() {
   const c = useColors();
   const client = useQueryClient();
@@ -52,6 +95,7 @@ export default function ServerScreen() {
   const s = server.data?.server;
   const node = nodes.data?.nodes.find((n) => n.id === nodeId);
   const connected = node?.connected ?? true;
+  const metrics = useServerMetrics(nodeId, serverId, !!s && connected);
   const status = s ? serverStatus(s, connected) : null;
   // As the web app's power buttons: off while the server is busy (an
   // install, a move, a restore) or its node is offline; a server stuck
@@ -145,6 +189,8 @@ export default function ServerScreen() {
       <Stack.Screen options={{ title: "" }} />
       <Notice text={server.error ? message(server.error) : ""} />
 
+      {s ? <Now metrics={metrics.data} running={s.state === "running" && connected} /> : null}
+
       {s && address ? (
         <Card>
           <Row first>
@@ -155,6 +201,22 @@ export default function ServerScreen() {
               {address}
             </Text>
           </Row>
+          {can(s.permissions, "console.read") ? (
+            <Row
+              accessibilityLabel="Open the console"
+              onPress={() =>
+                router.push({
+                  pathname: "/console/[orgId]/[nodeId]/[serverId]",
+                  params: { orgId, nodeId, serverId },
+                })
+              }
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <Terminal size={16} color={c.mutedForeground} />
+                <Text>Console</Text>
+              </View>
+            </Row>
+          ) : null}
         </Card>
       ) : null}
 
@@ -246,10 +308,9 @@ export default function ServerScreen() {
       {s ? (
         <Card
           title="In the web app"
-          description="The console, files, settings, and anything that needs your passkey."
+          description="Files, settings, and anything that needs your passkey."
         >
           {[
-            ["Console", ""],
             ["Files", "/files"],
             ["Settings", "/settings"],
           ].map(([label, path]) => (
