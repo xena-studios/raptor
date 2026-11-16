@@ -112,6 +112,13 @@ export function AddonsPage({
   const framework = addon.dir_variable ? cfg.variables?.[addon.dir_variable] : undefined;
   return (
     <>
+      {kind === "openmod" && cfg.variables?.OPENMOD === "0" && (
+        <p className="mb-4 rounded-lg border px-3 py-2 text-sm">
+          OpenMod is off on this server, so its plugins don't load. Turn on <strong>OpenMod</strong>{" "}
+          in Startup and restart it (reinstall first if the server was made before OpenMod was in
+          its egg).
+        </p>
+      )}
       {kind === "umod" && framework === "vanilla" && (
         <p className="mb-4 rounded-lg border px-3 py-2 text-sm">
           This server runs vanilla Rust, which doesn't load plugins. Set{" "}
@@ -686,7 +693,7 @@ function InstallDialog({
   const v = list.find((x) => x.id === chosen) ?? list[0];
   // What else it needs (Modrinth, Factorio, and CurseForge list
   // dependencies; Hangar's aren't read).
-  const resolves = ["modrinth", "factorio", "curseforge"].includes(project.source);
+  const resolves = resolvable(project.source);
   const deps = useQuery(
     AddonService.method.resolveAddonDependencies,
     {
@@ -820,6 +827,13 @@ function fileOf(f: {
   };
 }
 
+// resolvable reports whether the Panel resolves a source's dependencies
+// (Modrinth's, Factorio's mod portal's, CurseForge's, and NuGet's;
+// Hangar's aren't read).
+function resolvable(source: string): boolean {
+  return ["modrinth", "factorio", "curseforge", "nuget"].includes(source);
+}
+
 function filesOf(list: ResolvedAddon[]): InstallFile[] {
   return list.flatMap((r) => (r.version?.file ? [fileOf(r.version.file)] : []));
 }
@@ -881,6 +895,20 @@ function Dependencies({
           It also needs {data.unavailable.map((p) => p.title).join(", ")}, which can't be installed
           from here for this version: add {data.unavailable.length === 1 ? "it" : "them"} by hand,
           or it may not load.
+          {data.unavailable.some((p) => p.source === "nuget") && (
+            <>
+              {" "}
+              OpenMod can install {data.unavailable.length === 1 ? "it" : "them"} itself: in the
+              console, run{" "}
+              {data.unavailable.map((p, i) => (
+                <span key={p.id}>
+                  {i > 0 && ", "}
+                  <code className="font-mono text-xs">openmod install {p.slug}</code>
+                </span>
+              ))}
+              .
+            </>
+          )}
         </p>
       )}
       {!alone && optional && onOptional && data.optional.length > 0 && (
@@ -943,7 +971,7 @@ function NeedsDialog({
     loaders,
     gameVersion: version,
     installed,
-    source: ["factorio", "curseforge"].includes(addon.project?.source ?? "")
+    source: ["factorio", "curseforge", "nuget"].includes(addon.project?.source ?? "")
       ? (addon.project?.source ?? "")
       : "",
   });

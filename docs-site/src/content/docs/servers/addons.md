@@ -50,6 +50,16 @@ Factorio servers get a **Mods** section for mods from the [Factorio mod portal](
 - **Install** brings the mods it needs with it (and offers the optional ones), and says when it can't run beside one you have. Each download is checked against the portal's hash.
 - **Installed** names mods by their file and offers updates for your Factorio version. Factorio turns on every mod in the folder; to turn one off without removing it, use the game's mod settings or `mods/mod-list.json`.
 
+## Unturned plugins (OpenMod)
+
+Unturned servers get a **Plugins** tab for [OpenMod](https://openmod.github.io/openmod-docs/) plugins, which are published on [NuGet](https://www.nuget.org/packages?q=Tags%3A%22openmod-plugin%22).
+
+- Turn on **OpenMod** in Startup and restart first. Servers made before OpenMod was in the Unturned egg need a reinstall to download it (saves and configs stay). It can run beside RocketMod.
+- **Install** brings the plugins it needs with it. Each package is checked against the hash NuGet lists, and only the plugin itself is copied into `Servers/Raptor/OpenMod/plugins`, named after the package and version (`Kr4ken.NewEssentials@1.5.1.dll`).
+- Some plugins need libraries Raptor can't install (ones made of several files). The install dialog names them: run `openmod install <name>` in the console and OpenMod installs them itself.
+- **Installed** names the plugins Raptor installed and offers updates. DLLs you uploaded yourself show as added by hand; plugins from `openmod install` live in OpenMod's own `packages` folder and are managed with its commands.
+- RocketMod's plugins aren't offered: there's no central site with hashes to check them against. Upload those to `Servers/Raptor/Rocket/Plugins` in the file manager.
+
 ## Rust plugins (uMod)
 
 Rust servers get a **Plugins** tab for Oxide and Carbon plugins from [uMod](https://umod.org). Set **Mod framework** to Oxide or Carbon in Startup first (vanilla Rust doesn't load plugins); the tab puts plugins in the folder that framework reads (`oxide/plugins` or `carbon/plugins`).

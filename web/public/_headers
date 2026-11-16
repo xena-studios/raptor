@@ -4,7 +4,7 @@
 # only to the API, frames only the Turnstile page and Polar's checkout and
 # card form (components/billing/polar-embed.tsx), and can't be framed.
 /*
-  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.raptorpanel.net https://cdn.modrinth.com https://hangarcdn.papermc.io https://images.steamusercontent.com https://assets.umod.org https://assets-mod.factorio.com https://cdn.feed-the-beast.com https://cdn.technicpack.net https://media.forgecdn.net; font-src 'self'; worker-src 'self'; connect-src 'self' https://api.raptorpanel.net wss://api.raptorpanel.net; frame-src https://verify.raptorpanel.net https://polar.sh; manifest-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; require-trusted-types-for 'script'
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.raptorpanel.net https://cdn.modrinth.com https://hangarcdn.papermc.io https://images.steamusercontent.com https://assets.umod.org https://assets-mod.factorio.com https://cdn.feed-the-beast.com https://cdn.technicpack.net https://media.forgecdn.net https://api.nuget.org; font-src 'self'; worker-src 'self'; connect-src 'self' https://api.raptorpanel.net wss://api.raptorpanel.net; frame-src https://verify.raptorpanel.net https://polar.sh; manifest-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; require-trusted-types-for 'script'
   Strict-Transport-Security: max-age=63072000; includeSubDomains
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

@@ -33,6 +33,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/modrinth"
 	"github.com/xena-studios/raptor/internal/panel/mojang"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
+	"github.com/xena-studios/raptor/internal/panel/nuget"
 	"github.com/xena-studios/raptor/internal/panel/orgs"
 	"github.com/xena-studios/raptor/internal/panel/staff"
 	"github.com/xena-studios/raptor/internal/panel/steam"
@@ -88,6 +89,8 @@ type Config struct {
 	UMod *umod.Client
 	// Factorio is Factorio's mod portal (nil: mods.factorio.com).
 	Factorio *factorio.Client
+	// NuGet is where OpenMod's plugins are (nil: nuget.org).
+	NuGet *nuget.Client
 	// Versions lists game software's versions (nil: their own APIs).
 	Versions *gameversions.Client
 	// Mojang looks Minecraft players up (nil: api.mojang.com).
@@ -189,6 +192,10 @@ func Handler(cfg Config) http.Handler {
 		if um == nil {
 			um = &umod.Client{UserAgent: ua}
 		}
+		ng := cfg.NuGet
+		if ng == nil {
+			ng = &nuget.Client{UserAgent: ua}
+		}
 		fa := cfg.Factorio
 		if fa == nil {
 			fa = &factorio.Client{UserAgent: ua}
@@ -206,7 +213,7 @@ func Handler(cfg Config) http.Handler {
 			mp = &modpacks.Client{UserAgent: ua}
 		}
 		// A lookup is up to 500 SHA-512s, with their SHA-256s.
-		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg, Steam: st, UMod: um, Factorio: fa, Versions: gv, Mojang: mj, Modpacks: mp, CurseForge: cfg.CurseForge}, opts(connect.WithReadMaxBytes(256<<10))...)
+		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg, Steam: st, UMod: um, Factorio: fa, Versions: gv, Mojang: mj, Modpacks: mp, CurseForge: cfg.CurseForge, NuGet: ng}, opts(connect.WithReadMaxBytes(256<<10))...)
 		api.Handle(path, handler)
 	}
 	if cfg.Orgs != nil {

@@ -62,7 +62,7 @@ const (
 )
 
 // DefaultHosts are where files may come from.
-var DefaultHosts = []string{ModrinthHost, HangarHost, UModHost, FactorioHost, CurseForgeHost, CurseForgeHost2}
+var DefaultHosts = []string{ModrinthHost, HangarHost, UModHost, FactorioHost, CurseForgeHost, CurseForgeHost2, NuGetHost}
 
 // ErrNoAccount is a download that needs an account the server hasn't set.
 var ErrNoAccount = errors.New("the mod portal needs your factorio.com username and token: set them in Startup first")
@@ -70,7 +70,7 @@ var ErrNoAccount = errors.New("the mod portal needs your factorio.com username a
 // Errors.
 var (
 	ErrNoAddon  = errors.New("this server's egg doesn't have that add-on")
-	ErrSource   = errors.New("add-ons are downloaded from Modrinth, Hangar, CurseForge, uMod, and Factorio's mod portal only")
+	ErrSource   = errors.New("add-ons are downloaded from Modrinth, Hangar, CurseForge, uMod, Factorio's mod portal, and NuGet only")
 	ErrHash     = errors.New("the download doesn't match the file its source lists; nothing was installed")
 	ErrName     = errors.New("that isn't an add-on file name")
 	ErrTooLarge = fmt.Errorf("add-on files are at most %d MiB", MaxFile>>20)
@@ -299,6 +299,9 @@ func (s *Service) Install(ctx context.Context, id, user string, p Install) (File
 	if err != nil || s.checkURL(u) != nil {
 		return File{}, ErrSource
 	}
+	if err := checkNuGetKind(p.Kind, u.Hostname()); err != nil {
+		return File{}, err
+	}
 	want, err := wantHash(u.Hostname(), p)
 	if err != nil {
 		return File{}, err
@@ -325,7 +328,11 @@ func (s *Service) Install(ctx context.Context, id, user string, p Install) (File
 		return File{}, err
 	}
 	tmp := path.Join(a.Dir, ".raptor-"+uuid.NewString()+".part")
-	if err := s.download(ctx, f, tmp, u, want); err != nil {
+	download := s.download
+	if p.Kind == KindOpenMod {
+		download = s.downloadNuGet
+	}
+	if err := download(ctx, f, tmp, u, want); err != nil {
 		_ = f.Remove(tmp)
 		return File{}, err
 	}
@@ -343,7 +350,11 @@ func (s *Service) Install(ctx context.Context, id, user string, p Install) (File
 	if err != nil {
 		return File{}, err
 	}
-	return File{Name: p.Filename, Size: fi.Size(), Modified: fi.ModTime().UnixMilli(), Sha512: p.Sha512, Sha256: p.Sha256, Sha1: p.Sha1}, nil
+	out := File{Name: p.Filename, Size: fi.Size(), Modified: fi.ModTime().UnixMilli(), Sha512: p.Sha512, Sha256: p.Sha256, Sha1: p.Sha1}
+	if p.Kind == KindOpenMod {
+		out.Sha512 = "" // the package's, not the assembly's: the listing has it
+	}
+	return out, nil
 }
 
 // withAccount adds the server's account (its variables named by the

@@ -50,6 +50,7 @@ func (s *servers) Egg(context.Context, string) (*eggs.Egg, error) {
 			Loaders: []string{"factorio"}, Dir: "mods",
 			Auth: &eggs.AddonAuth{Username: "SERVER_USERNAME", Token: "SERVER_TOKEN"},
 		},
+		"openmod": {Loaders: []string{"openmod"}, Dir: "Servers/Raptor/OpenMod/plugins"},
 	}}}, nil
 }
 

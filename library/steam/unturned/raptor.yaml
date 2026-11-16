@@ -7,6 +7,13 @@ credits:
   - "Icon: Unturned's logo, from its Steam store page (Smartly Dressed Games)"
 certified: true
 arch: [amd64]
+# OpenMod's plugins from NuGet (#415). They load from the server's folder
+# in Servers/, which is Servers/Raptor (SRV_ID can't be changed by users).
+# RocketMod's plugins have no registry with hashes, so they aren't offered.
+addons:
+  openmod:
+    loaders: [openmod]
+    dir: Servers/Raptor/OpenMod/plugins
 # Unturned can't pause saving, so a backup saves first and has nothing to undo.
 backup:
   pre: ["save"]

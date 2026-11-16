@@ -28,6 +28,9 @@ func (s *Addons) ResolveAddonDependencies(ctx context.Context, req *panelv1.Reso
 	if req.GetSource() == sourceCurseForge {
 		return s.resolveCurseForge(ctx, req)
 	}
+	if req.GetSource() == sourceNuGet {
+		return s.resolveNuGet(ctx, req)
+	}
 	if !projectRef.MatchString(req.GetVersionId()) {
 		return nil, invalid(errors.New("that isn't a version"))
 	}
