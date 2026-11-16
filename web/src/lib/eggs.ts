@@ -165,6 +165,17 @@ export const addonKinds: Record<
     dir: "BepInEx/plugins",
     capability: "addons-thunderstore",
   },
+  openmod: {
+    label: "OpenMod plugins",
+    tab: "Plugins",
+    noun: "plugin",
+    description:
+      "Find, install, and update Unturned's OpenMod plugins from NuGet, with the plugins they need. The server needs OpenMod on.",
+    loaders: ["openmod"],
+    dflt: ["openmod"],
+    dir: "Servers/Raptor/OpenMod/plugins",
+    capability: "addons-openmod",
+  },
 };
 
 // addonSources are where a kind's add-ons can come from, the default
@@ -174,6 +185,7 @@ export function addonSources(kind: string, loaders: string[], curseforge = false
   if (kind === "umod") return ["umod"];
   if (kind === "factorio") return ["factorio"];
   if (kind === "thunderstore") return ["thunderstore"];
+  if (kind === "openmod") return ["nuget"];
   const out = onHangar(kind, loaders) ? ["modrinth", "hangar"] : ["modrinth"];
   if (curseforge && onCurseForge(kind, loaders)) out.push("curseforge");
   return out;
@@ -215,9 +227,11 @@ export const sourceNames: Record<string, string> = {
   umod: "uMod",
   factorio: "the Factorio mod portal",
   thunderstore: "Thunderstore",
+  nuget: "NuGet",
 };
 
 const loaderNames: Record<string, string> = {
+  openmod: "OpenMod",
   oxide: "Oxide",
   bungeecord: "BungeeCord",
   neoforge: "NeoForge",

@@ -60,7 +60,7 @@ export function useInstalledAddons(
   );
   // uMod has no lookup by hash: its plugins are named by file, and
   // compared by SHA-1. Thunderstore's packages are named by version.
-  const byName = kind === "umod" || kind === "factorio";
+  const byName = kind === "umod" || kind === "factorio" || kind === "openmod";
   const names = addonNames(kind, files);
   const sha1 = byName
     ? Object.fromEntries(files.flatMap((f) => (f.sha512 && f.sha1 ? [[f.sha512, f.sha1]] : [])))

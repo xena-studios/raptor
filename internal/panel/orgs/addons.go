@@ -27,6 +27,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/modpacks"
 	"github.com/xena-studios/raptor/internal/panel/modrinth"
 	"github.com/xena-studios/raptor/internal/panel/mojang"
+	"github.com/xena-studios/raptor/internal/panel/nuget"
 	"github.com/xena-studios/raptor/internal/panel/reforger"
 	"github.com/xena-studios/raptor/internal/panel/steam"
 	"github.com/xena-studios/raptor/internal/panel/store"
@@ -52,6 +53,8 @@ type Addons struct {
 	CurseForge *curseforge.Client
 	// Thunderstore is Valheim's and V Rising's mods (#410).
 	Thunderstore *thunderstore.Client
+	// NuGet is where OpenMod's plugins are (#415).
+	NuGet *nuget.Client
 }
 
 // kindModpacks is the pack picker's kind (#413): Modrinth's modpacks,
@@ -176,8 +179,9 @@ func hangarPlatform(kind string, loaders []string) (string, error) {
 
 func checkSource(source string) error {
 	if source != "" && source != sourceModrinth && source != sourceHangar && source != sourceUMod && source != sourceFactorio &&
-		source != sourceFTB && source != sourceTechnic && source != sourceCurseForge && source != sourceThunderstore {
-		return invalid(errors.New("the source is modrinth, hangar, curseforge, umod, factorio, thunderstore, ftb, or technic"))
+		source != sourceFTB && source != sourceTechnic && source != sourceCurseForge && source != sourceThunderstore &&
+		source != sourceNuGet {
+		return invalid(errors.New("the source is modrinth, hangar, curseforge, umod, factorio, thunderstore, nuget, ftb, or technic"))
 	}
 	return nil
 }
@@ -330,6 +334,12 @@ func (s *Addons) SearchAddons(ctx context.Context, req *panelv1.SearchAddonsRequ
 		}
 		return out, nil
 	}
+	if ok, err := isNuGet(req.GetKind(), req.GetSource()); ok {
+		if err != nil {
+			return nil, err
+		}
+		return s.searchNuGet(ctx, query, offset)
+	}
 	if req.GetKind() == "umod" || req.GetSource() == sourceUMod {
 		if req.GetKind() != "umod" || req.GetSource() != sourceUMod {
 			return nil, invalid(errors.New("uMod has the umod kind's plugins, and only uMod has them"))
@@ -432,6 +442,9 @@ func (s *Addons) ListAddonVersions(ctx context.Context, req *panelv1.ListAddonVe
 	}
 	if req.GetSource() == sourceThunderstore {
 		return s.thunderstoreVersions(ctx, req)
+	}
+	if req.GetSource() == sourceNuGet {
+		return s.nugetVersions(ctx, req.GetProjectId())
 	}
 	if !projectRef.MatchString(req.GetProjectId()) {
 		return nil, invalid(errors.New("that isn't a project"))
@@ -573,6 +586,9 @@ func (s *Addons) IdentifyAddons(ctx context.Context, req *panelv1.IdentifyAddons
 		return nil, err
 	}
 	if err := s.identifyOnFactorio(ctx, req, out); err != nil {
+		return nil, err
+	}
+	if err := s.identifyOnNuGet(ctx, req, out); err != nil {
 		return nil, err
 	}
 	return out, nil

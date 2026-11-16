@@ -237,6 +237,10 @@ const (
 	// CDN, checked by the SHA-256 the Panel took), whose zips are unpacked
 	// one folder each.
 	CapAddonsThunderstore = "addons-thunderstore"
+	// CapAddonsOpenMod: the openmod add-on kind (Unturned's OpenMod plugins:
+	// NuGet packages from api.nuget.org, checked by SHA-512, with the
+	// plugin's assembly taken out).
+	CapAddonsOpenMod = "addons-openmod"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
@@ -245,7 +249,7 @@ var nodeCapabilities = []string{
 	CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal, CapDatabaseDocuments, CapDatabaseAlerts,
 	CapDatabaseSettings, CapDatabaseQueryStream, CapDatabaseInstanceBrowser, CapDatabaseRedisExternal,
 	CapDatabaseUsage, CapDatabaseShared, CapDatabaseInstanceBackups, CapRaptorEggs, CapAddonsUMod, CapAddonsFactorio,
-	CapAddonsCurseForge, CapAddonsThunderstore,
+	CapAddonsCurseForge, CapAddonsThunderstore, CapAddonsOpenMod,
 }
 
 // NewHello starts a handshake for a node.

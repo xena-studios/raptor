@@ -60,6 +60,15 @@ Valheim and V Rising servers get a **Mods** section for BepInEx mods from [Thund
 - Thunderstore doesn't publish hashes, so the Panel downloads the mod first and hashes it; the machine then downloads the same file from Thunderstore and keeps it only if it matches.
 - Each mod is unpacked into its own folder in `BepInEx/plugins`. **Remove** moves that folder to the trash; an update replaces it, with the old one in the trash.
 - Mods' settings are in `BepInEx/config` in the file manager, made when the server first starts with the mod.
+## Unturned plugins (OpenMod)
+
+Unturned servers get a **Plugins** tab for [OpenMod](https://openmod.github.io/openmod-docs/) plugins, which are published on [NuGet](https://www.nuget.org/packages?q=Tags%3A%22openmod-plugin%22).
+
+- Turn on **OpenMod** in Startup and restart first. Servers made before OpenMod was in the Unturned egg need a reinstall to download it (saves and configs stay). It can run beside RocketMod.
+- **Install** brings the plugins it needs with it. Each package is checked against the hash NuGet lists, and only the plugin itself is copied into `Servers/Raptor/OpenMod/plugins`, named after the package and version (`Kr4ken.NewEssentials@1.5.1.dll`).
+- Some plugins need libraries Raptor can't install (ones made of several files). The install dialog names them: run `openmod install <name>` in the console and OpenMod installs them itself.
+- **Installed** names the plugins Raptor installed and offers updates. DLLs you uploaded yourself show as added by hand; plugins from `openmod install` live in OpenMod's own `packages` folder and are managed with its commands.
+- RocketMod's plugins aren't offered: there's no central site with hashes to check them against. Upload those to `Servers/Raptor/Rocket/Plugins` in the file manager.
 
 ## Rust plugins (uMod)
 

@@ -114,6 +114,13 @@ export function AddonsPage({
   const framework = addon.dir_variable ? cfg.variables?.[addon.dir_variable] : undefined;
   return (
     <>
+      {kind === "openmod" && cfg.variables?.OPENMOD === "0" && (
+        <p className="mb-4 rounded-lg border px-3 py-2 text-sm">
+          OpenMod is off on this server, so its plugins don't load. Turn on <strong>OpenMod</strong>{" "}
+          in Startup and restart it (reinstall first if the server was made before OpenMod was in
+          its egg).
+        </p>
+      )}
       {kind === "umod" && framework === "vanilla" && (
         <p className="mb-4 rounded-lg border px-3 py-2 text-sm">
           This server runs vanilla Rust, which doesn't load plugins. Set{" "}
@@ -694,9 +701,9 @@ function InstallDialog({
   const [busy, setBusy] = useState(false);
   const list = versions.data?.versions ?? [];
   const v = list.find((x) => x.id === chosen) ?? list[0];
-  // What else it needs (Modrinth, Factorio, CurseForge, and Thunderstore
-  // list dependencies; Hangar's aren't read).
-  const resolves = ["modrinth", "factorio", "curseforge", "thunderstore"].includes(project.source);
+  // What else it needs (Modrinth, Factorio, CurseForge, Thunderstore, and
+  // NuGet list dependencies; Hangar's aren't read).
+  const resolves = resolvable(project.source);
   const deps = useQuery(
     AddonService.method.resolveAddonDependencies,
     {
@@ -818,6 +825,13 @@ function InstallDialog({
   );
 }
 
+// resolvable reports whether the Panel resolves a source's dependencies
+// (Modrinth's, Factorio's mod portal's, CurseForge's, Thunderstore's, and
+// NuGet's; Hangar's aren't read).
+function resolvable(source: string): boolean {
+  return ["modrinth", "factorio", "curseforge", "thunderstore", "nuget"].includes(source);
+}
+
 function filesOf(list: ResolvedAddon[]): InstallFile[] {
   return list.flatMap((r) =>
     r.version?.file ? [fileOf(r.version.file, r.project?.source, r.version.id)] : [],
@@ -881,6 +895,20 @@ function Dependencies({
           It also needs {data.unavailable.map((p) => p.title).join(", ")}, which can't be installed
           from here for this version: add {data.unavailable.length === 1 ? "it" : "them"} by hand,
           or it may not load.
+          {data.unavailable.some((p) => p.source === "nuget") && (
+            <>
+              {" "}
+              OpenMod can install {data.unavailable.length === 1 ? "it" : "them"} itself: in the
+              console, run{" "}
+              {data.unavailable.map((p, i) => (
+                <span key={p.id}>
+                  {i > 0 && ", "}
+                  <code className="font-mono text-xs">openmod install {p.slug}</code>
+                </span>
+              ))}
+              .
+            </>
+          )}
         </p>
       )}
       {!alone && optional && onOptional && data.optional.length > 0 && (
@@ -943,7 +971,9 @@ function NeedsDialog({
     loaders,
     gameVersion: version,
     installed,
-    source: ["factorio", "curseforge", "thunderstore"].includes(addon.project?.source ?? "")
+    source: ["factorio", "curseforge", "thunderstore", "nuget"].includes(
+      addon.project?.source ?? "",
+    )
       ? (addon.project?.source ?? "")
       : "",
   });

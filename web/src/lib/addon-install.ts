@@ -38,7 +38,11 @@ type Listed = { name: string; sha512?: string; sha1?: string; package?: string }
 // Thunderstore version Wings unpacked into each folder.
 export function addonNames(kind: string, files: Listed[]): Record<string, string> {
   const name = (f: Listed) =>
-    kind === "thunderstore" ? f.package : kind === "umod" || kind === "factorio" ? f.name : "";
+    kind === "thunderstore"
+      ? f.package
+      : kind === "umod" || kind === "factorio" || kind === "openmod"
+        ? f.name
+        : "";
   return Object.fromEntries(
     files.flatMap((f) => {
       const n = name(f);
