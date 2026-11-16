@@ -4,6 +4,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { ServerAddress } from "@/components/address";
 import { ChartSubject } from "@/components/chart-export";
 import { JavaFix } from "@/components/java-fix";
+import { NeedsAttention } from "@/components/needs-attention";
 import { DetailList } from "@/components/page";
 import { PopoutButton } from "@/components/popout";
 import { ProblemHint } from "@/components/problem-hint";
@@ -58,29 +59,37 @@ function Overview() {
 
   return (
     <div className="flex flex-col gap-6">
-      {problem?.kind === "hint" && (!running || problem.whileRunning) && (
-        <ProblemHint
-          problem={problem}
-          orgId={orgId}
-          serverId={serverId}
-          onDismiss={() => {
-            dismissed.current = problem.line;
-            setProblem(undefined);
-          }}
-        />
-      )}
-      {problem?.kind === "java" && !running && (
-        <JavaFix
-          problem={problem}
-          orgId={orgId}
-          nodeId={nodeId}
-          serverId={serverId}
-          userId={session.user?.id ?? ""}
-          canChange={can(server, "startup")}
-          canStart={can(server, "power")}
-          onDone={() => setProblem(undefined)}
-        />
-      )}
+      <NeedsAttention
+        orgId={orgId}
+        nodeId={nodeId}
+        serverId={serverId}
+        server={server}
+        node={node}
+        console={
+          problem?.kind === "hint" && (!running || problem.whileRunning) ? (
+            <ProblemHint
+              problem={problem}
+              orgId={orgId}
+              serverId={serverId}
+              onDismiss={() => {
+                dismissed.current = problem.line;
+                setProblem(undefined);
+              }}
+            />
+          ) : problem?.kind === "java" && !running ? (
+            <JavaFix
+              problem={problem}
+              orgId={orgId}
+              nodeId={nodeId}
+              serverId={serverId}
+              userId={session.user?.id ?? ""}
+              canChange={can(server, "startup")}
+              canStart={can(server, "power")}
+              onDone={() => setProblem(undefined)}
+            />
+          ) : undefined
+        }
+      />
       <ServerStats metrics={live.data} running={running && !!node?.connected} />
 
       <div className="grid items-start gap-6 lg:grid-cols-3">
