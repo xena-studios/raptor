@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/apprise-api/egg-apprise-api.json
+license: MIT
+credits:
+  - "Written for Raptor from Apprise API's own documentation and Docker setup (https://github.com/caronc/apprise-api, MIT)"
+  - "Icon: the Apprise logo, from https://github.com/caronc/apprise-api (MIT)"
+certified: true
+arch: [amd64, arm64]
+test:
+  # The first start installs its Python packages.
+  tier: fast
+  memory_mib: 512
+  done_timeout: 10m
+  variables:
+    APPRISE_PASSWORD: "raptor-test-pw"

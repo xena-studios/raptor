@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Headscale",
+    "author": "support@raptorpanel.net",
+    "description": "A self-hosted control server for Tailscale clients, with its database in SQLite. Headscale's commands, such as creating users and keys, are typed in the console.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "site=\"{{SERVER_URL}}\"; if [ -z \"$site\" ]; then case \"${SERVER_IP:-}\" in \"\"|0.0.0.0) site=\"http://localhost:{{SERVER_PORT}}\" ;; *) site=\"http://${SERVER_IP}:{{SERVER_PORT}}\" ;; esac; fi; export HEADSCALE_SERVER_URL=\"$site\" HEADSCALE_DISABLE_CHECK_UPDATES=$([ \"{{UPDATE_CHECK}}\" = 1 ] && echo false || echo true); mkdir -p data; (trap - INT TERM; exec ./headscale -c config.yaml serve) & pid=$!; trap 'kill -TERM $pid 2>/dev/null; wait $pid; exit' INT TERM; echo \"Type Headscale commands in the console, such as: users create alice, or: preauthkeys create --user 1\"; while kill -0 $pid 2>/dev/null; do read -r -t 2 -a a; rc=$?; if [ $rc -gt 128 ]; then continue; elif [ $rc != 0 ]; then break; fi; case \"${a[0]:-}\" in \"\") ;; stop) kill -TERM $pid; break ;; headscale) ./headscale -c config.yaml \"${a[@]:1}\" </dev/null ;; *) ./headscale -c config.yaml \"${a[@]}\" </dev/null ;; esac; done; wait $pid",
+    "config": {
+        "files": "{\"config.yaml\": {\"parser\": \"yaml\", \"find\": {\"listen_addr\": \"0.0.0.0:{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": [\"regex:listening and serving HTTP on\"]}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Headscale: downloads the release for the chosen version from GitHub\n# (checked against GitHub's checksum) and writes a first config.yaml from\n# that release's example. config.yaml, the policy and the data folder (the\n# database and the server's keys) are never touched; only the program is\n# replaced, once the new one has arrived.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Headscale has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nwant=\"${VERSION:-latest}\"\ntag=latest\nif [ \"$want\" != latest ]; then tag=\"v${want#v}\"; fi\ntag=$(gh-release tag juanfont/headscale \"$tag\") || fail \"Headscale has no version $want. Set Version to latest, or to a release such as 0.29.7, then reinstall.\"\nversion=\"${tag#v}\"\n\nif [ -x headscale ] && ./headscale version 2>/dev/null | grep -q \"version v$version$\"; then\n    echo \"Headscale $version is already installed.\"\nelse\n    echo \"Downloading Headscale $version\"\n    gh-release download juanfont/headscale \"$tag\" \"headscale_${version}_linux_$arch\" \"$work/headscale\" || fail \"Headscale $version has no download for this CPU.\"\n    chmod +x \"$work/headscale\"\n    mv -f \"$work/headscale\" headscale\nfi\n\nmkdir -p data\n# A first configuration from Headscale's own example for this version:\n# files in data/, the port Raptor gives it, metrics and the API on the\n# loopback only, and no update checks (the startup sets that and the\n# public address from the server's settings).\nif [ ! -f config.yaml ]; then\n    curl -fsSL -o \"$work/config.yaml\" \"https://raw.githubusercontent.com/juanfont/headscale/$tag/config-example.yaml\" ||\n        fail \"Headscale's example configuration couldn't be downloaded. Reinstall to try again.\"\n    sed -e 's|/var/lib/headscale/|/home/container/data/|g' \\\n        -e 's|/var/run/headscale/headscale.sock|/home/container/data/headscale.sock|' \\\n        -e 's|^listen_addr: .*|listen_addr: 0.0.0.0:8080|' \\\n        -e 's|^disable_check_updates: .*|disable_check_updates: true|' \\\n        \"$work/config.yaml\" > config.yaml.new\n    grep -q '^listen_addr: 0.0.0.0:8080$' config.yaml.new && grep -q '^unix_socket: /home/container/data/headscale.sock' config.yaml.new &&\n        ! grep -q /var/lib/headscale config.yaml.new ||\n        fail \"Headscale's example configuration has changed shape, so config.yaml couldn't be written. Report this to Raptor.\"\n    mv config.yaml.new config.yaml\n    echo \"Wrote a first config.yaml.\"\nfi\necho \"Installed Headscale $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Headscale version to install, such as 0.29.7, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Address",
+            "description": "The public address Tailscale clients connect to, starting with http or https (https behind a reverse proxy for real use). Empty uses the server's IP and port.",
+            "env_variable": "SERVER_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^https?:\\/\\/[^\\s\\\"]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Check for updates",
+            "description": "Let Headscale check GitHub for new versions and say so in the console.",
+            "env_variable": "UPDATE_CHECK",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}

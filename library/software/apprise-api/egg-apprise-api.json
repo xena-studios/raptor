@@ -1,0 +1,72 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Apprise API",
+    "author": "support@raptorpanel.net",
+    "description": "A web service and API that sends notifications to over 100 services, such as Discord, Telegram, email and Slack, from saved configurations or one-off requests. It needs a login.",
+    "features": [],
+    "docker_images": {
+        "Python 3.13": "ghcr.io/xena-studios/yolks:python_3.13@sha256:72e9beb9618e5ebecf1d3211271308dc506ada537fa458911b866a23c787e617",
+        "Python 3.12": "ghcr.io/xena-studios/yolks:python_3.12@sha256:7cebda1186da0e0830d7947537d488e8d0f039249a70391c907ceac92fb0ce76"
+    },
+    "file_denylist": [],
+    "startup": "h=$( (python3 --version; cat .apprise-version app/requirements.txt) | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat .venv/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing Apprise API's Python packages\"; rm -rf .venv; python3 -m venv .venv && .venv/bin/pip install -q --no-cache-dir --disable-pip-version-check -r app/requirements.txt whitenoise polib && (cd app && ../.venv/bin/python apprise_translations.py >/dev/null) && echo \"$h\" > .venv/.raptor-installed || exit 1; fi; pw=\"{{APPRISE_PASSWORD}}\"; if [ -z \"$pw\" ]; then [ -s admin-password.txt ] || (umask 077; head -c 18 /dev/urandom | base64 | tr -d \"\\n/+=\" > admin-password.txt); pw=$(cat admin-password.txt); echo \"Admin password is empty, so the account {{APPRISE_USER}} has the password in admin-password.txt.\"; fi; export SECRET_KEY=\"$(cat .secret-key)\" APPRISE_PASSWORD=\"$pw\" APPRISE_AUTH_REQUIRED=yes DEBUG=no ALLOWED_HOSTS=\"*\" PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 APPRISE_CONFIG_DIR=/home/container/config APPRISE_STORAGE_DIR=/home/container/config/store APPRISE_ATTACH_DIR=/home/container/attach APPRISE_PLUGIN_PATHS=/home/container/plugin; cd app && exec ../.venv/bin/gunicorn -c gunicorn.conf.py --pythonpath /home/container/app --bind 0.0.0.0:{{SERVER_PORT}} --workers {{APPRISE_WORKER_COUNT}} --worker-tmp-dir /tmp --log-level info raptor_wsgi:application",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Listening at: http\"]}",
+        "logs": "{}",
+        "stop": "^SIGTERM"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Apprise API: downloads the chosen Apprise API release's source from GitHub\n# into app/, and makes the server's own secret key once. Its Python packages\n# are installed when the server starts, for the Python version it runs.\n# The saved configurations (config/), attachments, plugins and the secret\n# key are never touched; app/ is only replaced once the new one is unpacked.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\n\nwant=\"${VERSION:-latest}\"\n[ \"$want\" = latest ] || want=\"v${want#v}\"\ntag=$(gh-release tag caronc/apprise-api \"$want\") || fail \"Apprise API has no version ${VERSION:-latest}. Set Version to latest, or to a release such as 2.1.0, then reinstall.\"\n\nif [ -f app/manage.py ] && [ \"$(cat .apprise-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Apprise API $tag is already installed.\"\nelse\n    echo \"Downloading Apprise API $tag\"\n    curl -fsSL --retry 3 -o \"$work/src.tar.gz\" \"https://github.com/caronc/apprise-api/archive/refs/tags/$tag.tar.gz\" ||\n        fail \"The download failed. Reinstall to try again.\"\n    tar -xzf \"$work/src.tar.gz\" -C \"$work\" --strip-components=1\n    [ -f \"$work/apprise_api/manage.py\" ] && [ -f \"$work/requirements.txt\" ] || fail \"The download isn't Apprise API's source. Reinstall to try again.\"\n    cp \"$work/requirements.txt\" \"$work/apprise_api/requirements.txt\"\n    rm -rf app.old\n    [ ! -d app ] || mv app app.old\n    mv \"$work/apprise_api\" app\n    rm -rf app.old\n    echo \"$tag\" > .apprise-version\nfi\n\n# The release runs behind nginx, which serves its static files; here\n# gunicorn serves them itself, through WhiteNoise.\ncat > app/raptor_wsgi.py <<'PY'\n# Written by Raptor's install: Apprise API with its static files served by\n# WhiteNoise instead of nginx.\nimport os\nfrom core.wsgi import application as app\nfrom whitenoise import WhiteNoise\n\napplication = WhiteNoise(app, root=os.path.join(os.path.dirname(__file__), \"static\"), prefix=\"s/\")\nPY\n\nmkdir -p config/store attach plugin\n# Django's secret key (it also names saved configurations), made here once.\nif [ ! -s .secret-key ]; then\n    head -c 48 /dev/urandom | base64 | tr -d '\\n' > .secret-key\n    chmod 600 .secret-key\nfi\necho \"Installed Apprise API $tag (its Python packages are installed when the server starts).\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Apprise API version to install, such as 2.1.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin username",
+            "description": "The username for the web interface and API.",
+            "env_variable": "APPRISE_USER",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9._@-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The password for the web interface and API. Leave it empty to use a random one, saved in admin-password.txt.",
+            "env_variable": "APPRISE_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100|regex:/^\\S+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Workers",
+            "description": "How many web worker processes to run.",
+            "env_variable": "APPRISE_WORKER_COUNT",
+            "default_value": "2",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,16",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/radicale/egg-radicale.json
+license: MIT
+credits:
+  - "Written for Raptor from Radicale's own documentation (https://github.com/Kozea/Radicale, GPL-3.0)"
+  - "Icon: the Radicale logo, from https://github.com/Kozea/Radicale (GPL-3.0)"
+certified: true
+arch: [amd64, arm64]
+test:
+  # The first start installs Radicale from PyPI.
+  tier: fast
+  memory_mib: 256
+  done_timeout: 5m
+  variables:
+    ADMIN_PASSWORD: "raptor-test-pw"
+  config:
+    config: "hosts = 0.0.0.0:{{port}}"

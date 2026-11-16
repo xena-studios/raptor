@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "SilverBullet",
+    "author": "support@raptorpanel.net",
+    "description": "A Markdown notes app in the browser, programmable with Lua and queries, that works offline. Sets up a first space and an admin account; more spaces and accounts are made in its dashboard.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "if [ ! -f data/server.json ]; then pw=\"{{ADMIN_PASSWORD}}\"; if [ -z \"$pw\" ]; then (umask 077; head -c 18 /dev/urandom | base64 | tr -d \"\\n/+=\" > admin-password.txt); pw=$(cat admin-password.txt); echo \"Admin password is empty, so the admin account ({{ADMIN_USER}}) has the password in admin-password.txt.\"; fi; ./silverbullet setup --admin \"{{ADMIN_USER}}:$pw\" --space Notes data || exit 1; fi; exec ./silverbullet --hostname 0.0.0.0 --port {{SERVER_PORT}} data",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"server running: http\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# SilverBullet: downloads the server release for the chosen version from\n# GitHub (checked against GitHub's checksum). The data folder (your spaces,\n# accounts and settings) is never touched; only the program is replaced,\n# once the new one has arrived. The admin account is made at the first\n# start.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\n    x86_64) arch=x86_64 ;;\n    aarch64) arch=aarch64 ;;\n    *) fail \"SilverBullet has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nwant=\"${VERSION:-latest}\"\ntag=$(gh-release tag silverbulletmd/silverbullet \"${want#v}\") || fail \"SilverBullet has no version $want. Set Version to latest, or to a release such as 2.12.1, then reinstall.\"\nversion=\"${tag#v}\"\n\nif [ -x silverbullet ] && ./silverbullet version 2>/dev/null | grep -q \"^$version-\"; then\n    echo \"SilverBullet $version is already installed.\"\nelse\n    echo \"Downloading SilverBullet $version\"\n    gh-release download silverbulletmd/silverbullet \"$tag\" \"silverbullet-server-linux-$arch.zip\" \"$work/sb.zip\" ||\n        fail \"SilverBullet $version has no server download for this CPU (versions before 2.0 had none).\"\n    unzip -q -o \"$work/sb.zip\" -d \"$work/x\"\n    [ -f \"$work/x/silverbullet\" ] || fail \"The download isn't SilverBullet. Reinstall to try again.\"\n    chmod +x \"$work/x/silverbullet\"\n    mv -f \"$work/x/silverbullet\" silverbullet\nfi\nmkdir -p data\necho \"Installed SilverBullet $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The SilverBullet version to install, such as 2.12.1, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin username",
+            "description": "The admin account's username, made at the first start.",
+            "env_variable": "ADMIN_USER",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9._-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The admin account's password, used only at the first start. Leave it empty to use a random one, saved in admin-password.txt.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100|regex:/^\\S+$/",
+            "field_type": "text"
+        }
+    ]
+}

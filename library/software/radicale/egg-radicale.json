@@ -1,0 +1,62 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Radicale",
+    "author": "support@raptorpanel.net",
+    "description": "A small CalDAV and CardDAV server for calendars, contacts and to-do lists, kept as plain files. Accounts are in a password file, starting with an admin account made at the first start.",
+    "features": [],
+    "docker_images": {
+        "Python 3.14": "ghcr.io/xena-studios/yolks:python_3.14@sha256:fb52a42f00788ae6bf2b1dca5ab499e325a737c20aab9a6f8c9f800c9fced225",
+        "Python 3.13": "ghcr.io/xena-studios/yolks:python_3.13@sha256:72e9beb9618e5ebecf1d3211271308dc506ada537fa458911b866a23c787e617"
+    },
+    "file_denylist": [],
+    "startup": "v=$(cat .radicale-version); h=$( (python3 --version; echo \"$v\") | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat .venv/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing Radicale $v\"; rm -rf .venv; python3 -m venv .venv && .venv/bin/pip install -q --no-cache-dir --disable-pip-version-check \"radicale[bcrypt]==$v\" && echo \"$h\" > .venv/.raptor-installed || exit 1; fi; if [ ! -f .raptor-admin ]; then pw=\"{{ADMIN_PASSWORD}}\"; if [ -z \"$pw\" ]; then (umask 077; head -c 18 /dev/urandom | base64 | tr -d \"\\n/+=\" > admin-password.txt); pw=$(cat admin-password.txt); echo \"Admin password is empty, so the account {{ADMIN_USER}} has the password in admin-password.txt.\"; fi; RU=\"{{ADMIN_USER}}\" RP=\"$pw\" .venv/bin/python -c 'import bcrypt, os, sys; u, p = os.environ[\"RU\"], os.environ[\"RP\"]; lines = open(\"users\").read().splitlines(); sys.exit(0) if any(l.split(\":\", 1)[0] == u for l in lines) else open(\"users\", \"a\").write(u + \":\" + bcrypt.hashpw(p.encode(), bcrypt.gensalt()).decode() + \"\\n\")' && touch .raptor-admin || exit 1; fi; exec .venv/bin/python -m radicale --config config",
+    "config": {
+        "files": "{\"config\": {\"parser\": \"ini\", \"find\": {\"server.hosts\": \"0.0.0.0:{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": [\"Radicale server ready\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Radicale: picks the chosen Radicale version from PyPI and writes a first\n# configuration. Radicale itself is installed from PyPI when the server\n# starts, for the Python version it runs. The settings (config), the users\n# file and the calendars and address books (collections/) are never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n\nwant=\"${VERSION:-latest}\"\njson=$(curl -fsSL --retry 3 https://pypi.org/pypi/radicale/json) || fail \"PyPI can't be reached right now. Reinstall to try again.\"\nif [ \"$want\" = latest ]; then\n    version=$(jq -r .info.version <<<\"$json\")\nelse\n    version=\"${want#v}\"\n    jq -e --arg v \"$version\" '.releases[$v] | length > 0' <<<\"$json\" >/dev/null ||\n        fail \"Radicale has no version $want. Set Version to latest, or to a release such as 3.9.1, then reinstall.\"\n    case \"$version\" in 3.*) ;; *) fail \"This egg runs Radicale 3 only. Set Version to latest, or to a release such as 3.9.1.\" ;; esac\nfi\necho \"$version\" > .radicale-version\n\nmkdir -p collections\n[ -f users ] || { touch users; chmod 600 users; }\nif [ ! -f config ]; then\n    cat > config <<'CONF'\n# Radicale's settings: https://radicale.org/v3.html#configuration\n[server]\n# Raptor sets this to the server's port at every start.\nhosts = 0.0.0.0:5232\n\n[auth]\n# Accounts are in the users file, one \"name:bcrypt hash\" per line. Raptor\n# adds the admin account from the server's settings at the first start.\ntype = htpasswd\nhtpasswd_filename = /home/container/users\nhtpasswd_encryption = autodetect\n# Wait a little after a wrong password, to slow down guessing.\ndelay = 2\n\n[rights]\n# Each user sees only their own calendars and address books.\ntype = owner_only\n\n[storage]\nfilesystem_folder = /home/container/collections\n\n[logging]\nlevel = info\nCONF\n    echo \"Wrote a first config.\"\nfi\necho \"Selected Radicale $version (it's installed from PyPI when the server starts).\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Radicale version to install, such as 3.9.1, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin username",
+            "description": "The first account's username, made at the first start. Add more accounts to the users file.",
+            "env_variable": "ADMIN_USER",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9._@-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The first account's password, used only at the first start. Leave it empty to use a random one, saved in admin-password.txt.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100|regex:/^\\S+$/",
+            "field_type": "text"
+        }
+    ]
+}
