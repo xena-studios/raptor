@@ -24,7 +24,16 @@ function AddonsLayout() {
       {sections.length > 1 && (
         <nav aria-label="Add-on sections" className="flex flex-wrap gap-1">
           {sections.map((s) =>
-            s.key === "workshop" ? (
+            s.key === "bedrock" ? (
+              <Link
+                key={s.key}
+                to="/orgs/$orgId/servers/$serverId/addons/bedrock"
+                params={params}
+                className={pill}
+              >
+                {s.label}
+              </Link>
+            ) : s.key === "workshop" ? (
               <Link
                 key={s.key}
                 to="/orgs/$orgId/servers/$serverId/addons/workshop"

@@ -40,6 +40,11 @@ export function useAddonSections(
         out.push({ key: k, label: meta.tab });
       }
     }
+    // Bedrock's packs: Mojang's server and Endstone, which runs it.
+    const bedrock =
+      /^minecraft\/(bedrock|endstone)$/.test(server?.eggSource ?? "") ||
+      /^Minecraft: (Bedrock|Endstone)$/.test(server?.eggName ?? "");
+    if (bedrock && can(server, "files.read")) out.push({ key: "bedrock", label: "Packs" });
     if (cfg?.egg?.workshop && can(server, "startup"))
       out.push({ key: "workshop", label: "Workshop" });
     return out;
