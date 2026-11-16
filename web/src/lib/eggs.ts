@@ -1,6 +1,6 @@
 import { create } from "@bufbuild/protobuf";
 
-import type { CatalogEgg, EggVariable } from "@/gen/raptor/panel/v1/catalog_pb";
+import type { EggVariable } from "@/gen/raptor/panel/v1/catalog_pb";
 import { type EggSpec, EggSpecSchema } from "@/gen/raptor/panel/v1/egg_pb";
 
 export * from "./egg-rules";
@@ -54,27 +54,9 @@ export const statusNames: Record<string, string> = {
   archived: "Archived",
 };
 
-// official reports whether an egg is Raptor's.
-function official(e: CatalogEgg): boolean {
-  return e.scope === "official";
-}
-
 export function usage(n: number): string {
   if (n === 0) return "Unused";
   return n === 1 ? "1 server" : `${n} servers`;
-}
-
-// sortEggs puts the org's own first, then Raptor's, certified first, then by
-// name; published before drafts, archived last.
-export function sortEggs(list: CatalogEgg[]): CatalogEgg[] {
-  const rank = { published: 0, draft: 1, archived: 2 } as Record<string, number>;
-  return [...list].sort(
-    (a, b) =>
-      Number(official(a)) - Number(official(b)) ||
-      (rank[a.status] ?? 0) - (rank[b.status] ?? 0) ||
-      Number(b.certified) - Number(a.certified) ||
-      a.name.localeCompare(b.name),
-  );
 }
 
 // ─── Add-ons ────────────────────────────────────────────────────────────────
