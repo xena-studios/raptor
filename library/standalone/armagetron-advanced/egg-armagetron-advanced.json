@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Armagetron Advanced",
+    "author": "support@raptorpanel.net",
+    "description": "The 3D light-cycle racing game: trap the other players behind your wall. Runs the dedicated server, with its console for commands and your own settings in settings/autoexec.cfg.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "export LD_LIBRARY_PATH=./lib; exec games/armagetronad-dedicated --datadir \"$PWD/data\" --configdir \"$PWD/config\" --userconfigdir \"$PWD/settings\" --vardir \"$PWD/var\"",
+    "config": {
+        "files": "{\"settings/server_info.cfg\": {\"parser\": \"file\", \"find\": {\"SERVER_PORT \": \"SERVER_PORT {{server.build.default.port}}\", \"SERVER_NAME \": \"SERVER_NAME {{server.build.env.SERVER_NAME}}\", \"MAX_CLIENTS \": \"MAX_CLIENTS {{server.build.env.MAX_PLAYERS}}\", \"TALK_TO_MASTER \": \"TALK_TO_MASTER {{server.build.env.PUBLIC}}\"}}}",
+        "startup": "{\"done\": \"Nobody there. Taking a nap\"}",
+        "logs": "{}",
+        "stop": "QUIT"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Armagetron Advanced. Installs the dedicated server from Debian 13's\n# armagetronad-dedicated package (Armagetron publishes Linux servers only\n# for x86), checked against Debian's signed package list, for this node's\n# CPU. Your settings (settings/autoexec.cfg), and the logs, ladder and\n# scores in var/ are never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\nrm -rf \"$build\" && mkdir -p \"$build/root\"\ntrap 'rm -rf \"$build\"' EXIT\n\n# Debian 13's packages, checked against Debian's signed package list.\ndebian_index() { # <cpu>: Debian's list of packages for that CPU (amd64, arm64)\n    local f=\"main/binary-$1/Packages.xz\" sum\n    curl -fsSL --retry 3 -o \"$build/InRelease\" https://deb.debian.org/debian/dists/trixie/InRelease ||\n        fail \"Debian's archive can't be reached right now. Reinstall to try again.\"\n    gpgv --keyring /usr/share/keyrings/debian-archive-keyring.gpg --output \"$build/Release\" \"$build/InRelease\" 2>/dev/null ||\n        fail \"Debian's package list isn't signed by Debian. Reinstall to try again.\"\n    sum=$(awk -v f=\"$f\" 'length($1) == 64 && $3 == f { print $1 }' \"$build/Release\")\n    curl -fsSL --retry 3 -o \"$build/Packages.xz\" \"https://deb.debian.org/debian/dists/trixie/$f\" ||\n        fail \"Debian's archive can't be reached right now. Reinstall to try again.\"\n    [ -n \"$sum\" ] && [ \"$(sha256sum \"$build/Packages.xz\" | cut -d' ' -f1)\" = \"$sum\" ] ||\n        fail \"Debian's package list didn't match its checksum. Reinstall to try again.\"\n    xz -d \"$build/Packages.xz\"\n}\ndebian_version() { # <package>: its version in the list\n    awk -v p=\"$1\" '/^Package: / { n = $2 } n == p && /^Version: / { print $2; exit }' \"$build/Packages\"\n}\ndebian_unpack() { # <package>...: downloads each, checks it, and unpacks it into $build/root\n    local p file sum\n    for p in \"$@\"; do\n        read -r file sum < <(awk -v p=\"$p\" '/^Package: / { n = $2 } n == p && /^Filename: / { f = $2 } n == p && /^SHA256: / { s = $2 }\n            /^$/ { if (n == p && f != \"\") { print f, s; exit } n = \"\" }' \"$build/Packages\") || true\n        [ -n \"${file:-}\" ] || fail \"Debian has no package $p for this CPU.\"\n        curl -fsSL --retry 3 -o \"$build/$p.deb\" \"https://deb.debian.org/debian/$file\" ||\n            fail \"The download of $p from Debian failed. Reinstall to try again.\"\n        [ \"$(sha256sum \"$build/$p.deb\" | cut -d' ' -f1)\" = \"$sum\" ] || fail \"$p from Debian didn't match its checksum. Reinstall to try again.\"\n        dpkg-deb -x \"$build/$p.deb\" \"$build/root\"\n    done\n}\n\ncpu=$(dpkg --print-architecture)\ndebian_index \"$cpu\"\nversion=\"$(debian_version armagetronad-dedicated) $(debian_version libxml2)\"\nv=${version%%-*}\nif [ -x games/armagetronad-dedicated ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"Armagetron Advanced $v is already installed.\"\nelse\n    echo \"Downloading Armagetron Advanced $v from Debian\"\n    debian_unpack armagetronad-dedicated armagetronad-common libxml2\n    r=\"$build/root\"\n    mkdir -p lib\n    cp -a \"$r\"/usr/lib/*-linux-gnu/libxml2.so.2* lib/\n    # The game's own data and default settings, replaced on every update.\n    rm -rf data config\n    mv \"$r/usr/share/games/armagetronad\" data\n    cp -aL \"$r/etc/armagetronad\" config\n    # In games/, where it expects to be (it works out its folders from there).\n    mkdir -p games\n    mv -f \"$r/usr/games/armagetronad-dedicated.real\" games/armagetronad-dedicated\n    echo \"$version\" > .raptor-version\nfi\n\nmkdir -p settings var\n# The lines the Panel sets from the server's variables at every start.\ncat > settings/server_info.cfg <<'CFG'\n# Set from the server's variables at every start: change them in the Panel.\nSERVER_PORT 4534\nSERVER_NAME Armagetron Advanced server\nMAX_CLIENTS 16\nTALK_TO_MASTER 1\nCFG\nif [ ! -f settings/autoexec.cfg ]; then\n    cat > settings/autoexec.cfg <<'CFG'\n# Your settings, read after the game's defaults (config/settings.cfg and\n# config/settings_dedicated.cfg list them all). One setting per line, such\n# as:\n# CYCLE_SPEED 30\n# MESSAGE_OF_DAY Welcome!\nCFG\nfi\necho \"Installed Armagetron Advanced $v.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server name",
+            "description": "The name players see in the server browser.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "An Armagetron Advanced server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:60",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can join at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "16",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Public",
+            "description": "List the server in the in-game server browser.",
+            "env_variable": "PUBLIC",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}

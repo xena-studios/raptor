@@ -1,0 +1,101 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "BZFlag",
+    "author": "support@raptorpanel.net",
+    "description": "The classic 3D tank battle game. Runs bzfs with capture the flag, free-for-all or rabbit chase, on a random world or a map of your own, with BZFlag's plugins ready to load.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "export LD_LIBRARY_PATH=./lib; s=; case \"{{GAME_STYLE}}\" in ctf) s=-c ;; offa) s=-offa ;; rabbit) s=-rabbit ;; esac; exec ./bzfs -d -p {{SERVER_PORT}} -conf bzfs.conf -mp {{MAX_PLAYERS}} $s ${WORLD:+-world \"$WORLD\"} ${ADMIN_PASSWORD:+-passwd \"$ADMIN_PASSWORD\"} ${PUBLIC_KEY:+-publictitle \"$SERVER_NAME\" -publickey \"$PUBLIC_KEY\" -publicaddr \"${PUBLIC_ADDRESS:-$SERVER_IP}:$SERVER_PORT\"}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"listening on \"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# BZFlag. Installs bzfs, BZFlag's server, with its plugins from Debian 13's\n# bzflag-server package (BZFlag doesn't publish Linux builds of its own),\n# checked against Debian's signed package list, for this node's CPU.\n# bzfs.conf, your maps and the ban list are never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\nrm -rf \"$build\" && mkdir -p \"$build/root\"\ntrap 'rm -rf \"$build\"' EXIT\n\n# Debian 13's packages, checked against Debian's signed package list.\ndebian_index() { # <cpu>: Debian's list of packages for that CPU (amd64, arm64)\n    local f=\"main/binary-$1/Packages.xz\" sum\n    curl -fsSL --retry 3 -o \"$build/InRelease\" https://deb.debian.org/debian/dists/trixie/InRelease ||\n        fail \"Debian's archive can't be reached right now. Reinstall to try again.\"\n    gpgv --keyring /usr/share/keyrings/debian-archive-keyring.gpg --output \"$build/Release\" \"$build/InRelease\" 2>/dev/null ||\n        fail \"Debian's package list isn't signed by Debian. Reinstall to try again.\"\n    sum=$(awk -v f=\"$f\" 'length($1) == 64 && $3 == f { print $1 }' \"$build/Release\")\n    curl -fsSL --retry 3 -o \"$build/Packages.xz\" \"https://deb.debian.org/debian/dists/trixie/$f\" ||\n        fail \"Debian's archive can't be reached right now. Reinstall to try again.\"\n    [ -n \"$sum\" ] && [ \"$(sha256sum \"$build/Packages.xz\" | cut -d' ' -f1)\" = \"$sum\" ] ||\n        fail \"Debian's package list didn't match its checksum. Reinstall to try again.\"\n    xz -d \"$build/Packages.xz\"\n}\ndebian_version() { # <package>: its version in the list\n    awk -v p=\"$1\" '/^Package: / { n = $2 } n == p && /^Version: / { print $2; exit }' \"$build/Packages\"\n}\ndebian_unpack() { # <package>...: downloads each, checks it, and unpacks it into $build/root\n    local p file sum\n    for p in \"$@\"; do\n        read -r file sum < <(awk -v p=\"$p\" '/^Package: / { n = $2 } n == p && /^Filename: / { f = $2 } n == p && /^SHA256: / { s = $2 }\n            /^$/ { if (n == p && f != \"\") { print f, s; exit } n = \"\" }' \"$build/Packages\") || true\n        [ -n \"${file:-}\" ] || fail \"Debian has no package $p for this CPU.\"\n        curl -fsSL --retry 3 -o \"$build/$p.deb\" \"https://deb.debian.org/debian/$file\" ||\n            fail \"The download of $p from Debian failed. Reinstall to try again.\"\n        [ \"$(sha256sum \"$build/$p.deb\" | cut -d' ' -f1)\" = \"$sum\" ] || fail \"$p from Debian didn't match its checksum. Reinstall to try again.\"\n        dpkg-deb -x \"$build/$p.deb\" \"$build/root\"\n    done\n}\n\ncpu=$(dpkg --print-architecture)\ndebian_index \"$cpu\"\nversion=\"$(debian_version bzflag-server) $(debian_version libcares2)\"\nif [ -x bzfs ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"BZFlag ${version%%-*} is already installed.\"\nelse\n    echo \"Downloading BZFlag ${version%%-*} from Debian\"\n    debian_unpack bzflag-server libcares2\n    r=\"$build/root\"\n    mkdir -p lib\n    cp -a \"$r\"/usr/lib/*-linux-gnu/libcares.so.2* lib/\n    rm -rf plugins && cp -a \"$r/usr/lib/bzflag-server\" plugins\n    rm -rf examples && cp -a \"$r/usr/share/doc/bzflag-server/examples\" examples\n    mv -f \"$r/usr/games/bzfs\" bzfs.new && mv -f bzfs.new bzfs\n    echo \"$version\" > .raptor-version\nfi\n\nif [ ! -f bzfs.conf ]; then\n    cat > bzfs.conf <<'CFG'\n# bzfs settings, one option per line (see examples/bzfs.conf and\n# https://wiki.bzflag.org/BZFS_Command_Line_Options). The port, players,\n# game style, map, passwords and public listing are set from the server's\n# variables at start.\n# Jumping, the recommended acceleration limit, and up to 3 shots each.\n-j\n-a 50 38\n-ms 3\n# Kick players idle for 5 minutes, and those with very bad lag.\n-maxidle 300\n-lagwarn 600\n-lagdrop 3\n# Keep bans and player reports between restarts.\n-banfile bans.txt\n-reportfile reports.txt\nCFG\nfi\ntouch bans.txt\necho \"Installed BZFlag ${version%%-*}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Game style",
+            "description": "ffa (teams, no flags to capture), offa (every tank for itself), ctf (capture the flag) or rabbit (everyone hunts the rabbit).",
+            "env_variable": "GAME_STYLE",
+            "default_value": "ctf",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:ffa,offa,ctf,rabbit",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can join at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "20",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:2|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Map",
+            "description": "A map file in the server's folder, such as examples/hix.bzw. Empty, bzfs makes a random world.",
+            "env_variable": "WORLD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100|regex:/^[A-Za-z0-9_.\\/-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The password for /password in the game, which gives a player the admin commands. Empty, nobody can log in as admin.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:60|regex:/^[^\"\\\\]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Public list key",
+            "description": "A server key from my.bzflag.org, which lists the server in the in-game server list. Empty, the server isn't listed.",
+            "env_variable": "PUBLIC_KEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^[A-Za-z0-9._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The description players see in the public server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A BZFlag server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100|regex:/^[^\"\\\\]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Public address",
+            "description": "The address players reach the server at, such as bz.example.com, for the public list. Empty, the server's IP address.",
+            "env_variable": "PUBLIC_ADDRESS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100|regex:/^[A-Za-z0-9.:-]*$/",
+            "field_type": "text"
+        }
+    ]
+}

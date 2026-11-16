@@ -1,0 +1,73 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Unciv",
+    "author": "support@raptorpanel.net",
+    "description": "The turn server for Unciv's multiplayer, where players' games are kept between turns. Installs the server of any Unciv release, checked against GitHub's checksum.",
+    "features": [],
+    "docker_images": {
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:176d985fb81cd3f771a29e4afcd3ef6934e12e8ef747305ce817d6bb32f8f8c7",
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:98fbedc047cc55fcead2cea64cb4dd31e3954e942ff33ed863f4dc5fb01d9406",
+        "Java 17": "ghcr.io/xena-studios/yolks:java_17@sha256:26c280b6d93c559a2d034dedbfe9eccbfafe0b70be9919a299931135c50e8fff"
+    },
+    "file_denylist": [],
+    "startup": "a=-no-auth; c=-no-chat; i=-no-Identify; [ \"{{AUTH}}\" = 1 ] && a=-auth; [ \"{{CHAT}}\" = 1 ] && c=-chat; [ \"{{IDENTIFY}}\" = 1 ] && i=-Identify; exec java -Xms64M -XX:MaxRAMPercentage=85.0 -Dlogback.configurationFile=logback.xml -jar UncivServer.jar -port={{SERVER_PORT}} -folder=MultiplayerFiles \"$a\" \"$c\" \"$i\"",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Server running on http\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Unciv multiplayer server. Downloads UncivServer.jar of the chosen Unciv\n# release from its GitHub releases, checked against GitHub's checksum. The\n# games in MultiplayerFiles/, server.auth (players' passwords) and\n# logback.xml are never touched.\nset -euo pipefail\ncd /mnt/server\nrepo=yairm210/Unciv\nfail() { echo \"$1\"; exit 1; }\n\ntag=$(gh-release tag \"$repo\" \"${VERSION:-latest}\" 2>/dev/null) ||\n    fail \"Unciv has no release ${VERSION:-latest}. Set Version to latest, or to a release such as 4.19.0.\"\nsum=$(gh-release assets \"$repo\" \"$tag\" | awk '$1 == \"UncivServer.jar\" { print $2 }')\n[ -n \"$sum\" ] || fail \"Unciv $tag has no server download. Choose another version.\"\n\nif [ -f UncivServer.jar ] && [ \"$(sha256sum UncivServer.jar | cut -d' ' -f1)\" = \"$sum\" ]; then\n    echo \"The Unciv $tag server is already installed.\"\nelse\n    echo \"Downloading the Unciv $tag server\"\n    gh-release download \"$repo\" \"$tag\" UncivServer.jar UncivServer.jar ||\n        fail \"The download failed. Reinstall to try again.\"\nfi\n\nmkdir -p MultiplayerFiles\n# Unciv logs every network detail without a logging setup: keep it to the\n# server's own messages. Edit logback.xml to log more.\nif [ ! -f logback.xml ]; then\n    cat > logback.xml <<'XML'\n<configuration>\n  <appender name=\"console\" class=\"ch.qos.logback.core.ConsoleAppender\">\n    <encoder><pattern>%d{HH:mm:ss} %-5level %msg%n</pattern></encoder>\n  </appender>\n  <root level=\"WARN\"><appender-ref ref=\"console\"/></root>\n  <logger name=\"io.ktor.server.Application\" level=\"INFO\"/>\n</configuration>\nXML\nfi\necho \"Installed the Unciv $tag server.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Unciv release whose server to install, such as 4.19.0, or latest for the newest. Use the version your players run, then reinstall the server.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|[0-9][0-9A-Za-z.-]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Passwords",
+            "description": "Let each player protect their games with a password, so nobody else can play their turns.",
+            "env_variable": "AUTH",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Chat",
+            "description": "Let players chat in their games through the server.",
+            "env_variable": "CHAT",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Log addresses",
+            "description": "Show the address of each player in the console when they load or save a game.",
+            "env_variable": "IDENTIFY",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}

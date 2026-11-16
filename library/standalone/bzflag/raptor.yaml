@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/bzflag/egg-bzflag.json
+license: MIT
+credits:
+  - "Written for Raptor from BZFlag's docs (https://www.bzflag.org, LGPL-2.1), with Debian's bzflag-server package"
+  - "Icon: BZFlag's avatar, from https://github.com/BZFlag-Dev"
+certified: true
+arch: [amd64, arm64]
+# No backup hooks: bzfs keeps no world to save. No players query: BZFlag
+# answers its own protocol, not A2S or Minecraft status.
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 3m
