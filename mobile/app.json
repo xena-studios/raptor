@@ -9,6 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "net.raptorpanel.app",
+      "appleTeamId": "NTZ78R46VH",
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
@@ -29,9 +30,13 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0F0808",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#F9F6F5",
+          "image": "./assets/images/splash-light.png",
+          "imageWidth": 240,
+          "dark": {
+            "backgroundColor": "#0F0808",
+            "image": "./assets/images/splash-dark.png"
+          }
         }
       ],
       [

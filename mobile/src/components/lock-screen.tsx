@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AppState, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Logo } from "@/components/logo";
+import { FullLogo } from "@/components/logo";
 import { Button, Text } from "@/components/ui";
 import { method, unlock, useLock } from "@/lib/lock";
 import { useColors } from "@/lib/theme";
@@ -42,7 +42,8 @@ export function LockScreen() {
     <View style={[StyleSheet.absoluteFill, { backgroundColor: c.background }]}>
       <SafeAreaView style={styles.screen}>
         <View style={styles.center}>
-          <Logo size={44} />
+          {/* The full logo, as on the splash screen: 240 points wide. */}
+          <FullLogo height={38} />
           {lock.locked ? (
             <View style={{ gap: 6, alignItems: "center" }}>
               <Text variant="headline" accessibilityRole="header">

@@ -58,7 +58,9 @@ export function Page({
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: c.background }}
-      contentInsetAdjustmentBehavior="automatic"
+      // The status bar's height is added below (inset), so iOS mustn't add
+      // it again.
+      contentInsetAdjustmentBehavior="never"
       contentContainerStyle={{
         paddingTop: (inset ? insets.top : 0) + 16,
         paddingHorizontal: space.page,
