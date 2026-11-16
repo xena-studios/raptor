@@ -402,6 +402,34 @@ The library's Counter-Strike 2 egg installs **Metamod:Source** and **CounterStri
 - **Turning off takes effect at the next start**, and Raptor only undoes what it did: Metamod off removes the line it added (a hand-added one stays); CounterStrikeSharp off renames `addons/metamod/counterstrikesharp.vdf` to `.vdf.off` only when Raptor installed it (`addons/counterstrikesharp/.raptor`), and turning it on renames it back. Files are never deleted. Turning one on or changing a version needs a reinstall, which also brings the newest builds after a CS2 update breaks them.
 - **The app** gives such servers a **Frameworks** section in Add-ons (`web/src/components/cs2-frameworks.tsx`; any egg with all four variables): a switch for each, a version box, and **Save and reinstall** (a `server.update` with the variables, then `server.reinstall`, which backs the files up first) or just **Save** when only turning off. It needs the `startup` permission, and `reinstall` to start the install.
 - **CounterStrikeSharp's plugins** aren't an add-on kind yet: there's no central repository with hashes, only each author's GitHub releases. A generic "from a GitHub release" source, checked by GitHub's digest, is the later step (#414).
+### Workshop items in a config file
+
+Games that read their items from a config file instead of the command line say which file and how it lists them, under `file` in place of `variable` (#408, DECISIONS #366):
+
+```yaml
+x-raptor:
+  workshop:
+    app_id: 108600
+    file:
+      path: .cache/Server/{{SERVER_NAME}}.ini # from the server's folder; {{VAR}} is a variable's value
+      format: ini         # ini, json, or dst
+      key: WorkshopItems  # ini: the line's key; json: the top-level key
+      separator: ";"      # ini only; ";" when left out
+      mods_key: Mods      # ini only: a second line with the game's own mod IDs
+    apply: restart
+```
+
+| `format` | What it edits | Used by |
+|---|---|---|
+| `ini` | The `key=a;b;c` line (added at the end if it's missing). With `mods_key`, a second line of mod IDs, which the page offers from each downloaded item's `mod.info` (`steamapps/workshop/content/<app_id>/<id>/mods/*/mod.info`, or its `42/` folder), keeping the file's style (Build 42's `\ModID` or Build 41's `ModID`). | Project Zomboid (`WorkshopItems`, `Mods`) |
+| `json` | The array at a top-level key, written as numbers. IDs are read as text, since they're bigger than JavaScript's numbers hold. The rest of the file is kept as text, not re-serialized. | Unturned (`Servers/{{SRV_ID}}/WorkshopDownloadConfig.json`, `File_IDs`) |
+| `dst` | `ServerModSetup("id")` lines in the `path` file (commented-out examples and `ServerModCollectionSetup` are left alone), and a `["workshop-id"]={ enabled=true }` entry in the table each `overrides` file returns, keeping existing entries' `configuration_options`. A missing file is made. | Don't Starve Together (`mods/dedicated_server_mods_setup.lua`; `Master` and `Caves` `modoverrides.lua`) |
+
+- **The page edits the file through `files.read` and `files.write`**, as the file manager does, so it takes the same permissions: **See files** (`files.read`) shows the items and **Change files** (`files.write`) saves them. The Workshop section is shown to those who can read files, not to those with `startup`. Nothing is signed, because nothing the member couldn't already type in Files changes.
+- **Only the list changes.** The parsers and writers (`web/src/lib/workshop-files.ts`, with tests) change the list's span and leave the rest of the file byte for byte, including comments and line endings. Each save re-reads the file first, so a change the game or a member made since loading isn't lost. A file the format can't parse (a `modoverrides.lua` that doesn't `return {…}`) is refused, with a pointer to Files.
+- **ini and json files aren't made.** The game writes them on its first start with settings Raptor doesn't know, so until then the page says to start the server once. dst files are made when missing.
+- **Raptor still downloads nothing:** the game fetches what the file lists at its next start. `collection` is for variables only. `path` and `overrides` must be clean paths inside the server's folder, and `{{VAR}}` one of the egg's variables; a value that's empty or has a `/` leaves the page refusing to guess the file.
+- Not done yet: Space Engineers (a world's `Sandbox_config.sbc` `<Mods>`) and tModLoader (its install script would need to download the items first). Each game in the table still needs a conformance run of the real game ([ROADMAP](ROADMAP.md#add-ons-and-game-features)).
 
 ## Egg library
 

@@ -7,6 +7,18 @@ credits:
   - "Icon: Don't Starve Together's logo, from its Steam store page (Klei Entertainment)"
 certified: true
 arch: [amd64]
+# The game downloads the items in dedicated_server_mods_setup.lua at start;
+# each shard's modoverrides.lua turns them on. Validate (VALIDATE) resets
+# the setup file to the game's own, so it's off by default.
+workshop:
+  app_id: 322330
+  file:
+    path: mods/dedicated_server_mods_setup.lua
+    format: dst
+    overrides:
+      - DoNotStarveTogether/config/server/Master/modoverrides.lua
+      - DoNotStarveTogether/config/server/Caves/modoverrides.lua
+  apply: restart
 # The console is the surface (Master) shard's; Caves runs beside it and is
 # shut down after it. No player count (Klei's lobby, not Steam's query) and
 # no backup hooks (c_save() has no line to wait for).

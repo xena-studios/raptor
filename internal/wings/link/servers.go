@@ -128,10 +128,21 @@ type eggWeb struct {
 }
 
 type eggWorkshop struct {
-	AppID      int64  `json:"app_id"`
-	Variable   string `json:"variable"`
-	Collection bool   `json:"collection,omitempty"`
-	Apply      string `json:"apply"`
+	AppID      int64            `json:"app_id"`
+	Variable   string           `json:"variable"`
+	Collection bool             `json:"collection,omitempty"`
+	File       *eggWorkshopFile `json:"file,omitempty"`
+	Apply      string           `json:"apply"`
+}
+
+// eggWorkshopFile is the config file that lists the items (#408).
+type eggWorkshopFile struct {
+	Path      string   `json:"path"`
+	Format    string   `json:"format"`
+	Key       string   `json:"key,omitempty"`
+	Separator string   `json:"separator,omitempty"`
+	ModsKey   string   `json:"mods_key,omitempty"`
+	Overrides []string `json:"overrides,omitempty"`
 }
 
 type eggAddon struct {
@@ -183,6 +194,9 @@ func describeEgg(s *server.Server) *eggInfo {
 			apply = "restart"
 		}
 		out.Workshop = &eggWorkshop{AppID: w.AppID, Variable: w.Variable, Collection: w.Collection, Apply: apply}
+		if f := w.File; f != nil {
+			out.Workshop.File = &eggWorkshopFile{Path: f.Path, Format: f.Format, Key: f.Key, Separator: f.Separator, ModsKey: f.ModsKey, Overrides: f.Overrides}
+		}
 	}
 	for _, i := range e.Images {
 		out.Images = append(out.Images, eggImage{Name: i.Name, Ref: i.Ref})

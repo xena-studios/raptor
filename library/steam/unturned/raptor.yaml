@@ -7,6 +7,15 @@ credits:
   - "Icon: Unturned's logo, from its Steam store page (Smartly Dressed Games)"
 certified: true
 arch: [amd64]
+# The game downloads the items in File_IDs at start; it makes the file on
+# its first start.
+workshop:
+  app_id: 304930
+  file:
+    path: Servers/{{SRV_ID}}/WorkshopDownloadConfig.json
+    format: json
+    key: File_IDs
+  apply: restart
 # Unturned can't pause saving, so a backup saves first and has nothing to undo.
 backup:
   pre: ["save"]

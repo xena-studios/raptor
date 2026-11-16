@@ -82,7 +82,7 @@ Raptor puts resource packs on the world's list, but players only download them i
 
 ## Steam Workshop
 
-Games that load Steam Workshop items themselves get a **Workshop** section in Add-ons: Garry's Mod (a collection), Counter-Strike 2 (a map collection), ARK (mods), Conan Exiles (mods, loaded in the order you list them), and Squad (items).
+Games that load Steam Workshop items themselves get a **Workshop** section in Add-ons: Garry's Mod (a collection), Counter-Strike 2 (a map collection), ARK (mods), Conan Exiles (mods, loaded in the order you list them), and Squad (items). Project Zomboid, Don't Starve Together, and Unturned get one too ([below](#games-that-list-mods-in-a-file)).
 
 - Paste a Workshop link or ID: Raptor shows what it is, and refuses items for another game.
 - For games that take a list, a collection's link adds its items.
@@ -106,3 +106,10 @@ Turning one off takes effect at the next start, and nothing is deleted. Raptor o
 Then put CounterStrikeSharp plugins in `game/csgo/addons/counterstrikesharp/plugins` with the file manager, and restart. The page needs the **Startup settings** permission, and **Reinstall** to install.
 
 The same switches are in **Startup** as **Metamod:Source** and **CounterStrikeSharp**. Servers made before they existed get them once they move to the egg's new version (see [Egg library](/eggs/library/)).
+### Games that list mods in a file
+
+Project Zomboid, Don't Starve Together, and Unturned read their Workshop items from a config file, so their Workshop section edits that file, the same way Files does. Seeing the items needs **See files**, and changing them needs **Change files**. Only the list changes: the rest of the file, comments included, stays as it is. The game downloads new items the next time it starts.
+
+- **Project Zomboid** (`.cache/Server/<server name>.ini`): two lists. **Workshop items** are what the game downloads, and **Mods to load** are the mod IDs inside them, which aren't the same numbers. Once the game has downloaded an item, its mod IDs show as buttons to add, so a new item takes one restart before its mods can be picked. You can also type a mod ID from the item's Steam page. Start the server once first, because the game makes the file on its first start.
+- **Don't Starve Together**: the items go in `mods/dedicated_server_mods_setup.lua` (which downloads them) and in each shard's `modoverrides.lua` (which turns them on). A mod's settings in `modoverrides.lua` are kept, and removing an item removes its entry. Leave **Validate** off: a validated update puts back the game's own setup file.
+- **Unturned** (`Servers/<server ID>/WorkshopDownloadConfig.json`, `File_IDs`): start the server once first, because the game makes the file on its first start.

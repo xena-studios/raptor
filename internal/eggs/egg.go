@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -286,19 +287,50 @@ func (e *Egg) Backup() BackupHooks {
 }
 
 // Workshop says where a game takes Steam Workshop items: the IDs go in a
-// variable, and the game (or its install script) downloads them. Raptor
-// downloads nothing.
+// variable, or in a config file (File), and the game (or its install
+// script) downloads them. Raptor downloads nothing.
 type Workshop struct {
 	// AppID is the game whose Workshop the items are from.
 	AppID int64 `yaml:"app_id"`
 	// Variable holds the IDs: one collection's (Collection), or items',
-	// comma-separated.
+	// comma-separated. Empty when File holds them.
 	Variable   string `yaml:"variable"`
 	Collection bool   `yaml:"collection"`
+	// File is the config file that lists the items, for games that read
+	// them from one (#408); nil when Variable holds them.
+	File *WorkshopFile `yaml:"file"`
 	// Apply is what makes the game pick up a change: "restart" (the
 	// default) or "reinstall".
 	Apply string `yaml:"apply"`
 }
+
+// WorkshopFile is a config file that lists a game's Workshop items, edited
+// in place through files.read and files.write (docs/EGGS.md#steam-workshop).
+type WorkshopFile struct {
+	// Path is the file, from the server's folder. {{VAR}} is the value of
+	// one of the egg's variables (Project Zomboid's server name).
+	Path string `yaml:"path"`
+	// Format is how the file lists them: one of WorkshopFormats.
+	Format string `yaml:"format"`
+	// Key is the list's key: an ini line's (WorkshopItems), or a JSON
+	// file's top-level key (File_IDs).
+	Key string `yaml:"key"`
+	// Separator splits an ini list (";" when empty).
+	Separator string `yaml:"separator"`
+	// ModsKey is an ini line with the game's own mod IDs, which aren't the
+	// items' IDs (Project Zomboid's Mods).
+	ModsKey string `yaml:"mods_key"`
+	// Overrides are the dst format's modoverrides.lua files, one per shard,
+	// where each item is turned on.
+	Overrides []string `yaml:"overrides"`
+}
+
+// WorkshopFormats are the file formats x-raptor.workshop.file takes: an
+// ini line (key=a;b), a JSON file's top-level array of numbers, and Don't
+// Starve Together's dedicated_server_mods_setup.lua plus modoverrides.lua.
+var WorkshopFormats = []string{"ini", "json", "dst"}
+
+var workshopPathVar = regexp.MustCompile(`\{\{([A-Za-z0-9_]+)\}\}`)
 
 // CheckWorkshop validates x-raptor.workshop against the egg's variables.
 func CheckWorkshop(w *Workshop, vars []Variable) error {
@@ -308,11 +340,62 @@ func CheckWorkshop(w *Workshop, vars []Variable) error {
 	if w.AppID <= 0 {
 		return errors.New("egg: x-raptor.workshop.app_id: want the game's Steam app ID")
 	}
-	if !slices.ContainsFunc(vars, func(v Variable) bool { return v.Env == w.Variable }) {
+	has := func(env string) bool { return slices.ContainsFunc(vars, func(v Variable) bool { return v.Env == env }) }
+	switch {
+	case w.File != nil && w.Variable != "":
+		return errors.New("egg: x-raptor.workshop: want variable or file, not both")
+	case w.File != nil:
+		if err := checkWorkshopFile(w.File, has); err != nil {
+			return err
+		}
+		if w.Collection {
+			return errors.New("egg: x-raptor.workshop.collection: only with a variable")
+		}
+	case !has(w.Variable):
 		return fmt.Errorf("egg: x-raptor.workshop.variable %q: not one of the egg's variables", w.Variable)
 	}
 	if w.Apply != "" && w.Apply != "restart" && w.Apply != "reinstall" {
 		return fmt.Errorf("egg: x-raptor.workshop.apply %q: want restart or reinstall", w.Apply)
+	}
+	return nil
+}
+
+func checkWorkshopFile(f *WorkshopFile, has func(string) bool) error {
+	paths := append([]string{f.Path}, f.Overrides...)
+	for _, p := range paths {
+		if p == "" || strings.HasPrefix(p, "/") || strings.Contains(p, "\\") || path.Clean(p) != p || p == ".." || strings.HasPrefix(p, "../") {
+			return fmt.Errorf("egg: x-raptor.workshop.file: path %q: want a clean path in the server's folder", p)
+		}
+		for _, m := range workshopPathVar.FindAllStringSubmatch(p, -1) {
+			if !has(m[1]) {
+				return fmt.Errorf("egg: x-raptor.workshop.file: path %q: %s is not one of the egg's variables", p, m[1])
+			}
+		}
+	}
+	switch f.Format {
+	case "ini":
+		if f.Key == "" {
+			return errors.New("egg: x-raptor.workshop.file.key: want the ini line's key")
+		}
+	case "json":
+		if f.Key == "" {
+			return errors.New("egg: x-raptor.workshop.file.key: want the JSON file's key")
+		}
+	case "dst":
+		if len(f.Overrides) == 0 {
+			return errors.New("egg: x-raptor.workshop.file.overrides: want each shard's modoverrides.lua")
+		}
+	default:
+		return fmt.Errorf("egg: x-raptor.workshop.file.format %q: want one of %s", f.Format, strings.Join(WorkshopFormats, ", "))
+	}
+	if f.Format != "ini" && (f.Separator != "" || f.ModsKey != "") {
+		return errors.New("egg: x-raptor.workshop.file: separator and mods_key are only for ini")
+	}
+	if f.Format != "dst" && len(f.Overrides) > 0 {
+		return errors.New("egg: x-raptor.workshop.file.overrides: only for dst")
+	}
+	if len([]rune(f.Separator)) > 1 {
+		return fmt.Errorf("egg: x-raptor.workshop.file.separator %q: want one character", f.Separator)
 	}
 	return nil
 }
