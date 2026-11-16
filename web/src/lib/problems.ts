@@ -39,7 +39,7 @@ type Hint = Omit<Extract<Problem, { kind: "hint" }>, "kind" | "line"> & { match:
 export const hints: Hint[] = [
   {
     id: "oom",
-    match: /^\[raptor\] crashed \(exit code \d+, oom\)|java\.lang\.OutOfMemoryError/,
+    match: /(?:^\[raptor\] crashed \(exit code \d+, oom\))|(?:java\.lang\.OutOfMemoryError)/,
     title: "The server ran out of memory",
     text: "It needed more memory than it's allowed. Give it more on Settings (Name and limits), or remove some mods or plugins.",
     action: { label: "Open Settings", tab: "settings" },
