@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { ServerAddress } from "@/components/address";
 import { ConnectionTest } from "@/components/connection-test";
+import { Minehut } from "@/components/minehut";
 import { DetailList } from "@/components/page";
 import { ShownAddress } from "@/components/server-address";
 import { ServerNetworks } from "@/components/server-networks";
@@ -64,6 +65,17 @@ function NetworkTab() {
             nodeId={nodeId}
             serverId={serverId}
             running={!["offline", "crashed", "install_failed", ""].includes(server.state)}
+          />
+        )}
+        {(can(server, "startup") || can(server, "*")) && (
+          <Minehut
+            orgId={orgId}
+            nodeId={nodeId}
+            serverId={serverId}
+            userId={session.user?.id ?? ""}
+            host={host}
+            port={server.ports[0]}
+            canChange={can(server, "*") || (can(server, "startup") && can(server, "files.write"))}
           />
         )}
         {can(server, "*") && (
