@@ -24,3 +24,19 @@ export function serverAddress(
   const host = nodeHostname(node);
   return { text: port ? `${host}:${port}` : host, private: true };
 }
+
+// domainName is a name the owner typed, cleaned up: no scheme, path,
+// port, or trailing dot. It's empty when it isn't a domain name.
+export function domainName(input: string): string {
+  let s = input.trim().toLowerCase();
+  s = s
+    .replace(/^[a-z]+:\/\//, "")
+    .replace(/[/?#].*$/, "")
+    .replace(/:\d*$/, "")
+    .replace(/\.$/, "");
+  const label = /^(?!-)[a-z0-9-]{1,63}(?<!-)$/;
+  const parts = s.split(".");
+  if (s.length > 253 || parts.length < 2 || !parts.every((p) => label.test(p))) return "";
+  if (/^[0-9]+$/.test(parts.at(-1) ?? "")) return "";
+  return s;
+}

@@ -73,6 +73,8 @@ function NetworkTab() {
             nodeId={nodeId}
             serverId={serverId}
             current={server.displayAddress}
+            host={host}
+            port={server.ports[0]}
           />
         )}
       </div>

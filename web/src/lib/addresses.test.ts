@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { serverAddress } from "./addresses.ts";
+import { domainName, serverAddress } from "./addresses.ts";
 
 test("server addresses", () => {
   const n = { shortId: "1a2b3c4d5e6f" };
@@ -19,4 +19,23 @@ test("server addresses", () => {
     serverAddress(n, { displayAddress: "mc.example.com:25565" }, 30001).text,
     "mc.example.com:25565",
   );
+});
+
+test("domain names for your own domain", () => {
+  assert.equal(domainName("play.example.com"), "play.example.com");
+  // Cleaned up: case, scheme, path, port, trailing dot, spaces.
+  assert.equal(domainName("  https://Play.Example.com:25565/x "), "play.example.com");
+  assert.equal(domainName("play.example.com."), "play.example.com");
+  assert.equal(domainName("mc.example.co.uk"), "mc.example.co.uk");
+  // Not domain names.
+  for (const bad of [
+    "",
+    "localhost",
+    "1.2.3.4",
+    "play..example.com",
+    "-a.example.com",
+    "a_b.example.com",
+  ]) {
+    assert.equal(domainName(bad), "", bad);
+  }
 });
