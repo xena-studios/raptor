@@ -72,6 +72,10 @@ type Project struct {
 	Downloads   int64  `json:"downloads"`
 	Author      string `json:"author"`
 	ProjectType string `json:"project_type"`
+	// Whether a mod runs on a server and on the client: "required",
+	// "optional", or "unsupported" (a client-only mod: shaders, minimaps).
+	ServerSide string `json:"server_side"`
+	ClientSide string `json:"client_side"`
 }
 
 // Key is the project's ID, whichever field holds it.
@@ -92,6 +96,19 @@ type Version struct {
 	Loaders       []string  `json:"loaders"`
 	Published     time.Time `json:"date_published"`
 	Files         []File    `json:"files"`
+	// What else it needs, may use, or can't run beside.
+	Dependencies []Dependency `json:"dependencies"`
+}
+
+// Dependency is another project a version needs ("required"), may use
+// ("optional"), can't run beside ("incompatible"), or has inside it
+// ("embedded"). It names a version, a project, or (outside Modrinth) only
+// a file name.
+type Dependency struct {
+	VersionID string `json:"version_id"`
+	ProjectID string `json:"project_id"`
+	FileName  string `json:"file_name"`
+	Type      string `json:"dependency_type"`
 }
 
 // File is a version's file.
@@ -135,9 +152,12 @@ func jsonList(v []string) string {
 }
 
 // Search searches a kind's projects for loaders, and a game version if
-// given.
-func (c *Client) Search(ctx context.Context, kind string, loaders []string, gameVersion, query string, offset int) ([]Project, int, error) {
+// given. serverOnly leaves out mods that don't run on a server.
+func (c *Client) Search(ctx context.Context, kind string, loaders []string, gameVersion, query string, offset int, serverOnly bool) ([]Project, int, error) {
 	facets := [][]string{{"project_type:" + projectType(kind)}}
+	if serverOnly && kind == "mods" {
+		facets = append(facets, []string{"server_side:required", "server_side:optional"})
+	}
 	var cats []string
 	for _, l := range loaders {
 		cats = append(cats, "categories:"+l)
@@ -173,6 +193,13 @@ func (c *Client) Versions(ctx context.Context, project string, loaders []string,
 	}
 	var out []Version
 	err := c.do(ctx, "/project/"+url.PathEscape(project)+"/version", q, nil, &out)
+	return out, err
+}
+
+// Version is one version, by ID.
+func (c *Client) Version(ctx context.Context, id string) (Version, error) {
+	var out Version
+	err := c.do(ctx, "/version/"+url.PathEscape(id), nil, nil, &out)
 	return out, err
 }
 

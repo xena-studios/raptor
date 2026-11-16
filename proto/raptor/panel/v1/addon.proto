@@ -36,6 +36,15 @@ service AddonService {
   rpc LookupWorkshopItems(LookupWorkshopItemsRequest) returns (LookupWorkshopItemsResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // ResolveAddonDependencies says what else a Modrinth version needs
+  // installed (#434): its required dependencies and theirs, each at the
+  // newest version for the loaders and game version, and its optional
+  // ones, leaving out projects already installed. It also names installed
+  // projects it can't run beside.
+  rpc ResolveAddonDependencies(ResolveAddonDependenciesRequest) returns (ResolveAddonDependenciesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
 }
 
 message AddonProject {
@@ -50,6 +59,18 @@ message AddonProject {
   string url = 8;
   // "modrinth" or "hangar".
   string source = 9;
+  // Modrinth's mods: whether it runs on a server ("required", "optional",
+  // or "unsupported": client-only), and on the client.
+  string server_side = 10;
+  string client_side = 11;
+}
+
+message AddonDependency {
+  string project_id = 1;
+  // A specific version, if it names one.
+  string version_id = 2;
+  // "required", "optional", "incompatible", or "embedded".
+  string type = 3;
 }
 
 message AddonFile {
@@ -71,6 +92,8 @@ message AddonVersion {
   google.protobuf.Timestamp published_at = 7;
   // The version's main file.
   AddonFile file = 8;
+  // Modrinth's: what else it needs, may use, or can't run beside.
+  repeated AddonDependency dependencies = 9;
 }
 
 message SearchAddonsRequest {
@@ -84,6 +107,9 @@ message SearchAddonsRequest {
   int32 offset = 6;
   // "modrinth" (the default) or "hangar" (plugins only).
   string source = 7;
+  // Mods only: include client-only ones (left out by default, since they
+  // don't run on a server).
+  bool include_client_only = 8;
 }
 
 message SearchAddonsResponse {
@@ -153,4 +179,34 @@ message WorkshopItem {
 message LookupWorkshopItemsResponse {
   // IDs Steam doesn't have, or that aren't public, are left out.
   repeated WorkshopItem items = 1;
+}
+
+message ResolveAddonDependenciesRequest {
+  string org_id = 1;
+  // The Modrinth version to install.
+  string version_id = 2;
+  repeated string loaders = 3;
+  string game_version = 4;
+  // Projects already on the server (Modrinth IDs), left out of what's
+  // needed and checked against incompatible ones.
+  repeated string installed = 5;
+}
+
+message ResolvedAddon {
+  AddonProject project = 1;
+  AddonVersion version = 2;
+  // The project that needs it, for "needed by".
+  string needed_by = 3;
+}
+
+message ResolveAddonDependenciesResponse {
+  // To install with it, dependencies first.
+  repeated ResolvedAddon required = 1;
+  // Its optional dependencies (only its own, not theirs).
+  repeated ResolvedAddon optional = 2;
+  // Installed projects it can't run beside.
+  repeated AddonProject incompatible = 3;
+  // Required dependencies with no version for these loaders and game
+  // version, or outside Modrinth (a file name only: project.title).
+  repeated AddonProject unavailable = 4;
 }

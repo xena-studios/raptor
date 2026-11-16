@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -29,10 +30,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   type AddonProject,
   AddonService,
   type IdentifiedAddon,
+  type ResolvedAddon,
 } from "@/gen/raptor/panel/v1/addon_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { addonKinds, loaderName, onHangar, sourceNames } from "@/lib/eggs";
@@ -167,6 +170,7 @@ function Addons({
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
+  const [needs, setNeeds] = useState<IdentifiedAddon>();
   const { confirm } = useConfirm();
   const refresh = () => client.invalidateQueries({ queryKey: key });
   type Row = Listing["files"][number];
@@ -225,6 +229,54 @@ function Addons({
     setBusy("");
     if (done > 0) setNote(`Updated ${done}. Restart the server to load them.`);
     if (failed.length > 0) setError(`Not updated: ${failed.join("; ")}`);
+  }
+
+  const installedIds = [...installedProjects].filter((id): id is string => !!id);
+  const identified = known.data?.addons ?? [];
+  // Required dependencies an installed add-on has that aren't installed.
+  const missingFor = (a?: IdentifiedAddon) =>
+    (a?.version?.dependencies ?? []).filter(
+      (d) => d.type === "required" && !installedProjects.has(d.projectId),
+    );
+  // Installed add-ons that need this one.
+  const dependentsOf = (a?: IdentifiedAddon) =>
+    a?.project
+      ? identified.filter((o) =>
+          o.version?.dependencies.some(
+            (d) => d.type === "required" && d.projectId === a.project?.id,
+          ),
+        )
+      : [];
+
+  // installAll installs files one after another, dependencies first.
+  async function installAll(files: InstallFile[], done: string) {
+    await act(
+      `install:${files.at(-1)?.filename}`,
+      async () => {
+        for (const f of files) await api.run("addons.install", { kind, ...f });
+      },
+      `${done} Restart the server to load ${files.length === 1 ? "it" : "them"}.`,
+    );
+  }
+  // Files nobody knows may be the dependency, added by hand.
+  const handAdded = !!known.data && files.some((f) => f.sha512 && !byHash.get(f.sha512));
+
+  async function remove(f: { name: string }, a?: IdentifiedAddon) {
+    const dependents = dependentsOf(a);
+    if (dependents.length > 0) {
+      const ok = await confirm({
+        title: `Remove ${a?.project?.title ?? f.name}?`,
+        description: `${dependents.map((d) => d.project?.title).join(", ")} ${dependents.length === 1 ? "needs" : "need"} it, and won't load without it.`,
+        confirm: "Remove anyway",
+        destructive: true,
+      });
+      if (!ok) return;
+    }
+    await act(
+      `remove:${f.name}`,
+      () => api.run("files.delete", { dir: list.data?.dir, names: [f.name] }),
+      `Moved ${f.name} to the trash. Restart the server to unload it.`,
+    );
   }
 
   async function act(what: string, fn: () => Promise<unknown>, done: string) {
@@ -316,11 +368,30 @@ function Addons({
                         {!a && f.sha512 && known.data && (
                           <Badge variant="outline">Added by hand</Badge>
                         )}
+                        {missingFor(a).length > 0 && (
+                          <Badge variant="destructive">
+                            {handAdded ? "May need" : "Needs"}{" "}
+                            {missingFor(a).length === 1
+                              ? "another add-on"
+                              : `${missingFor(a).length} more add-ons`}
+                          </Badge>
+                        )}
                       </div>
                       <p className="truncate text-xs text-muted-foreground">
                         {f.name} · {bytes(f.size)}
                       </p>
                     </div>
+                    {canWrite && a?.version && missingFor(a).length > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={!!busy}
+                        onClick={() => setNeeds(a)}
+                      >
+                        <Download />
+                        Install what it needs
+                      </Button>
+                    )}
                     {canWrite && latest && a?.latest && (
                       <Button
                         size="sm"
@@ -348,13 +419,7 @@ function Addons({
                         aria-label={`Remove ${f.name}`}
                         className="text-muted-foreground hover:text-destructive"
                         disabled={!!busy}
-                        onClick={() =>
-                          act(
-                            `remove:${f.name}`,
-                            () => api.run("files.delete", { dir: list.data?.dir, names: [f.name] }),
-                            `Moved ${f.name} to the trash. Restart the server to unload it.`,
-                          )
-                        }
+                        onClick={() => void remove(f, a)}
                       >
                         <Trash2 />
                       </Button>
@@ -375,13 +440,19 @@ function Addons({
           loaders={loaders}
           version={version}
           installed={installedProjects}
-          onInstall={(p) =>
-            act(
-              `install:${p.filename}`,
-              () => api.run("addons.install", { kind, ...p }),
-              `Installed ${p.filename}. Restart the server to load it.`,
-            )
-          }
+          installedIds={installedIds}
+          onInstall={installAll}
+        />
+      )}
+      {needs?.version && (
+        <NeedsDialog
+          orgId={orgId}
+          addon={needs}
+          loaders={loaders}
+          version={version}
+          installed={installedIds}
+          onClose={() => setNeeds(undefined)}
+          onInstall={installAll}
         />
       )}
     </div>
@@ -396,6 +467,7 @@ function Finder({
   loaders,
   version,
   installed,
+  installedIds,
   onInstall,
 }: {
   orgId: string;
@@ -403,17 +475,30 @@ function Finder({
   loaders: string[];
   version: string;
   installed: Set<string | undefined>;
-  onInstall: (f: InstallFile) => Promise<void>;
+  installedIds: string[];
+  onInstall: (files: InstallFile[], done: string) => Promise<void>;
 }) {
   const meta = addonKinds[kind];
   const [query, setQuery] = useState("");
+  // Mods that only run on players' computers (shaders, minimaps) are left
+  // out: on a server they crash it or do nothing.
+  const [clientOnly, setClientOnly] = useState(false);
   const [picked, setPicked] = useState<AddonProject>();
   const sources = onHangar(kind, loaders) ? ["modrinth", "hangar"] : ["modrinth"];
   const [source, setSource] = useState("modrinth");
   const q = useDeferredValue(query.trim());
   const search = useInfiniteQuery(
     AddonService.method.searchAddons,
-    { orgId, kind, loaders, gameVersion: version, query: q, offset: 0, source },
+    {
+      orgId,
+      kind,
+      loaders,
+      gameVersion: version,
+      query: q,
+      offset: 0,
+      source,
+      includeClientOnly: clientOnly,
+    },
     {
       pageParamKey: "offset",
       getNextPageParam: (last, pages) => {
@@ -448,6 +533,12 @@ function Finder({
             ))}
           </div>
         )}
+        {kind === "mods" && source === "modrinth" && (
+          <Label className="flex items-center gap-2 self-start font-normal text-muted-foreground">
+            <Switch checked={clientOnly} onCheckedChange={setClientOnly} />
+            Show client-only mods (they don't run on a server)
+          </Label>
+        )}
         <div className="relative sm:max-w-sm">
           <Search className="pointer-events-none absolute top-2 left-2.5 size-4 text-muted-foreground" />
           <Input
@@ -481,6 +572,7 @@ function Finder({
                     {p.title}
                   </a>
                   <ExternalLink className="size-3 shrink-0 text-muted-foreground" />
+                  {p.serverSide === "unsupported" && <Badge variant="outline">Client-only</Badge>}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   by {p.author} · {compact(p.downloads)} downloads
@@ -514,6 +606,7 @@ function Finder({
           project={picked}
           loaders={loaders}
           version={version}
+          installed={installedIds}
           onClose={() => setPicked(undefined)}
           onInstall={onInstall}
         />
@@ -527,6 +620,7 @@ function InstallDialog({
   project,
   loaders,
   version,
+  installed,
   onClose,
   onInstall,
 }: {
@@ -534,8 +628,9 @@ function InstallDialog({
   project: AddonProject;
   loaders: string[];
   version: string;
+  installed: string[];
   onClose: () => void;
-  onInstall: (f: InstallFile) => Promise<void>;
+  onInstall: (files: InstallFile[], done: string) => Promise<void>;
 }) {
   const versions = useQuery(AddonService.method.listAddonVersions, {
     orgId,
@@ -549,6 +644,17 @@ function InstallDialog({
   const [busy, setBusy] = useState(false);
   const list = versions.data?.versions ?? [];
   const v = list.find((x) => x.id === chosen) ?? list[0];
+  // What else it needs (Modrinth lists dependencies; Hangar's aren't read).
+  const deps = useQuery(
+    AddonService.method.resolveAddonDependencies,
+    { orgId, versionId: v?.id ?? "", loaders, gameVersion: version, installed },
+    { enabled: project.source === "modrinth" && !!v?.id },
+  );
+  const [optional, setOptional] = useState<Set<string>>(new Set());
+  const [alone, setAlone] = useState(false);
+  const required = alone ? [] : (deps.data?.required ?? []);
+  const blocked = (deps.data?.incompatible.length ?? 0) > 0;
+  const waiting = project.source === "modrinth" && !!v?.id && deps.isPending;
   return (
     <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
       <DialogContent>
@@ -590,26 +696,219 @@ function InstallDialog({
             )}
           </div>
         )}
+        {deps.error && <p className="text-sm text-destructive">{message(deps.error)}</p>}
+        {deps.data && (
+          <Dependencies
+            data={deps.data}
+            alone={alone}
+            optional={optional}
+            onOptional={setOptional}
+            onAlone={setAlone}
+          />
+        )}
         <DialogFooter>
           <Button variant="outline" disabled={busy} onClick={onClose}>
             Cancel
           </Button>
           <Button
-            disabled={busy || !v?.file}
+            disabled={busy || !v?.file || waiting || (blocked && !alone)}
             onClick={async () => {
               if (!v?.file) return;
               setBusy(true);
-              await onInstall({
-                url: v.file.url,
-                sha512: v.file.sha512 || undefined,
-                sha256: v.file.sha256 || undefined,
-                filename: v.file.filename,
-              });
+              const extra = alone
+                ? []
+                : (deps.data?.optional ?? []).filter((o) => optional.has(o.project?.id ?? ""));
+              const more = filesOf([...required, ...extra]);
+              await onInstall(
+                [...more, fileOf(v.file)],
+                more.length === 0
+                  ? `Installed ${v.file.filename}.`
+                  : `Installed ${project.title} and ${more.length} more it uses.`,
+              );
               setBusy(false);
               onClose();
             }}
           >
-            {busy && <Loader2 className="animate-spin" />} Install
+            {(busy || waiting) && <Loader2 className="animate-spin" />}
+            {required.length > 0 ? `Install with ${required.length} more` : "Install"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function fileOf(f: { url: string; sha512: string; sha256: string; filename: string }): InstallFile {
+  return {
+    url: f.url,
+    sha512: f.sha512 || undefined,
+    sha256: f.sha256 || undefined,
+    filename: f.filename,
+  };
+}
+
+function filesOf(list: ResolvedAddon[]): InstallFile[] {
+  return list.flatMap((r) => (r.version?.file ? [fileOf(r.version.file)] : []));
+}
+
+type Resolution = {
+  required: ResolvedAddon[];
+  optional: ResolvedAddon[];
+  incompatible: AddonProject[];
+  unavailable: AddonProject[];
+};
+
+// Dependencies says what installing an add-on brings with it (#434):
+// what it needs (installed with it), what it can use (ticked to add), and
+// what stops it.
+function Dependencies({
+  data,
+  alone,
+  optional,
+  onOptional,
+  onAlone,
+}: {
+  data: Resolution;
+  alone?: boolean;
+  optional?: Set<string>;
+  onOptional?: (s: Set<string>) => void;
+  onAlone?: (on: boolean) => void;
+}) {
+  const nothing =
+    data.required.length +
+      data.optional.length +
+      data.incompatible.length +
+      data.unavailable.length ===
+    0;
+  if (nothing) return null;
+  return (
+    <div className="flex flex-col gap-3 text-sm">
+      {data.incompatible.length > 0 && (
+        <p className="text-destructive">
+          It can't run beside {data.incompatible.map((p) => p.title).join(", ")}, which{" "}
+          {data.incompatible.length === 1 ? "is" : "are"} installed. Remove{" "}
+          {data.incompatible.length === 1 ? "it" : "them"} first.
+        </p>
+      )}
+      {!alone && data.required.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <p className="font-medium">Also installs what it needs</p>
+          <ul className="flex flex-col gap-0.5 text-muted-foreground">
+            {data.required.map((r) => (
+              <li key={r.project?.id}>
+                {r.project?.title}{" "}
+                <span className="font-mono text-xs">{r.version?.versionNumber}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {!alone && data.unavailable.length > 0 && (
+        <p className="text-muted-foreground">
+          It also needs {data.unavailable.map((p) => p.title).join(", ")}, which can't be installed
+          from here for this version: add {data.unavailable.length === 1 ? "it" : "them"} by hand,
+          or it may not load.
+        </p>
+      )}
+      {!alone && optional && onOptional && data.optional.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <p className="font-medium">Works with (optional)</p>
+          {data.optional.map((r) => {
+            const id = r.project?.id ?? "";
+            return (
+              <label key={id} className="flex items-center gap-2 text-muted-foreground">
+                <Checkbox
+                  checked={optional.has(id)}
+                  onCheckedChange={(on) => {
+                    const next = new Set(optional);
+                    if (on) next.add(id);
+                    else next.delete(id);
+                    onOptional(next);
+                  }}
+                />
+                {r.project?.title}{" "}
+                <span className="font-mono text-xs">{r.version?.versionNumber}</span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+      {onAlone && (data.required.length > 0 || data.incompatible.length > 0) && (
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Checkbox checked={alone} onCheckedChange={(on) => onAlone(!!on)} />
+          Install only this, without what it needs (you'll add it yourself)
+        </label>
+      )}
+    </div>
+  );
+}
+
+// NeedsDialog installs what an installed add-on needs and doesn't have.
+function NeedsDialog({
+  orgId,
+  addon,
+  loaders,
+  version,
+  installed,
+  onClose,
+  onInstall,
+}: {
+  orgId: string;
+  addon: IdentifiedAddon;
+  loaders: string[];
+  version: string;
+  installed: string[];
+  onClose: () => void;
+  onInstall: (files: InstallFile[], done: string) => Promise<void>;
+}) {
+  const deps = useQuery(AddonService.method.resolveAddonDependencies, {
+    orgId,
+    versionId: addon.version?.id ?? "",
+    loaders,
+    gameVersion: version,
+    installed,
+  });
+  const [busy, setBusy] = useState(false);
+  const required = deps.data?.required ?? [];
+  const title = addon.project?.title ?? "This add-on";
+  return (
+    <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>What {title} needs</DialogTitle>
+          <DialogDescription>
+            It won't load until these are installed. Each is checked like any other install.
+          </DialogDescription>
+        </DialogHeader>
+        {deps.error ? (
+          <p className="text-sm text-destructive">{message(deps.error)}</p>
+        ) : !deps.data ? (
+          <p className="text-sm text-muted-foreground">Looking up what it needs…</p>
+        ) : required.length === 0 && deps.data.unavailable.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Everything it needs is installed (perhaps added by hand).
+          </p>
+        ) : (
+          <Dependencies data={{ ...deps.data, optional: [] }} />
+        )}
+        <DialogFooter>
+          <Button variant="outline" disabled={busy} onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            disabled={busy || required.length === 0}
+            onClick={async () => {
+              setBusy(true);
+              const files = filesOf(required);
+              await onInstall(
+                files,
+                `Installed what ${title} needs: ${required.map((r) => r.project?.title).join(", ")}.`,
+              );
+              setBusy(false);
+              onClose();
+            }}
+          >
+            {busy && <Loader2 className="animate-spin" />} Install {required.length || ""}
           </Button>
         </DialogFooter>
       </DialogContent>

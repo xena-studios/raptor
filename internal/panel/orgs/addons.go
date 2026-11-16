@@ -154,6 +154,7 @@ func projectProto(p modrinth.Project) *panelv1.AddonProject {
 	return &panelv1.AddonProject{
 		Id: p.Key(), Slug: p.Slug, Title: p.Title, Description: p.Description, IconUrl: p.IconURL,
 		Downloads: p.Downloads, Author: p.Author, Url: "https://modrinth.com/project/" + p.Slug, Source: sourceModrinth,
+		ServerSide: p.ServerSide, ClientSide: p.ClientSide,
 	}
 }
 
@@ -167,6 +168,11 @@ func versionProto(v modrinth.Version) *panelv1.AddonVersion {
 	}
 	if f, ok := v.Main(); ok {
 		out.File = &panelv1.AddonFile{Url: f.URL, Filename: f.Filename, Size: f.Size, Sha512: f.Hashes.Sha512}
+	}
+	for _, d := range v.Dependencies {
+		if d.ProjectID != "" {
+			out.Dependencies = append(out.Dependencies, &panelv1.AddonDependency{ProjectId: d.ProjectID, VersionId: d.VersionID, Type: d.Type})
+		}
 	}
 	return out
 }
@@ -199,7 +205,7 @@ func (s *Addons) SearchAddons(ctx context.Context, req *panelv1.SearchAddonsRequ
 		}
 		return out, nil
 	}
-	projects, total, err := s.Modrinth.Search(ctx, req.GetKind(), req.GetLoaders(), req.GetGameVersion(), query, offset)
+	projects, total, err := s.Modrinth.Search(ctx, req.GetKind(), req.GetLoaders(), req.GetGameVersion(), query, offset, !req.GetIncludeClientOnly())
 	if err != nil {
 		return nil, modrinthError(err)
 	}
