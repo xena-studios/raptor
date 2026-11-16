@@ -77,6 +77,7 @@ import { Route as OrgsOrgIdServersServerIdBackupsRouteImport } from './routes/or
 import { Route as OrgsOrgIdServersServerIdFilesRouteImport } from './routes/orgs.$orgId.servers.$serverId.files'
 import { Route as OrgsOrgIdServersServerIdGameRouteImport } from './routes/orgs.$orgId.servers.$serverId.game'
 import { Route as OrgsOrgIdServersServerIdNetworkRouteImport } from './routes/orgs.$orgId.servers.$serverId.network'
+import { Route as OrgsOrgIdServersServerIdPlayersRouteImport } from './routes/orgs.$orgId.servers.$serverId.players'
 import { Route as OrgsOrgIdServersServerIdSchedulesRouteImport } from './routes/orgs.$orgId.servers.$serverId.schedules'
 import { Route as OrgsOrgIdServersServerIdSettingsRouteImport } from './routes/orgs.$orgId.servers.$serverId.settings'
 import { Route as OrgsOrgIdServersServerIdStartupRouteImport } from './routes/orgs.$orgId.servers.$serverId.startup'
@@ -458,6 +459,12 @@ const OrgsOrgIdServersServerIdNetworkRoute =
     path: '/network',
     getParentRoute: () => OrgsOrgIdServersServerIdRoute,
   } as any)
+const OrgsOrgIdServersServerIdPlayersRoute =
+  OrgsOrgIdServersServerIdPlayersRouteImport.update({
+    id: '/players',
+    path: '/players',
+    getParentRoute: () => OrgsOrgIdServersServerIdRoute,
+  } as any)
 const OrgsOrgIdServersServerIdSchedulesRoute =
   OrgsOrgIdServersServerIdSchedulesRouteImport.update({
     id: '/schedules',
@@ -621,6 +628,7 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/servers/$serverId/files': typeof OrgsOrgIdServersServerIdFilesRoute
   '/orgs/$orgId/servers/$serverId/game': typeof OrgsOrgIdServersServerIdGameRoute
   '/orgs/$orgId/servers/$serverId/network': typeof OrgsOrgIdServersServerIdNetworkRoute
+  '/orgs/$orgId/servers/$serverId/players': typeof OrgsOrgIdServersServerIdPlayersRoute
   '/orgs/$orgId/servers/$serverId/schedules': typeof OrgsOrgIdServersServerIdSchedulesRoute
   '/orgs/$orgId/servers/$serverId/settings': typeof OrgsOrgIdServersServerIdSettingsRoute
   '/orgs/$orgId/servers/$serverId/startup': typeof OrgsOrgIdServersServerIdStartupRoute
@@ -700,6 +708,7 @@ export interface FileRoutesByTo {
   '/orgs/$orgId/servers/$serverId/files': typeof OrgsOrgIdServersServerIdFilesRoute
   '/orgs/$orgId/servers/$serverId/game': typeof OrgsOrgIdServersServerIdGameRoute
   '/orgs/$orgId/servers/$serverId/network': typeof OrgsOrgIdServersServerIdNetworkRoute
+  '/orgs/$orgId/servers/$serverId/players': typeof OrgsOrgIdServersServerIdPlayersRoute
   '/orgs/$orgId/servers/$serverId/schedules': typeof OrgsOrgIdServersServerIdSchedulesRoute
   '/orgs/$orgId/servers/$serverId/settings': typeof OrgsOrgIdServersServerIdSettingsRoute
   '/orgs/$orgId/servers/$serverId/startup': typeof OrgsOrgIdServersServerIdStartupRoute
@@ -787,6 +796,7 @@ export interface FileRoutesById {
   '/orgs/$orgId/servers/$serverId/files': typeof OrgsOrgIdServersServerIdFilesRoute
   '/orgs/$orgId/servers/$serverId/game': typeof OrgsOrgIdServersServerIdGameRoute
   '/orgs/$orgId/servers/$serverId/network': typeof OrgsOrgIdServersServerIdNetworkRoute
+  '/orgs/$orgId/servers/$serverId/players': typeof OrgsOrgIdServersServerIdPlayersRoute
   '/orgs/$orgId/servers/$serverId/schedules': typeof OrgsOrgIdServersServerIdSchedulesRoute
   '/orgs/$orgId/servers/$serverId/settings': typeof OrgsOrgIdServersServerIdSettingsRoute
   '/orgs/$orgId/servers/$serverId/startup': typeof OrgsOrgIdServersServerIdStartupRoute
@@ -875,6 +885,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$serverId/files'
     | '/orgs/$orgId/servers/$serverId/game'
     | '/orgs/$orgId/servers/$serverId/network'
+    | '/orgs/$orgId/servers/$serverId/players'
     | '/orgs/$orgId/servers/$serverId/schedules'
     | '/orgs/$orgId/servers/$serverId/settings'
     | '/orgs/$orgId/servers/$serverId/startup'
@@ -954,6 +965,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$serverId/files'
     | '/orgs/$orgId/servers/$serverId/game'
     | '/orgs/$orgId/servers/$serverId/network'
+    | '/orgs/$orgId/servers/$serverId/players'
     | '/orgs/$orgId/servers/$serverId/schedules'
     | '/orgs/$orgId/servers/$serverId/settings'
     | '/orgs/$orgId/servers/$serverId/startup'
@@ -1040,6 +1052,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$serverId/files'
     | '/orgs/$orgId/servers/$serverId/game'
     | '/orgs/$orgId/servers/$serverId/network'
+    | '/orgs/$orgId/servers/$serverId/players'
     | '/orgs/$orgId/servers/$serverId/schedules'
     | '/orgs/$orgId/servers/$serverId/settings'
     | '/orgs/$orgId/servers/$serverId/startup'
@@ -1551,6 +1564,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdServersServerIdNetworkRouteImport
       parentRoute: typeof OrgsOrgIdServersServerIdRoute
     }
+    '/orgs/$orgId/servers/$serverId/players': {
+      id: '/orgs/$orgId/servers/$serverId/players'
+      path: '/players'
+      fullPath: '/orgs/$orgId/servers/$serverId/players'
+      preLoaderRoute: typeof OrgsOrgIdServersServerIdPlayersRouteImport
+      parentRoute: typeof OrgsOrgIdServersServerIdRoute
+    }
     '/orgs/$orgId/servers/$serverId/schedules': {
       id: '/orgs/$orgId/servers/$serverId/schedules'
       path: '/schedules'
@@ -1863,6 +1883,7 @@ interface OrgsOrgIdServersServerIdRouteChildren {
   OrgsOrgIdServersServerIdFilesRoute: typeof OrgsOrgIdServersServerIdFilesRoute
   OrgsOrgIdServersServerIdGameRoute: typeof OrgsOrgIdServersServerIdGameRoute
   OrgsOrgIdServersServerIdNetworkRoute: typeof OrgsOrgIdServersServerIdNetworkRoute
+  OrgsOrgIdServersServerIdPlayersRoute: typeof OrgsOrgIdServersServerIdPlayersRoute
   OrgsOrgIdServersServerIdSchedulesRoute: typeof OrgsOrgIdServersServerIdSchedulesRoute
   OrgsOrgIdServersServerIdSettingsRoute: typeof OrgsOrgIdServersServerIdSettingsRoute
   OrgsOrgIdServersServerIdStartupRoute: typeof OrgsOrgIdServersServerIdStartupRoute
@@ -1883,6 +1904,7 @@ const OrgsOrgIdServersServerIdRouteChildren: OrgsOrgIdServersServerIdRouteChildr
     OrgsOrgIdServersServerIdFilesRoute: OrgsOrgIdServersServerIdFilesRoute,
     OrgsOrgIdServersServerIdGameRoute: OrgsOrgIdServersServerIdGameRoute,
     OrgsOrgIdServersServerIdNetworkRoute: OrgsOrgIdServersServerIdNetworkRoute,
+    OrgsOrgIdServersServerIdPlayersRoute: OrgsOrgIdServersServerIdPlayersRoute,
     OrgsOrgIdServersServerIdSchedulesRoute:
       OrgsOrgIdServersServerIdSchedulesRoute,
     OrgsOrgIdServersServerIdSettingsRoute:

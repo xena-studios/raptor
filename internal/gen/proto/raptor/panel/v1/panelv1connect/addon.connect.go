@@ -48,6 +48,9 @@ const (
 	// AddonServiceResolveAddonDependenciesProcedure is the fully-qualified name of the AddonService's
 	// ResolveAddonDependencies RPC.
 	AddonServiceResolveAddonDependenciesProcedure = "/raptor.panel.v1.AddonService/ResolveAddonDependencies"
+	// AddonServiceLookupMinecraftPlayerProcedure is the fully-qualified name of the AddonService's
+	// LookupMinecraftPlayer RPC.
+	AddonServiceLookupMinecraftPlayerProcedure = "/raptor.panel.v1.AddonService/LookupMinecraftPlayer"
 	// AddonServiceListGameVersionsProcedure is the fully-qualified name of the AddonService's
 	// ListGameVersions RPC.
 	AddonServiceListGameVersionsProcedure = "/raptor.panel.v1.AddonService/ListGameVersions"
@@ -75,6 +78,11 @@ type AddonServiceClient interface {
 	// ones, leaving out projects already installed. It also names installed
 	// projects it can't run beside.
 	ResolveAddonDependencies(context.Context, *v1.ResolveAddonDependenciesRequest) (*v1.ResolveAddonDependenciesResponse, error)
+	// LookupMinecraftPlayer is a Minecraft account by name (#422): its name
+	// as Mojang has it and its UUID, for editing a stopped server's
+	// whitelist, ops, and bans; with offline, the UUID an offline-mode
+	// server gives the name (no lookup).
+	LookupMinecraftPlayer(context.Context, *v1.LookupMinecraftPlayerRequest) (*v1.LookupMinecraftPlayerResponse, error)
 	// ListGameVersions lists the versions a game's server software has,
 	// newest first, for the version switcher (#420): "paper", "folia",
 	// "velocity", "waterfall", "purpur", "vanilla", "fabric", or "quilt".
@@ -127,6 +135,13 @@ func NewAddonServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		lookupMinecraftPlayer: connect.NewClient[v1.LookupMinecraftPlayerRequest, v1.LookupMinecraftPlayerResponse](
+			httpClient,
+			baseURL+AddonServiceLookupMinecraftPlayerProcedure,
+			connect.WithSchema(addonServiceMethods.ByName("LookupMinecraftPlayer")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 		listGameVersions: connect.NewClient[v1.ListGameVersionsRequest, v1.ListGameVersionsResponse](
 			httpClient,
 			baseURL+AddonServiceListGameVersionsProcedure,
@@ -144,6 +159,7 @@ type addonServiceClient struct {
 	identifyAddons           *connect.Client[v1.IdentifyAddonsRequest, v1.IdentifyAddonsResponse]
 	lookupWorkshopItems      *connect.Client[v1.LookupWorkshopItemsRequest, v1.LookupWorkshopItemsResponse]
 	resolveAddonDependencies *connect.Client[v1.ResolveAddonDependenciesRequest, v1.ResolveAddonDependenciesResponse]
+	lookupMinecraftPlayer    *connect.Client[v1.LookupMinecraftPlayerRequest, v1.LookupMinecraftPlayerResponse]
 	listGameVersions         *connect.Client[v1.ListGameVersionsRequest, v1.ListGameVersionsResponse]
 }
 
@@ -192,6 +208,15 @@ func (c *addonServiceClient) ResolveAddonDependencies(ctx context.Context, req *
 	return nil, err
 }
 
+// LookupMinecraftPlayer calls raptor.panel.v1.AddonService.LookupMinecraftPlayer.
+func (c *addonServiceClient) LookupMinecraftPlayer(ctx context.Context, req *v1.LookupMinecraftPlayerRequest) (*v1.LookupMinecraftPlayerResponse, error) {
+	response, err := c.lookupMinecraftPlayer.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // ListGameVersions calls raptor.panel.v1.AddonService.ListGameVersions.
 func (c *addonServiceClient) ListGameVersions(ctx context.Context, req *v1.ListGameVersionsRequest) (*v1.ListGameVersionsResponse, error) {
 	response, err := c.listGameVersions.CallUnary(ctx, connect.NewRequest(req))
@@ -223,6 +248,11 @@ type AddonServiceHandler interface {
 	// ones, leaving out projects already installed. It also names installed
 	// projects it can't run beside.
 	ResolveAddonDependencies(context.Context, *v1.ResolveAddonDependenciesRequest) (*v1.ResolveAddonDependenciesResponse, error)
+	// LookupMinecraftPlayer is a Minecraft account by name (#422): its name
+	// as Mojang has it and its UUID, for editing a stopped server's
+	// whitelist, ops, and bans; with offline, the UUID an offline-mode
+	// server gives the name (no lookup).
+	LookupMinecraftPlayer(context.Context, *v1.LookupMinecraftPlayerRequest) (*v1.LookupMinecraftPlayerResponse, error)
 	// ListGameVersions lists the versions a game's server software has,
 	// newest first, for the version switcher (#420): "paper", "folia",
 	// "velocity", "waterfall", "purpur", "vanilla", "fabric", or "quilt".
@@ -271,6 +301,13 @@ func NewAddonServiceHandler(svc AddonServiceHandler, opts ...connect.HandlerOpti
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	addonServiceLookupMinecraftPlayerHandler := connect.NewUnaryHandlerSimple(
+		AddonServiceLookupMinecraftPlayerProcedure,
+		svc.LookupMinecraftPlayer,
+		connect.WithSchema(addonServiceMethods.ByName("LookupMinecraftPlayer")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	addonServiceListGameVersionsHandler := connect.NewUnaryHandlerSimple(
 		AddonServiceListGameVersionsProcedure,
 		svc.ListGameVersions,
@@ -290,6 +327,8 @@ func NewAddonServiceHandler(svc AddonServiceHandler, opts ...connect.HandlerOpti
 			addonServiceLookupWorkshopItemsHandler.ServeHTTP(w, r)
 		case AddonServiceResolveAddonDependenciesProcedure:
 			addonServiceResolveAddonDependenciesHandler.ServeHTTP(w, r)
+		case AddonServiceLookupMinecraftPlayerProcedure:
+			addonServiceLookupMinecraftPlayerHandler.ServeHTTP(w, r)
 		case AddonServiceListGameVersionsProcedure:
 			addonServiceListGameVersionsHandler.ServeHTTP(w, r)
 		default:
@@ -319,6 +358,10 @@ func (UnimplementedAddonServiceHandler) LookupWorkshopItems(context.Context, *v1
 
 func (UnimplementedAddonServiceHandler) ResolveAddonDependencies(context.Context, *v1.ResolveAddonDependenciesRequest) (*v1.ResolveAddonDependenciesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AddonService.ResolveAddonDependencies is not implemented"))
+}
+
+func (UnimplementedAddonServiceHandler) LookupMinecraftPlayer(context.Context, *v1.LookupMinecraftPlayerRequest) (*v1.LookupMinecraftPlayerResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AddonService.LookupMinecraftPlayer is not implemented"))
 }
 
 func (UnimplementedAddonServiceHandler) ListGameVersions(context.Context, *v1.ListGameVersionsRequest) (*v1.ListGameVersionsResponse, error) {

@@ -46,6 +46,14 @@ service AddonService {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
+  // LookupMinecraftPlayer is a Minecraft account by name (#422): its name
+  // as Mojang has it and its UUID, for editing a stopped server's
+  // whitelist, ops, and bans; with offline, the UUID an offline-mode
+  // server gives the name (no lookup).
+  rpc LookupMinecraftPlayer(LookupMinecraftPlayerRequest) returns (LookupMinecraftPlayerResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
   // ListGameVersions lists the versions a game's server software has,
   // newest first, for the version switcher (#420): "paper", "folia",
   // "velocity", "waterfall", "purpur", "vanilla", "fabric", or "quilt".
@@ -245,4 +253,15 @@ message GameVersion {
 message ListGameVersionsResponse {
   // Newest first.
   repeated GameVersion versions = 1;
+}
+
+message LookupMinecraftPlayerRequest {
+  string org_id = 1;
+  string name = 2;
+  bool offline = 3;
+}
+
+message LookupMinecraftPlayerResponse {
+  string name = 1;
+  string uuid = 2;
 }
