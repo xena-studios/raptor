@@ -225,6 +225,7 @@ Checked against reality: of the 606 eggs, the defaults that fail their own rules
 
 The fields are those of [Raptor extensions](#raptor-extensions) below (`arch`, `category`, `install`, `backup`, `health`, `players`, `addons`, `workshop`, `reforger`, `web`, `modpack`), validated the same way, plus `library`, the egg's ID in the egg library. Errors name them without the `x-raptor.` prefix. An `x-raptor` block in a Raptor egg is ignored.
 The fields are those of [Raptor extensions](#raptor-extensions) below (`arch`, `category`, `install`, `backup`, `health`, `players`, `addons`, `workshop`, `web`, `modpack`, `rcon`), validated the same way, plus `library`, the egg's ID in the egg library. Errors name them without the `x-raptor.` prefix. An `x-raptor` block in a Raptor egg is ignored.
+The fields are those of [Raptor extensions](#raptor-extensions) below (`arch`, `category`, `install`, `backup`, `health`, `players`, `addons`, `workshop`, `web`, `modpack`, `scan`), validated the same way, plus `library`, the egg's ID in the egg library. Errors name them without the `x-raptor.` prefix. An `x-raptor` block in a Raptor egg is ignored.
 
 - **Nodes:** Wings lists the `raptor-eggs` capability when it reads the format. The Panel refuses a `server.create` or `server.update` with a Raptor egg for a node without it, saying to update Wings, rather than letting the node fail with "unsupported format" (DECISIONS #353).
 - **Other panels** don't read `RPTR_v1`. Eggs imported from Pterodactyl or Pelican keep their format (and Raptor's settings for them stay under `x-raptor`, which those panels ignore); re-importing one over a Raptor egg keeps the Raptor egg's settings, moved under `x-raptor` (`spec.KeepRaptor`).
@@ -354,6 +355,27 @@ web:
 - The link is `http://<the server's address>:<port>/`: the shown address's host if it has one, else the node's hostname. A port variable that's empty means it's off. If the port isn't one of the server's ports, Overview says to add it on Network instead of linking.
 - Both variables must be the egg's. The library sets it for FiveM's txAdmin and the software eggs with a web page (code-server, Grafana, Uptime Kuma, Forgejo, Gitea, Owncast, yarr, Reposilite, Prometheus, RabbitMQ's management page, Game Server Watcher, TS3 Manager).
 - Wings reports it in the egg summary (`web`), so servers on older Wings show no link until they update.
+- **txAdmin's PIN:** on its first run txAdmin prints a PIN to create its admin account with ("Use the PIN below to register:", the PIN on the next line, in a box). Overview reads it from the console (`txAdminPin`, `web/src/lib/fivem.ts`) and shows it under **Open txAdmin** until the server starts again.
+
+## Backdoor scan
+
+Leaked and bought FiveM resources often hide code that downloads and runs a stranger's code or hands them the console. An egg whose server runs such scripts says where they are under `x-raptor.scan` (#428), and the server's Overview gets a **Resource scan** card:
+
+```yaml
+scan:
+  rules: fivem                # the rule set: fivem (Lua and JavaScript files)
+  dirs: [resources, txData]   # folders inside the server's directory, 1 to 8
+```
+
+- **Where it runs:** Wings' `files.scan` action reads the folders on the node, so the files never leave it (`internal/wings/backdoor`). It's a read (`files.read`), never signed, and isn't stored. It doesn't follow links, leaves out what the egg's denylist hides, and skips `node_modules` and `.git` (build tools there run programs honestly) and files that aren't text (escrowed resources).
+- **Limits:** 20,000 files, 4 MiB a file (larger ones are counted as skipped), 512 MiB in all, two minutes, and 1,000 findings. The answer says which limit stopped it, if one did.
+- **The rules** (`internal/wings/backdoor/rules.go`, each tested with sample snippets): before matching, escapes (`\x50`, Lua's `\80`, `\u0050`) and character codes (`string.char(…)`, `String.fromCharCode(…)`) are decoded, so names hidden in them are seen. One finding per line, the most severe rule that matches:
+  - **High:** a known backdoor panel's address (Cipher, Blum); a web request and `load`/`eval`/`new Function` on the same line or up to 15 lines after (code downloaded and run); a sensitive name (`PerformHttpRequest`, `load`, `os.execute`, `require`, `eval`, …) that the line only spells in escapes; `os.execute` or `io.popen` in Lua; reading `sv_licenseKey`; JavaScript `eval` of decoded data (`atob`, `Buffer.from`).
+  - **Medium:** `child_process` in JavaScript; reading `rcon_password` (the standard `runcode` resource does); 40 escaped bytes in a row or a JavaScript obfuscator's `_0x…` names; `ExecuteCommand("add_principal …")` or `add_ace`.
+  - **Low:** `loadstring` or `assert(load(…))` in Lua, which config loaders use honestly.
+  - Checked against Cfx.re's standard resources, ESX, QBCore, ox_lib, and oxmysql: no high findings; the medium is `runcode` reading the RCON password, and the lows are their config loaders.
+- **Results** list each file with its worst severity, then each line with what it does and the part that matched (decoded when it was hidden). Raptor never deletes anything: each file has **Open** (the file manager's editor) and, with `files.write`, **Move to trash** after a confirmation. High or medium findings also show in Needs attention until dismissed (this browser session's last scan).
+- **Which servers:** the Panel tells the app (`Server.resource_scan`, from the egg summary's `scan`), so members with `files.read` but not `startup` get it. The library sets it for FiveM (`resources` and `txData`, where txAdmin's recipes put theirs). Servers on older Wings say the action is unknown until they update.
 
 ## RCON
 

@@ -39,7 +39,7 @@ func IsRaptor(format string) bool { return strings.HasPrefix(format, "RPTR_") }
 
 // RaptorKeys are Raptor's settings: top-level fields in Raptor's eggs, and
 // the keys of "x-raptor" in other formats.
-var RaptorKeys = []string{"arch", "category", "library", "install", "backup", "health", "players", "addons", "workshop", "reforger", "web", "modpack", "rcon"}
+var RaptorKeys = []string{"arch", "category", "library", "install", "backup", "health", "players", "addons", "workshop", "reforger", "web", "modpack", "rcon", "scan"}
 
 // Egg is the normalized form of every supported egg format.
 type Egg struct {
@@ -168,6 +168,9 @@ type Extension struct {
 	// RCON is how Wings reaches the game's remote console (#423), for the
 	// Players tab; nil if the egg has none.
 	RCON *RCON `yaml:"rcon"`
+	// Scan turns on the backdoor scan of the server's scripts (#428); nil
+	// if the egg has none.
+	Scan *Scan `yaml:"scan"`
 }
 
 // RCON is where a game's remote console listens and how to log in. Wings
@@ -270,6 +273,38 @@ func CheckRCON(r *RCON, vars []Variable) error {
 		}
 		if proto != r.Protocol {
 			return fmt.Errorf("egg: x-raptor.rcon.players %q goes with protocol %s", r.Players, proto)
+		}
+	}
+	return nil
+}
+
+// ScanRules are the rule sets x-raptor.scan can name; Wings has their
+// rules (internal/wings/backdoor).
+var ScanRules = []string{"fivem"}
+
+// Scan is where a server keeps scripts worth scanning for backdoors, and
+// which rules fit them.
+type Scan struct {
+	// Rules is the rule set: "fivem".
+	Rules string `yaml:"rules"`
+	// Dirs are the folders scanned, from the server's directory.
+	Dirs []string `yaml:"dirs"`
+}
+
+// CheckScan validates x-raptor.scan.
+func CheckScan(s *Scan) error {
+	if s == nil {
+		return nil
+	}
+	if !slices.Contains(ScanRules, s.Rules) {
+		return fmt.Errorf("egg: x-raptor.scan.rules %q: want one of %s", s.Rules, strings.Join(ScanRules, ", "))
+	}
+	if len(s.Dirs) == 0 || len(s.Dirs) > 8 {
+		return errors.New("egg: x-raptor.scan.dirs: name 1 to 8 folders")
+	}
+	for _, d := range s.Dirs {
+		if c := path.Clean(d); d == "" || c != d || path.IsAbs(d) || c == "." || c == ".." || strings.HasPrefix(c, "../") {
+			return fmt.Errorf("egg: x-raptor.scan.dirs %q: want a folder inside the server's directory, like resources", d)
 		}
 	}
 	return nil
@@ -880,6 +915,9 @@ func (e *Egg) parseRaptor(n *yaml.Node) error {
 			}
 		}
 		if err := CheckRCON(e.Raptor.RCON, e.Variables); err != nil {
+			return err
+		}
+		if err := CheckScan(e.Raptor.Scan); err != nil {
 			return err
 		}
 	}

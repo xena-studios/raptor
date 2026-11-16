@@ -79,6 +79,9 @@ type Meta struct {
 	// RCON is how to reach the game's remote console (the egg's
 	// x-raptor.rcon), for the Players tab (#423).
 	RCON *eggs.RCON `yaml:"rcon"`
+	// Scan turns on the backdoor scan of the server's scripts (the egg's
+	// x-raptor.scan).
+	Scan *eggs.Scan `yaml:"scan"`
 	// Backup is what's sent to the game's console around a backup (the
 	// egg's x-raptor.backup, docs/EGGS.md#backup-hooks), added like
 	// Players: save-off and save-all flush, then save-on, for Minecraft.
@@ -276,6 +279,9 @@ func (e *Entry) validate() error {
 	if err := eggs.CheckModpack(e.Modpack, egg.Variables); err != nil {
 		return err
 	}
+	if err := eggs.CheckScan(e.Scan); err != nil {
+		return err
+	}
 	if err := eggs.CheckWorkshop(e.Workshop, egg.Variables); err != nil {
 		return err
 	}
@@ -461,6 +467,16 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 			set(n, "players", str(r.Players))
 		}
 		set(ext, "rcon", n)
+	}
+	if sc := e.Scan; sc != nil {
+		n := &yaml.Node{Kind: yaml.MappingNode}
+		set(n, "rules", str(sc.Rules))
+		dirs := &yaml.Node{Kind: yaml.SequenceNode}
+		for _, d := range sc.Dirs {
+			dirs.Content = append(dirs.Content, str(d))
+		}
+		set(n, "dirs", dirs)
+		set(ext, "scan", n)
 	}
 	if b := e.Backup; b != nil {
 		n := &yaml.Node{Kind: yaml.MappingNode}
