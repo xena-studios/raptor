@@ -4,8 +4,11 @@ import { test } from "node:test";
 import {
   paperForVelocity,
   readBackends,
+  readBungeeBackends,
+  spigotForBungee,
   validBackendName,
   writeBackends,
+  writeBungeeBackends,
 } from "./proxy-backends.ts";
 
 const toml = `config-version = "2.7"
@@ -67,4 +70,59 @@ scoreboards:
   assert.match(out, /bungee-cord:\n {4}online-mode: true/);
   assert.match(out, /^scoreboards:\n {2}save-empty: false$/m);
   assert.equal(paperForVelocity("settings: {}\n", "x"), undefined);
+});
+
+const bungee = `server_connect_timeout: 5000
+listeners:
+- query_port: 25577
+  motd: '&1Another Bungee server'
+  priorities:
+  - lobby
+  bind_local_address: true
+  host: 0.0.0.0:25577
+ip_forward: false
+servers:
+  lobby:
+    motd: '&1Just another BungeeCord - Forced Host'
+    address: localhost:25565
+    restricted: false
+
+online_mode: true
+`;
+
+test("BungeeCord's servers and priorities", () => {
+  const got = readBungeeBackends(bungee);
+  assert.deepEqual(got, {
+    servers: [{ name: "lobby", address: "localhost:25565" }],
+    try: ["lobby"],
+  });
+  const out = writeBungeeBackends(
+    bungee,
+    [
+      { name: "survival", address: "node1.example:30001" },
+      { name: "lobby", address: "node1.example:30000" },
+    ],
+    ["survival", "lobby"],
+  );
+  assert.deepEqual(readBungeeBackends(out), {
+    servers: [
+      { name: "survival", address: "node1.example:30001" },
+      { name: "lobby", address: "node1.example:30000" },
+    ],
+    try: ["survival", "lobby"],
+  });
+  assert.match(out, /^ip_forward: true$/m);
+  assert.match(out, /^online_mode: true$/m);
+  assert.match(out, /'&1Just another BungeeCord - Forced Host'/);
+  assert.match(out, /^ {2}bind_local_address: true$/m);
+  // Emptied, it's still valid YAML.
+  assert.match(writeBungeeBackends(bungee, [], []), /^servers: \{\}$/m);
+});
+
+test("spigot.yml takes BungeeCord's forwarding", () => {
+  const yml =
+    "config-version: 12\nsettings:\n  debug: false\n  bungeecord: false\nworld-settings:\n  default: {}\n";
+  assert.equal(spigotForBungee(yml), yml.replace("bungeecord: false", "bungeecord: true"));
+  assert.match(spigotForBungee("settings:\n  debug: false\n") ?? "", /^ {2}bungeecord: true$/m);
+  assert.equal(spigotForBungee("nothing: here\n"), undefined);
 });
