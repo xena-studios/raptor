@@ -124,7 +124,7 @@ Bigger work, unordered.
 - A connection relay for owners behind CGNAT (a paid add-on)
 - Queued config edits for offline nodes
 - Scoped API tokens, webhooks, an MCP server for AI tools, and Raptor Deployments (servers as code from GitHub: deploys with health checks and rollback, drift sent back as pull requests): the plan is [#374](https://github.com/xena-studios/raptor/issues/374)
-- Raptor's phone app (iOS and Android, Expo) for alerts as push notifications and the basics: the plan is [#450](https://github.com/xena-studios/raptor/issues/450). Its sign-in on the Panel is built ([PANEL.md](PANEL.md#the-phone-app)); next are push devices with APNs and FCM, then the app
+- Raptor's phone app (iOS and Android, Expo) for alerts as push notifications and the basics: the plan is [#450](https://github.com/xena-studios/raptor/issues/450). Its sign-in on the Panel ([PANEL.md](PANEL.md#the-phone-app)) and push notifications through APNs and FCM ([PANEL.md](PANEL.md#alerts), keys in [DEPLOY.md](DEPLOY.md#push-notifications)) are built; next is the app
 - More certified games and OS versions
 - End-to-end encryption of node traffic inside the WebSocket, so Cloudflare can't read it, if customers ask for it
 

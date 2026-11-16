@@ -38,6 +38,7 @@ const typeNames: Record<string, string> = {
   telegram: "Telegram",
   ntfy: "ntfy",
   webhook: "Webhook",
+  phone: "Raptor's app",
 };
 
 // Alerts is an org's alerts (docs/PANEL.md#alerts): what's worth one and

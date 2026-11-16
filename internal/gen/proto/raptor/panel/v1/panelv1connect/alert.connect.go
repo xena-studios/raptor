@@ -72,6 +72,12 @@ const (
 	// AlertServiceDismissNotificationsProcedure is the fully-qualified name of the AlertService's
 	// DismissNotifications RPC.
 	AlertServiceDismissNotificationsProcedure = "/raptor.panel.v1.AlertService/DismissNotifications"
+	// AlertServiceRegisterPushDeviceProcedure is the fully-qualified name of the AlertService's
+	// RegisterPushDevice RPC.
+	AlertServiceRegisterPushDeviceProcedure = "/raptor.panel.v1.AlertService/RegisterPushDevice"
+	// AlertServiceUnregisterPushDeviceProcedure is the fully-qualified name of the AlertService's
+	// UnregisterPushDevice RPC.
+	AlertServiceUnregisterPushDeviceProcedure = "/raptor.panel.v1.AlertService/UnregisterPushDevice"
 )
 
 // AlertServiceClient is a client for the raptor.panel.v1.AlertService service.
@@ -110,6 +116,14 @@ type AlertServiceClient interface {
 	// DismissNotifications clears alerts from the inbox: the ones named, or
 	// all of them.
 	DismissNotifications(context.Context, *v1.DismissNotificationsRequest) (*v1.DismissNotificationsResponse, error)
+	// RegisterPushDevice is for Raptor's phone app only: it makes the phone
+	// one of the user's own channels (type phone, named after the device),
+	// or gives that channel a new push token. The app calls it after signing
+	// in and whenever Apple or Google give it a new token.
+	RegisterPushDevice(context.Context, *v1.RegisterPushDeviceRequest) (*v1.RegisterPushDeviceResponse, error)
+	// UnregisterPushDevice stops push notifications to this phone (the app's
+	// own session), without signing it out.
+	UnregisterPushDevice(context.Context, *v1.UnregisterPushDeviceRequest) (*v1.UnregisterPushDeviceResponse, error)
 }
 
 // NewAlertServiceClient constructs a client for the raptor.panel.v1.AlertService service. By
@@ -205,6 +219,18 @@ func NewAlertServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(alertServiceMethods.ByName("DismissNotifications")),
 			connect.WithClientOptions(opts...),
 		),
+		registerPushDevice: connect.NewClient[v1.RegisterPushDeviceRequest, v1.RegisterPushDeviceResponse](
+			httpClient,
+			baseURL+AlertServiceRegisterPushDeviceProcedure,
+			connect.WithSchema(alertServiceMethods.ByName("RegisterPushDevice")),
+			connect.WithClientOptions(opts...),
+		),
+		unregisterPushDevice: connect.NewClient[v1.UnregisterPushDeviceRequest, v1.UnregisterPushDeviceResponse](
+			httpClient,
+			baseURL+AlertServiceUnregisterPushDeviceProcedure,
+			connect.WithSchema(alertServiceMethods.ByName("UnregisterPushDevice")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -223,6 +249,8 @@ type alertServiceClient struct {
 	listNotifications    *connect.Client[v1.ListNotificationsRequest, v1.ListNotificationsResponse]
 	seeNotifications     *connect.Client[v1.SeeNotificationsRequest, v1.SeeNotificationsResponse]
 	dismissNotifications *connect.Client[v1.DismissNotificationsRequest, v1.DismissNotificationsResponse]
+	registerPushDevice   *connect.Client[v1.RegisterPushDeviceRequest, v1.RegisterPushDeviceResponse]
+	unregisterPushDevice *connect.Client[v1.UnregisterPushDeviceRequest, v1.UnregisterPushDeviceResponse]
 }
 
 // ListAlertChannels calls raptor.panel.v1.AlertService.ListAlertChannels.
@@ -342,6 +370,24 @@ func (c *alertServiceClient) DismissNotifications(ctx context.Context, req *v1.D
 	return nil, err
 }
 
+// RegisterPushDevice calls raptor.panel.v1.AlertService.RegisterPushDevice.
+func (c *alertServiceClient) RegisterPushDevice(ctx context.Context, req *v1.RegisterPushDeviceRequest) (*v1.RegisterPushDeviceResponse, error) {
+	response, err := c.registerPushDevice.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// UnregisterPushDevice calls raptor.panel.v1.AlertService.UnregisterPushDevice.
+func (c *alertServiceClient) UnregisterPushDevice(ctx context.Context, req *v1.UnregisterPushDeviceRequest) (*v1.UnregisterPushDeviceResponse, error) {
+	response, err := c.unregisterPushDevice.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // AlertServiceHandler is an implementation of the raptor.panel.v1.AlertService service.
 type AlertServiceHandler interface {
 	// ListAlertChannels lists the org's channels (or the user's own), and the
@@ -378,6 +424,14 @@ type AlertServiceHandler interface {
 	// DismissNotifications clears alerts from the inbox: the ones named, or
 	// all of them.
 	DismissNotifications(context.Context, *v1.DismissNotificationsRequest) (*v1.DismissNotificationsResponse, error)
+	// RegisterPushDevice is for Raptor's phone app only: it makes the phone
+	// one of the user's own channels (type phone, named after the device),
+	// or gives that channel a new push token. The app calls it after signing
+	// in and whenever Apple or Google give it a new token.
+	RegisterPushDevice(context.Context, *v1.RegisterPushDeviceRequest) (*v1.RegisterPushDeviceResponse, error)
+	// UnregisterPushDevice stops push notifications to this phone (the app's
+	// own session), without signing it out.
+	UnregisterPushDevice(context.Context, *v1.UnregisterPushDeviceRequest) (*v1.UnregisterPushDeviceResponse, error)
 }
 
 // NewAlertServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -469,6 +523,18 @@ func NewAlertServiceHandler(svc AlertServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(alertServiceMethods.ByName("DismissNotifications")),
 		connect.WithHandlerOptions(opts...),
 	)
+	alertServiceRegisterPushDeviceHandler := connect.NewUnaryHandlerSimple(
+		AlertServiceRegisterPushDeviceProcedure,
+		svc.RegisterPushDevice,
+		connect.WithSchema(alertServiceMethods.ByName("RegisterPushDevice")),
+		connect.WithHandlerOptions(opts...),
+	)
+	alertServiceUnregisterPushDeviceHandler := connect.NewUnaryHandlerSimple(
+		AlertServiceUnregisterPushDeviceProcedure,
+		svc.UnregisterPushDevice,
+		connect.WithSchema(alertServiceMethods.ByName("UnregisterPushDevice")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.panel.v1.AlertService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AlertServiceListAlertChannelsProcedure:
@@ -497,6 +563,10 @@ func NewAlertServiceHandler(svc AlertServiceHandler, opts ...connect.HandlerOpti
 			alertServiceSeeNotificationsHandler.ServeHTTP(w, r)
 		case AlertServiceDismissNotificationsProcedure:
 			alertServiceDismissNotificationsHandler.ServeHTTP(w, r)
+		case AlertServiceRegisterPushDeviceProcedure:
+			alertServiceRegisterPushDeviceHandler.ServeHTTP(w, r)
+		case AlertServiceUnregisterPushDeviceProcedure:
+			alertServiceUnregisterPushDeviceHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -556,4 +626,12 @@ func (UnimplementedAlertServiceHandler) SeeNotifications(context.Context, *v1.Se
 
 func (UnimplementedAlertServiceHandler) DismissNotifications(context.Context, *v1.DismissNotificationsRequest) (*v1.DismissNotificationsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AlertService.DismissNotifications is not implemented"))
+}
+
+func (UnimplementedAlertServiceHandler) RegisterPushDevice(context.Context, *v1.RegisterPushDeviceRequest) (*v1.RegisterPushDeviceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AlertService.RegisterPushDevice is not implemented"))
+}
+
+func (UnimplementedAlertServiceHandler) UnregisterPushDevice(context.Context, *v1.UnregisterPushDeviceRequest) (*v1.UnregisterPushDeviceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AlertService.UnregisterPushDevice is not implemented"))
 }

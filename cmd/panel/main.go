@@ -435,6 +435,34 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 	return api.Run(ctx, cfg, log)
 }
 
+// pushService is push notifications to Raptor's phone app
+// (docs/DEPLOY.md#push-notifications): Apple's with PANEL_APNS_KEY (the
+// .p8 key's contents), PANEL_APNS_KEY_ID, and PANEL_APNS_TEAM_ID; Google's
+// with PANEL_FCM_CREDENTIALS (a service account's JSON key). Each is off
+// without its settings, and they need PANEL_DATA_KEY to seal push tokens.
+func pushService() (*alerts.Push, error) {
+	p := &alerts.Push{}
+	if k := os.Getenv("PANEL_APNS_KEY"); k != "" {
+		key, err := alerts.ParseAPNsKey([]byte(k))
+		if err != nil {
+			return nil, fmt.Errorf("PANEL_APNS_KEY: %w", err)
+		}
+		id, team := os.Getenv("PANEL_APNS_KEY_ID"), os.Getenv("PANEL_APNS_TEAM_ID")
+		if id == "" || team == "" {
+			return nil, errors.New("PANEL_APNS_KEY_ID and PANEL_APNS_TEAM_ID must be set with PANEL_APNS_KEY")
+		}
+		p.APNs = &alerts.APNs{KeyID: id, TeamID: team, Topic: envOr("PANEL_APNS_TOPIC", "net.raptorpanel.app"), Key: key}
+	}
+	if c := os.Getenv("PANEL_FCM_CREDENTIALS"); c != "" {
+		f, err := alerts.NewFCM([]byte(c), nil)
+		if err != nil {
+			return nil, fmt.Errorf("PANEL_FCM_CREDENTIALS: %w", err)
+		}
+		p.FCM = f
+	}
+	return p, nil
+}
+
 // alertService sends orgs' alerts (docs/PANEL.md#alerts), with Telegram
 // when the bot's token and webhook secret are set (docs/DEPLOY.md#secrets).
 func alertService(ctx context.Context, pool *pgxpool.Pool, a *auth.Service, nodes alerts.Sender, key ed25519.PrivateKey, appURL string, log *slog.Logger) (*alerts.Service, error) {
@@ -450,6 +478,17 @@ func alertService(ctx context.Context, pool *pgxpool.Pool, a *auth.Service, node
 	}
 	if len(s.DataKey) != 32 {
 		log.Warn("PANEL_DATA_KEY is not set: only email and Telegram alert channels can be added")
+	}
+	push, err := pushService()
+	if err != nil {
+		return nil, err
+	}
+	s.Push = push
+	if !push.Offers(alerts.IOS) {
+		log.Warn("PANEL_APNS_KEY is not set: no push notifications to iPhones")
+	}
+	if !push.Offers(alerts.Android) {
+		log.Warn("PANEL_FCM_CREDENTIALS is not set: no push notifications to Android phones")
 	}
 	tok := os.Getenv("PANEL_TELEGRAM_BOT_TOKEN")
 	if tok == "" {

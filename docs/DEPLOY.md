@@ -67,7 +67,9 @@ Everything the servers need comes from the **Raptor production** vault. Make the
 | `Raptor Bot` | `token`, `public_key`, `guild_id`, `customer_role_id`, `support_role_id` | Optional: without it the bot is off. [Below](#discord). |
 | `Telegram alerts bot` | `token`, `webhook_secret` | Optional: without it the app doesn't offer Telegram alerts. In Telegram, message @BotFather: `/newbot`, a name (`Raptor Alerts`) and a username ending in `bot`; the token is what it answers. `webhook_secret`: `openssl rand -hex 32`. Then in @BotFather, `/setuserpic` with the logo and `/setdescription` ("Alerts from Raptor. Connect a chat from your org's settings, Alerts."). The Panel points the bot's webhook at itself when it starts. |
 
-The Google, Discord, Raptor Bot, `raptornodes.net` DNS, support bundle, Grafana, and Telegram items can wait: until an item exists, `secrets.sh` skips its lines ([`deploy/secrets/optional/`](../deploy/secrets/optional)) with a warning, and the Panel runs without that feature. The others are required.
+| `Push notifications` | `apns_key`, `apns_key_id`, `apns_team_id`, `fcm_credentials` | Optional: without it the phone app can't get alerts as push notifications. [Below](#push-notifications). |
+
+The Google, Discord, Raptor Bot, `raptornodes.net` DNS, support bundle, Grafana, Telegram, and push items can wait: until an item exists, `secrets.sh` skips its lines ([`deploy/secrets/optional/`](../deploy/secrets/optional)) with a warning, and the Panel runs without that feature. The others are required.
 
 Rotate anything that was ever pasted in a chat or a terminal history.
 
@@ -247,6 +249,16 @@ Raptor Bot on the Raptor Panel server ([PANEL.md](PANEL.md#discord)). It runs in
 9. Cloudflare: nothing to do. The "API: no challenges" WAF rule covers the whole API host, so Discord's requests aren't challenged, like Polar's; Discord gives up after 3 seconds.
 
 Then check: the staff log shows what the bot would take Customer from, before you turn removals on; the bot shows online with "Type /docs to search the guide"; the logs say `discord: this instance holds the gateway` on one instance; `/docs backups` answers; `/link` on an unlinked account sends you to Settings; a test ticket opens a private thread and closes.
+
+## Push notifications
+
+Alerts to Raptor's phone app ([PANEL.md](PANEL.md#alerts)) go straight from the Panel to Apple and Google. The app's bundle ID and Android package are `net.raptorpanel.app`.
+
+1. **Apple** (developer.apple.com → Certificates, Identifiers & Profiles): the App ID `net.raptorpanel.app` with **Push Notifications** on. Then **Keys → +**, "Raptor push", **Apple Push Notifications service (APNs)**, environment **Sandbox & Production**. Download the `.p8` once (Apple won't give it again) and note its **Key ID**; the **Team ID** is at the top right of the account page. One key works for every app on the team and doesn't expire.
+2. **Google** (console.firebase.google.com): a project (`raptor-panel`), an Android app with the package `net.raptorpanel.app` (its `google-services.json` goes in the app, not the Panel). Then Project settings → **Service accounts → Generate new private key**: a JSON file. Cloud Messaging's **HTTP v1 API** must be on (the default for new projects; the legacy API isn't used).
+3. 1Password item **Push notifications** in Raptor production: `apns_key` is the `.p8` on one line, `grep -v -- ----- AuthKey_*.p8 | tr -d '\n'`; `apns_key_id` and `apns_team_id`; `fcm_credentials` is the JSON on one line, `jq -c . raptor-panel-*.json`. Then delete both files. The next deploy picks them up (`deploy/secrets/optional/push.env.tpl`); the logs stop warning about `PANEL_APNS_KEY` and `PANEL_FCM_CREDENTIALS`.
+
+Then check, once the app is built: sign in on a phone, see "Raptor's app" with the phone's name under your own alert channels (the bell's settings), and send it a test. Development builds register sandbox tokens, which go to Apple's sandbox; TestFlight and App Store builds use production.
 
 ## Static sites
 

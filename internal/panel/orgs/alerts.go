@@ -750,3 +750,43 @@ func (a *Alerts) DismissNotifications(ctx context.Context, req *panelv1.DismissN
 	}
 	return &panelv1.DismissNotificationsResponse{}, nil
 }
+
+var errAppOnly = connect.NewError(connect.CodeFailedPrecondition, errors.New("only Raptor's phone app registers for push notifications"))
+
+// RegisterPushDevice implements AlertService.
+func (a *Alerts) RegisterPushDevice(ctx context.Context, req *panelv1.RegisterPushDeviceRequest) (*panelv1.RegisterPushDeviceResponse, error) {
+	sess, owner, err := a.changing(ctx, "")
+	if err != nil {
+		return nil, err
+	}
+	if !sess.App() {
+		return nil, errAppOnly
+	}
+	id, err := a.Alerts.RegisterPhone(ctx, alerts.PhoneInput{
+		User: sess.UserID, Session: sess.ID, Platform: req.GetPlatform(), Token: req.GetToken(),
+		Sandbox: req.GetSandbox(), Name: sess.DeviceName,
+	})
+	if err != nil {
+		return nil, alertInput(err)
+	}
+	ch, err := store.New(a.Orgs.DB).GetAlertChannel(ctx, store.GetAlertChannelParams{ID: id, UserID: sess.UserID})
+	if err != nil {
+		return nil, err
+	}
+	return &panelv1.RegisterPushDeviceResponse{Channel: a.channel(ctx, owner, ch)}, nil
+}
+
+// UnregisterPushDevice implements AlertService.
+func (a *Alerts) UnregisterPushDevice(ctx context.Context, _ *panelv1.UnregisterPushDeviceRequest) (*panelv1.UnregisterPushDeviceResponse, error) {
+	sess, _, err := a.scope(ctx, "")
+	if err != nil {
+		return nil, err
+	}
+	if !sess.App() {
+		return nil, errAppOnly
+	}
+	if err := a.Alerts.UnregisterPhone(ctx, sess.ID); err != nil {
+		return nil, err
+	}
+	return &panelv1.UnregisterPushDeviceResponse{}, nil
+}

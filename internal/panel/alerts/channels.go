@@ -30,6 +30,9 @@ const (
 	Telegram = "telegram"
 	Ntfy     = "ntfy"
 	Webhook  = "webhook"
+	// Phone is Raptor's phone app, signed in: a person's own, added by the
+	// app (RegisterPhone), one per session.
+	Phone = "phone"
 )
 
 // DefaultNtfy is the public ntfy server.
@@ -54,6 +57,10 @@ type config struct {
 	ChatID    int64  `json:"chat_id,omitempty"`
 	ChatTitle string `json:"chat_title,omitempty"`
 	Server    string `json:"server,omitempty"`
+	// A phone: ios or android, and whether its token is for Apple's
+	// sandbox (a development build).
+	Platform string `json:"platform,omitempty"`
+	Sandbox  bool   `json:"sandbox,omitempty"`
 }
 
 // secret is what a channel keeps sealed.
@@ -156,6 +163,8 @@ func prepare(in ChannelInput, allowPrivate bool) (config, secret, string, error)
 		return c, s, u.Host + "/" + topic[:min(len(topic), 3)] + "…", nil
 	case Telegram:
 		return c, s, "", invalid("Telegram chats are added with Connect Telegram")
+	case Phone:
+		return c, s, "", invalid("phones are added by signing in to Raptor's app")
 	}
 	return c, s, "", invalid("unknown channel type %q", in.Type)
 }
@@ -179,6 +188,7 @@ type sender struct {
 	client   *http.Client
 	mail     func(ctx context.Context, to string, e mail.Email) error
 	telegram *TelegramBot
+	push     *Push
 	now      func() time.Time
 }
 
@@ -227,6 +237,8 @@ func (s *sender) send(ctx context.Context, t target, m Message) error {
 			return errors.New("this Panel has no Telegram bot")
 		}
 		return s.telegram.Send(ctx, t.Config.ChatID, telegramText(m))
+	case Phone:
+		return s.push.send(ctx, t.Config.Platform, t.Secret.Token, t.Config.Sandbox, pushFor(m))
 	}
 	return permanent{fmt.Errorf("unknown channel type %q", t.Type)}
 }
