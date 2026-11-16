@@ -21,6 +21,17 @@ Below the console, **Resources** charts CPU, memory, disk, network, and players 
 
 Servers with a web page of their own (FiveM's txAdmin when it's on, Grafana, code-server, Uptime Kuma, and other apps) get an **Open …** button under Details. If its port isn't one of the server's ports yet, it says to add it on **Network** first.
 
+## Needs attention
+
+When something about the server needs you, a **Needs attention** list sits at the top of its Overview, each line with the button that fixes it:
+
+- **A problem in the console:** the wrong Java, running out of memory, a port in use, and the others in [Server problems](/help/server-problems/).
+- **An add-on missing what it needs:** a mod or plugin that needs another one that isn't installed.
+- **Add-on updates:** how many plugins, mods, or datapacks have a newer version.
+- **A newer version of its egg** (admins and owners).
+
+Dismiss a line with its ×: it stays hidden in this browser until what it says changes. With nothing to say, the list isn't there.
+
 ## The console
 
 The console shows the server's output live, starting with its last 1,000 lines. Type a command in the box below it and press Enter: it goes to the game exactly as typed.
