@@ -1,0 +1,123 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "PHP",
+    "author": "support@raptorpanel.net",
+    "description": "Runs a PHP website or app, such as a Laravel site or a bot, from your files or a Git repository. Websites are served by FrankenPHP; Composer packages are installed when composer.json changes. PHP settings go in .ini files in the php.d folder.",
+    "features": [],
+    "docker_images": {
+        "PHP 8.5": "ghcr.io/xena-studios/yolks:php_8.5@sha256:285a9173c37fa0861ecfb94483b79a21e960c2d2a43f7f0dd26e69e5dc791671",
+        "PHP 8.4": "ghcr.io/xena-studios/yolks:php_8.4@sha256:cff1ac88ccef3a8bea784435d070f27417dc8e25f963da2596df0c63b55990bb",
+        "PHP 8.3": "ghcr.io/xena-studios/yolks:php_8.3@sha256:3c4e86965e23397d083d189266486f16e1124121143f4f8121645fbc94e102fe"
+    },
+    "file_denylist": [],
+    "startup": "if [ -d .git ] && [ \"{{AUTO_UPDATE}}\" = \"1\" ]; then git pull --ff-only || echo \"git pull failed: starting what is here\"; fi; deps() { (php -r \"echo PHP_VERSION;\"; cat composer.json composer.lock 2>/dev/null) | sha256sum | cut -d\" \" -f1; }; if [ -f composer.json ] && [ \"$(deps)\" != \"$(cat vendor/.raptor-installed 2>/dev/null)\" ]; then composer install --no-dev --optimize-autoloader --no-progress || { echo \"Composer couldn't install the packages in composer.json.\"; exit 1; }; deps > vendor/.raptor-installed; fi; if [ \"{{PHP_MODE}}\" = \"script\" ]; then exec php \"{{MAIN_FILE}}\" {{PHP_ARGS}}; fi; if [ ! -d \"{{WEB_ROOT}}\" ]; then echo \"The web root ({{WEB_ROOT}}) isn't there: upload your site into it, or change Web root.\"; exit 1; fi; exec frankenphp php-server --listen 0.0.0.0:{{SERVER_PORT}} --root \"{{WEB_ROOT}}\"",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Caddy serving PHP app on\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# PHP: clones the app's Git repository, if one is set. Files already in the\n# server's folder are never deleted or overwritten; an empty folder gets a\n# placeholder page in public/ to show the server works.\nset -euo pipefail\ncd /mnt/server\n\nclone() {\n    local url=\"${GIT_ADDRESS}\"\n    case \"$url\" in *.git) ;; *) url=\"$url.git\" ;; esac\n    if [ -n \"${GIT_USERNAME:-}\" ] && [ -n \"${GIT_TOKEN:-}\" ]; then\n        url=\"https://${GIT_USERNAME}:${GIT_TOKEN}@${url#https://}\"\n    fi\n    if [ -d .git ]; then\n        echo \"The repository is already here: pulling the latest changes.\"\n        git pull --ff-only\n    elif [ -n \"$(ls -A)\" ]; then\n        echo \"The folder already has files and isn't a Git repository, so nothing was cloned.\"\n    else\n        GIT_TERMINAL_PROMPT=0 git clone --depth 1 ${GIT_BRANCH:+--branch \"$GIT_BRANCH\"} \"$url\" . || {\n            echo \"The repository couldn't be cloned: check its address, and the username and access token for a private one.\"\n            exit 1\n        }\n    fi\n}\n\nif [ -n \"${GIT_ADDRESS:-}\" ]; then\n    clone\nelif [ -z \"$(ls -A)\" ]; then\n    mkdir -p public\n    cat > public/index.php <<'EOF'\n<?php\n// A placeholder: upload your site into this folder (public/), or set a Git repository and reinstall.\necho \"PHP \" . PHP_VERSION . \" is running. Upload your site into the public folder.\";\nEOF\n    echo \"No Git repository set: upload your site into public/, then start the server.\"\nelse\n    echo \"No Git repository set: starting the files that are here.\"\nfi\nmkdir -p php.d\necho \"Installed.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:4c3ce4e2ae74b633f162b8692b0e804a5db1d69487d09435db5f908c0c53d6ab",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "App type",
+            "description": "website serves the web root on the server's port, sending paths that aren't files to its index.php; script runs the main file, such as a bot or a worker.",
+            "env_variable": "PHP_MODE",
+            "default_value": "website",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:website,script",
+            "field_type": "text"
+        },
+        {
+            "name": "Web root",
+            "description": "The folder the website is served from, such as public or web; its index.php handles requests.",
+            "env_variable": "WEB_ROOT",
+            "default_value": "public",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Main file",
+            "description": "The file a script app starts with, such as bot.php or bin/worker.php.",
+            "env_variable": "MAIN_FILE",
+            "default_value": "bot.php",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Git repository",
+            "description": "An https link to the app's repository, cloned when the server is installed. Leave it empty to upload the files yourself.",
+            "env_variable": "GIT_ADDRESS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Git branch",
+            "description": "The branch to clone. Empty uses the repository's default branch.",
+            "env_variable": "GIT_BRANCH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git username",
+            "description": "Your username on the Git host, for a private repository.",
+            "env_variable": "GIT_USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git access token",
+            "description": "An access token that can read the private repository.",
+            "env_variable": "GIT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Pull updates at start",
+            "description": "Pull the repository's latest changes every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Arguments",
+            "description": "Arguments passed to a script app.",
+            "env_variable": "PHP_ARGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,22 @@
+source:
+  repo: xena-studios/raptor
+  path: library/generic/php/egg-php.json
+license: MIT
+credits:
+  - "Written for Raptor, following its Node.js and Python eggs; websites are served by FrankenPHP (https://frankenphp.dev, MIT)"
+  - "Icon: the PHP logo, the https://github.com/php avatar (The PHP Group), centred on a square"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  # A website with a Composer package: the server's done line comes after
+  # Composer installed it and FrankenPHP is listening on the server's port.
+  files:
+    composer.json: |
+      {"require": {"psr/log": "^3.0"}}
+    public/index.php: |
+      <?php
+      require __DIR__ . '/../vendor/autoload.php';
+      echo interface_exists(Psr\Log\LoggerInterface::class) ? "ready" : "no packages";
+  done_timeout: 3m

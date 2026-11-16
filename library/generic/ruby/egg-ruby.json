@@ -1,0 +1,123 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Ruby",
+    "author": "support@raptorpanel.net",
+    "description": "Runs a Ruby app, such as a Discord bot or a Sinatra or Rails site, from your files or a Git repository. Gems in the Gemfile are installed with Bundler when it changes.",
+    "features": [],
+    "docker_images": {
+        "Ruby 4.0": "ghcr.io/xena-studios/yolks:ruby_4.0@sha256:8a8116b4e6f8974d5ebb24864bb0141c6065f9477f06b2fc6c3d0d85007cedad",
+        "Ruby 3.4": "ghcr.io/xena-studios/yolks:ruby_3.4@sha256:48654665ab380f434c9fd0c5005962ca97447a9b60027870fa78551cd4af4d6d",
+        "Ruby 3.3": "ghcr.io/xena-studios/yolks:ruby_3.3@sha256:2f179ccbe82acc77670237b2e63e9efd9015a53919f55340598cdae8023a26c7"
+    },
+    "file_denylist": [],
+    "startup": "if [ -d .git ] && [ \"{{AUTO_UPDATE}}\" = \"1\" ]; then git pull --ff-only || echo \"git pull failed: starting what is here\"; fi; export PORT={{SERVER_PORT}}; export BUNDLE_WITHOUT=\"{{BUNDLE_WITHOUT}}\"; [ -n \"$BUNDLE_WITHOUT\" ] || unset BUNDLE_WITHOUT; if [ -n \"{{RUBY_GEMS}}\" ]; then gem install --conservative --no-document {{RUBY_GEMS}} || exit 1; fi; deps() { (ruby --version; echo \"{{BUNDLE_WITHOUT}}\"; cat Gemfile Gemfile.lock 2>/dev/null) | sha256sum | cut -d\" \" -f1; }; if [ -f Gemfile ]; then if [ \"$(deps)\" != \"$(cat .gem/.raptor-installed 2>/dev/null)\" ]; then MAKEFLAGS=-j2 bundle install --jobs 2 || { echo \"Bundler couldn't install the gems in the Gemfile.\"; exit 1; }; mkdir -p .gem && deps > .gem/.raptor-installed; fi; exec bundle exec ruby \"{{RUBY_FILE}}\" {{RUBY_ARGS}}; fi; exec ruby \"{{RUBY_FILE}}\" {{RUBY_ARGS}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": []}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Ruby: clones the app's Git repository, if one is set. Files already in\n# the server's folder are never deleted or overwritten.\nset -euo pipefail\ncd /mnt/server\n\nclone() {\n    local url=\"${GIT_ADDRESS}\"\n    case \"$url\" in *.git) ;; *) url=\"$url.git\" ;; esac\n    if [ -n \"${GIT_USERNAME:-}\" ] && [ -n \"${GIT_TOKEN:-}\" ]; then\n        url=\"https://${GIT_USERNAME}:${GIT_TOKEN}@${url#https://}\"\n    fi\n    if [ -d .git ]; then\n        echo \"The repository is already here: pulling the latest changes.\"\n        git pull --ff-only\n    elif [ -n \"$(ls -A)\" ]; then\n        echo \"The folder already has files and isn't a Git repository, so nothing was cloned.\"\n    else\n        GIT_TERMINAL_PROMPT=0 git clone --depth 1 ${GIT_BRANCH:+--branch \"$GIT_BRANCH\"} \"$url\" . || {\n            echo \"The repository couldn't be cloned: check its address, and the username and access token for a private one.\"\n            exit 1\n        }\n    fi\n}\n\nif [ -n \"${GIT_ADDRESS:-}\" ]; then\n    clone\nelse\n    echo \"No Git repository set: upload your app's files, then start the server.\"\nfi\necho \"Installed.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:4c3ce4e2ae74b633f162b8692b0e804a5db1d69487d09435db5f908c0c53d6ab",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Main file",
+            "description": "The file that starts your app, such as app.rb, bot.rb or bin/rails.",
+            "env_variable": "RUBY_FILE",
+            "default_value": "app.rb",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Groups to skip",
+            "description": "Gemfile groups Bundler leaves out, separated by colons; empty installs every group.",
+            "env_variable": "BUNDLE_WITHOUT",
+            "default_value": "development:test",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Git repository",
+            "description": "An https link to the app's repository, cloned when the server is installed. Leave it empty to upload the files yourself.",
+            "env_variable": "GIT_ADDRESS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Git branch",
+            "description": "The branch to clone. Empty uses the repository's default branch.",
+            "env_variable": "GIT_BRANCH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git username",
+            "description": "Your username on the Git host, for a private repository.",
+            "env_variable": "GIT_USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git access token",
+            "description": "An access token that can read the private repository.",
+            "env_variable": "GIT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Pull updates at start",
+            "description": "Pull the repository's latest changes every time the server starts.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Extra gems",
+            "description": "Gems to install as well, for an app without a Gemfile, separated by spaces.",
+            "env_variable": "RUBY_GEMS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:500",
+            "field_type": "text"
+        },
+        {
+            "name": "Arguments",
+            "description": "Arguments passed to your app, such as server -b 0.0.0.0 for Rails, which listens on the server's port (PORT).",
+            "env_variable": "RUBY_ARGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        }
+    ]
+}
