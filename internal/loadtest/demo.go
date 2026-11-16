@@ -187,7 +187,8 @@ func (s *service) demoExecute(req *nodev1.ExecuteRequest) (*nodev1.ExecuteRespon
 	case "server.metrics":
 		var err error
 		if out, err = s.n.demoMetrics(e.ServerID); err != nil {
-			return &nodev1.ExecuteResponse{Error: err.Error()}, nil
+			// The command failed, not the call: Wings says so in the answer.
+			return &nodev1.ExecuteResponse{Error: err.Error()}, nil //nolint:nilerr // as above
 		}
 	case "node.metrics":
 		out = s.n.demoNodeMetrics()
