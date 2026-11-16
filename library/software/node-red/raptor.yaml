@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/node-red/egg-node-red.json
+license: MIT
+credits:
+  - "Written for Raptor from Node-RED's documentation, https://nodered.org/docs (Apache-2.0); no upstream egg"
+  - "Icon: the Node-RED logo, from https://github.com/node-red"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 8m

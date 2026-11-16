@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/pocketbase/egg-pocketbase.json
+license: MIT
+credits:
+  - "Written for Raptor from PocketBase's documentation, https://pocketbase.io/docs (MIT); no upstream egg"
+  - "Icon: the PocketBase logo, from https://github.com/pocketbase/pocketbase (ui/public/images/logo.svg)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m
+  # Exercises creating the superuser at start.
+  variables:
+    SUPERUSER_EMAIL: "test@example.com"
+    SUPERUSER_PASSWORD: "raptor-test"

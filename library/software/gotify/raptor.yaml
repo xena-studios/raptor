@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/gotify/egg-gotify.json
+license: MIT
+credits:
+  - "Written for Raptor from Gotify's documentation, https://gotify.net (MIT); no upstream egg"
+  - "Icon: the Gotify logo, from https://github.com/gotify"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m

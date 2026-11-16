@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Continuwuity",
+    "author": "support@raptorpanel.net",
+    "description": "Continuwuity is a fast, lightweight Matrix chat server in one file. Create the first account with the registration token printed on the first start. Other servers reach it over HTTPS on port 443 or 8448, through a proxy.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "[ -n \"${CONTINUWUITY_REGISTRATION_TOKEN:-}\" ] || unset CONTINUWUITY_REGISTRATION_TOKEN; CONTINUWUITY_CONFIG=continuwuity.toml CONTINUWUITY_SERVER_NAME=\"{{SERVER_NAME}}\" CONTINUWUITY_ADDRESS=0.0.0.0 CONTINUWUITY_PORT={{SERVER_PORT}} CONTINUWUITY_DATABASE_PATH=database CONTINUWUITY_ALLOW_ANNOUNCEMENTS_CHECK=$([ \"{{ANNOUNCEMENTS}}\" = 1 ] && echo true || echo false) exec ./continuwuity",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"Listening on\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^SIGTERM"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Continuwuity: downloads Continuwuity's static Linux build from its\n# releases on forgejo.ellis.link, checked against the size the release\n# lists (it publishes no checksums). The database and continuwuity.toml\n# are never touched, and the binary is replaced only once it's complete.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nua=\"raptor-installer (+https://raptorpanel.net)\"\napi=https://forgejo.ellis.link/api/v1/repos/continuwuation/continuwuity\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Continuwuity has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nversion=\"${VERSION:-latest}\"\nif [ \"$version\" = latest ]; then\n    release=$(curl -fsS --retry 3 -A \"$ua\" \"$api/releases/latest\") ||\n        fail \"forgejo.ellis.link can't be reached right now. Reinstall to try again.\"\nelse\n    version=\"v${version#v}\"\n    code=$(curl -sS --retry 3 -A \"$ua\" -o /tmp/release.json -w '%{http_code}' \"$api/releases/tags/$version\") ||\n        fail \"forgejo.ellis.link can't be reached right now. Reinstall to try again.\"\n    [ \"$code\" = 200 ] || fail \"Continuwuity has no release $version. Set Version to latest, or to an existing release, then reinstall.\"\n    release=$(cat /tmp/release.json)\nfi\ntag=$(jq -r .tag_name <<<\"$release\")\nasset=\"conduwuit-linux-static-$arch\"\nread -r url size < <(jq -r --arg a \"$asset\" '.assets[] | select(.name == $a) | \"\\(.browser_download_url) \\(.size)\"' <<<\"$release\") ||\n    fail \"Continuwuity $tag has no build for this CPU ($arch).\"\n\nif [ -x continuwuity ] && [ \"$(cat .continuwuity-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Continuwuity $tag is already installed.\"\nelse\n    echo \"Downloading Continuwuity $tag\"\n    curl -fsSL --retry 3 -A \"$ua\" -o continuwuity.new \"$url\" || { rm -f continuwuity.new; fail \"The download failed. Reinstall to try again.\"; }\n    [ \"$(stat -c %s continuwuity.new)\" = \"$size\" ] || { rm -f continuwuity.new; fail \"The download was incomplete. Reinstall to try again.\"; }\n    chmod 0755 continuwuity.new\n    mv -f continuwuity.new continuwuity\n    echo \"$tag\" > .continuwuity-version\nfi\n\nmkdir -p database\nif [ ! -f continuwuity.toml ]; then\n    cat > continuwuity.toml <<'TOML'\n# Continuwuity's settings: https://continuwuity.org/reference/config.html\n# The server name, address, port, database folder, registration token and\n# announcements are set by the server's settings, which win over this file.\n# Restart the server after changing it.\n[global]\n# Accounts can be created only with a registration token: the one printed\n# on the first start, the server's Registration token, or one made with\n# \"!admin token\" in the admin room.\nallow_registration = true\nTOML\nfi\necho \"Installed Continuwuity $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Continuwuity version to install, such as 26.9.4, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.]+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "Your Matrix domain, the end of user IDs such as @you:example.com. It can't be changed once the server has started.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200|regex:/^[A-Za-z0-9.-]+(:\\d{1,5})?$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Registration token",
+            "description": "A token people must give to create an account. Leave it empty to make tokens in the admin room instead.",
+            "env_variable": "CONTINUWUITY_REGISTRATION_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Announcements",
+            "description": "Check continuwuity.org now and then for announcements from its developers.",
+            "env_variable": "ANNOUNCEMENTS",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}
