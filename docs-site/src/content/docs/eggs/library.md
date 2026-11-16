@@ -1,6 +1,6 @@
 ---
 title: The egg library
-description: What servers are made from, importing Pterodactyl eggs, Raptor's test server, and making your own.
+description: What servers are made from, Raptor's eggs for the games and apps people host, importing Pterodactyl eggs, and making your own.
 sidebar:
   order: 1
 ---
@@ -9,7 +9,7 @@ An **egg** is the recipe for a kind of server: the Docker image it runs in, how 
 
 The org's **Eggs** page lists two kinds:
 
-- **Raptor's:** the **Raptor test server**, tested with every release. It isn't a game: it answers in a browser on its port and says "ok" to `status` in the console, so it's the quickest way to check a new node installs, starts, and reaches a server.
+- **Raptor's:** eggs for the games and apps people host (Minecraft and its server software and modpacks, Steam games, voice servers, apps, and plain language runtimes), made and tested by Raptor on real nodes and kept up to date. When Raptor updates one, its page says so, and servers move to the new version when you choose.
 - **Your org's own:** imported, made from scratch, or customised copies. Admins and owners change them; members see them.
 
 ## Using an egg
@@ -20,7 +20,7 @@ The org's **Eggs** page lists two kinds:
 
 **Import eggs** on the Eggs page takes Raptor and Pterodactyl eggs (JSON or YAML), as many as you like: files you choose or drop, and links (a GitHub file page works). Before anything is saved, Raptor shows exactly what it would run: its Docker images and where they come from, its install script, its startup command, and its settings, with warnings for anything unusual, like an image from an unfamiliar publisher or a script that pipes a download into a shell. Each egg is listed with what it runs (open it to see the install script), its warnings, and its category. Untick any you don't want, tick that you've looked and trust them, then import them.
 
-An imported egg is never marked certified, whatever it says. Most games have a community egg: search for the game's name and "Pterodactyl egg".
+An imported egg is never marked certified, whatever it says. For a game Raptor doesn't have, there's usually a community egg: search for the game's name and "Pterodactyl egg".
 
 **Import new version** on one of your eggs replaces its file with a new one, from a link (its own source link is filled in) or an upload: an update upstream, or a change you made elsewhere. You review it the same way, and it's saved as a new version. Eggs from elsewhere don't have Raptor's settings (CPUs, players, add-ons), so the egg keeps its own unless you untick that.
 

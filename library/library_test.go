@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	catalog "github.com/xena-studios/raptor/eggs"
 	"github.com/xena-studios/raptor/internal/eggs"
 )
 
@@ -35,6 +34,14 @@ var (
 var realNames = map[string]bool{
 	"Game Server Watcher": true, // https://github.com/a-sync/game-server-watcher
 	"code-server":         true, // https://github.com/coder/code-server
+	"Raptor test server":  true, // Raptor's own, generic/raptor-test
+}
+
+// Licences other than MIT. Raptor's test server is part of Raptor itself
+// (it checks a node works, and the conformance suite runs it first), so it
+// has Raptor's licence.
+var license = map[string]string{
+	"generic/raptor-test": "AGPL-3.0",
 }
 
 // Variable names an old catalog egg used, kept so servers moving to the
@@ -50,21 +57,20 @@ func TestLibrary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	builtin, err := catalog.All()
-	if err != nil {
-		t.Fatal(err)
-	}
 	names := map[string]string{}
 	idPattern := regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*$`)
 	for _, e := range all {
 		t.Run(e.ID, func(t *testing.T) {
-			// The folder is the egg's ID, which the Panel matches imports
-			// by (internal/panel/orgs checkLibraryID): never a built-in's.
-			if !idPattern.MatchString(e.ID) || slices.ContainsFunc(builtin, func(b catalog.Entry) bool { return b.ID == e.ID }) {
-				t.Errorf("ID %q: lowercase <category>/<egg>, and not a built-in egg's", e.ID)
+			// The folder is the egg's ID in the Panel's official library.
+			if !idPattern.MatchString(e.ID) {
+				t.Errorf("ID %q: lowercase <category>/<egg>", e.ID)
 			}
-			if !e.Own() || e.License != "MIT" {
-				t.Errorf("an egg of Raptor's own, MIT: source %+v, license %s", e.Source, e.License)
+			want := license[e.ID]
+			if want == "" {
+				want = "MIT"
+			}
+			if !e.Own() || e.License != want {
+				t.Errorf("an egg of Raptor's own, %s: source %+v, license %s", want, e.Source, e.License)
 			}
 			if len(e.Credits) == 0 {
 				t.Error("credits: what it's based on, and where its icon came from")
@@ -155,7 +161,7 @@ func checkText(t *testing.T, what, s string, minLen, maxLen int) {
 	}
 }
 
-func checkIcon(t *testing.T, e catalog.Entry) {
+func checkIcon(t *testing.T, e Entry) {
 	t.Helper()
 	if len(e.Icon) == 0 {
 		t.Error("no icon.png")

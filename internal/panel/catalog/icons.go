@@ -21,8 +21,18 @@ func SyncIcon(ctx context.Context, q *store.Queries, e store.Egg, file, override
 	if e.IconSource == "upload" {
 		return nil
 	}
+	img, ok := fileIcon(file, override)
+	return setIcon(ctx, q, e, img, ok)
+}
+
+// setIcon is SyncIcon with the file's icon already worked out (ok false:
+// it has none).
+func setIcon(ctx context.Context, q *store.Queries, e store.Egg, img images.Image, ok bool) error {
+	if e.IconSource == "upload" {
+		return nil
+	}
 	icon, source := "", ""
-	if img, ok := fileIcon(file, override); ok {
+	if ok {
 		switch err := images.Save(ctx, q, img); {
 		case err == nil:
 			icon, source = img.ID, "file"

@@ -1,6 +1,7 @@
 // Command eggexport writes the egg library (library/, docs/EGGS.md#egg-library)
-// as files to import into a Panel's egg library: one per egg, with its icon
-// and Raptor's settings in it. Run it with task library:export.
+// as files to import into another Panel's egg library: one per egg, with its
+// icon and Raptor's settings in it. Raptor's own Panel doesn't need them: it
+// seeds the library on every start. Run it with task library:export.
 package main
 
 import (

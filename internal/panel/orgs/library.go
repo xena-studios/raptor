@@ -18,7 +18,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/protobuf/proto"
 
-	eggcatalog "github.com/xena-studios/raptor/eggs"
 	"github.com/xena-studios/raptor/internal/eggs"
 	"github.com/xena-studios/raptor/internal/eggs/spec"
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
@@ -29,11 +28,12 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/images"
 	"github.com/xena-studios/raptor/internal/panel/staff"
 	"github.com/xena-studios/raptor/internal/panel/store"
+	"github.com/xena-studios/raptor/library"
 )
 
 // Eggs implements EggService, the egg library (docs/PANEL.md#eggs): an
 // org's own eggs, Raptor's official ones (org_id NULL, changed by staff
-// admins; Raptor's catalog is seeded into them), and those other orgs
+// admins; Raptor's egg library is seeded into them), and those other orgs
 // share.
 type Eggs struct {
 	Orgs *Service
@@ -931,9 +931,7 @@ func (s *Eggs) importFile(ctx context.Context, orgID string, data []byte, source
 	}
 	var libraryID string
 	if r, err := eggimport.Parse(data); err == nil {
-		if libraryID, err = checkLibraryID(r.Egg.Raptor.Library); err != nil {
-			return pgtype.UUID{}, err
-		}
+		libraryID = r.Egg.Raptor.Library
 		// The egg's own category (x-raptor.category, as the egg library
 		// exports them), so a bulk import needn't ask for each.
 		if category == "" && slices.Contains(Categories, r.Egg.Raptor.Category) {
@@ -944,14 +942,20 @@ func (s *Eggs) importFile(ctx context.Context, orgID string, data []byte, source
 	if err != nil {
 		return pgtype.UUID{}, err
 	}
+	if orgID != "" {
+		// An org's import is its own egg, whatever library it says.
+		libraryID = ""
+	} else if libraryID, err = checkLibraryID(libraryID); err != nil {
+		return pgtype.UUID{}, err
+	}
 	var id pgtype.UUID
 	err = s.tx(ctx, orgID, true, func(l *lib) error {
 		sum := eggimport.Sum(data)
 		if l.official && libraryID != "" {
-			// An egg from Raptor's egg library that the official library
-			// already has (imported before, or the catalog egg of the same
-			// ID that servers still use) gets a new version: servers keep
-			// their file until moved to it (docs/EGGS.md#egg-library).
+			// An egg with a library ID the official library already has
+			// (imported before) gets a new version: servers keep their
+			// file until moved to it. IDs in Raptor's egg library are the
+			// seed's (checkLibraryID).
 			if err := l.q.LockLibraryID(ctx, libraryID); err != nil {
 				return err
 			}
@@ -1002,8 +1006,9 @@ func (s *Eggs) importFile(ctx context.Context, orgID string, data []byte, source
 var libraryIDPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*$`)
 
 // checkLibraryID checks the egg-library ID a file says it has: a folder's
-// name, and not one of the built-in catalog's, whose eggs the seed keeps
-// (an egg claiming one would replace it).
+// name, and not one of Raptor's egg library's, which the Panel seeds into
+// the official library on every start (an import claiming one would
+// fight the seed).
 func checkLibraryID(id string) (string, error) {
 	if id == "" {
 		return "", nil
@@ -1011,16 +1016,16 @@ func checkLibraryID(id string) (string, error) {
 	if !libraryIDPattern.MatchString(id) {
 		return "", invalid(fmt.Errorf("the egg's library ID %q isn't one: it's a folder, like minecraft/paper", id))
 	}
-	if builtinIDs()[id] {
-		return "", invalid(fmt.Errorf("the egg's library ID %q is a built-in egg's", id))
+	if libraryIDs()[id] {
+		return "", invalid(fmt.Errorf("%s is in Raptor's egg library, which the Panel keeps up to date in the official library itself", id))
 	}
 	return id, nil
 }
 
-// builtinIDs are the built-in catalog's egg IDs.
-var builtinIDs = sync.OnceValue(func() map[string]bool {
+// libraryIDs are Raptor's egg library's IDs.
+var libraryIDs = sync.OnceValue(func() map[string]bool {
 	ids := map[string]bool{}
-	all, _ := eggcatalog.All() // its tests make sure it loads
+	all, _ := library.All() // its tests make sure it loads
 	for _, e := range all {
 		ids[e.ID] = true
 	}

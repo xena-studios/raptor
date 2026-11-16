@@ -1,23 +1,21 @@
 name: Egg conformance
 
-# Runs catalog eggs, and the egg library's (library/, all certified),
-# through the full Wings lifecycle with their unmodified images
-# (internal/wings/conformance). Certified eggs must pass; community
-# eggs run in their own jobs, whose failures are reported (job summary) but
-# don't fail the workflow. Tiers (eggs/*/*/raptor.yaml):
-#   fast: on PRs that touch eggs or the code that runs them, nightly, on
-#         demand; on amd64 and arm64. A PR runs only the library eggs it
-#         changes (all their tiers but manual); the whole library runs
-#         nightly and weekly.
+# Runs the egg library's eggs (library/) through the full Wings lifecycle
+# with their unmodified images (internal/wings/conformance). Tiers
+# (library/*/*/raptor.yaml):
+#   fast: nightly and on demand, the whole tier, on amd64 and arm64
 #   slow: big SteamCMD games, weekly and on demand; amd64 only (the games are)
 #   manual: can't run on standard runners (see each egg's test.reason)
-# Pushing a branch named conformance/* runs both fast and slow.
+# A PR that touches eggs or the code that runs them runs Raptor's test
+# server (generic/raptor-test) and the library eggs it changes, whatever
+# their tier but manual, on both CPUs. Every library egg is certified, so
+# every run must pass. Pushing a branch named conformance/* runs fast and
+# slow.
 on:
   push:
     branches: ["conformance/**"]
   pull_request:
     paths:
-      - eggs/**
       - library/**
       - internal/eggs/**
       - internal/wings/containers/**
@@ -37,7 +35,7 @@ on:
         options: [fast, slow, all]
         default: fast
       run:
-        description: Catalog IDs to run (regex)
+        description: Library IDs to run (regex)
         default: "."
 
 permissions:
@@ -50,18 +48,15 @@ concurrency:
 jobs:
   fast:
     if: >-
-      github.event_name == 'pull_request' || github.event_name == 'push' ||
-      github.event.schedule == '17 4 * * *' ||
+      github.event_name == 'push' || github.event.schedule == '17 4 * * *' ||
       (github.event_name == 'workflow_dispatch' && inputs.tier != 'slow')
     strategy:
       fail-fast: false
       matrix:
         runner: [ubuntu-24.04, ubuntu-24.04-arm]
-        set: [certified, community]
-        source: [catalog]
-    name: fast ${{ matrix.source || 'catalog' }} ${{ matrix.set }} (${{ matrix.runner }})
+        shard: [0/4, 1/4, 2/4, 3/4]
+    name: fast ${{ matrix.shard }} (${{ matrix.runner }})
     runs-on: ${{ matrix.runner }}
-    continue-on-error: ${{ matrix.set == 'community' }}
     timeout-minutes: 180
     steps:
       - name: Free disk space
@@ -76,8 +71,7 @@ jobs:
         run: go test -c -tags e2e -o /tmp/conformance-e2e ./internal/wings/conformance
       - name: Run eggs
         run: |
-          sudo RAPTOR_CONFORMANCE_TIER=fast RAPTOR_CONFORMANCE_SET=${{ matrix.set }} RAPTOR_CONFORMANCE_PRUNE=1 \
-            RAPTOR_CONFORMANCE_SOURCE=${{ matrix.source || 'catalog' }} \
+          sudo RAPTOR_CONFORMANCE_TIER=fast RAPTOR_CONFORMANCE_PRUNE=1 RAPTOR_CONFORMANCE_SHARD=${{ matrix.shard }} \
             RAPTOR_CONFORMANCE_REPORT="$GITHUB_STEP_SUMMARY" \
             /tmp/conformance-e2e -test.v -test.timeout 170m -test.run 'TestConformance/${{ inputs.run || '.' }}'
 
@@ -114,19 +108,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { set: certified, shard: 0/1 }
-          - { set: community, shard: 0/4 }
-          - { set: community, shard: 1/4 }
-          - { set: community, shard: 2/4 }
-          - { set: community, shard: 3/4 }
-          - { set: certified, shard: 0/4, source: library }
-          - { set: certified, shard: 1/4, source: library }
-          - { set: certified, shard: 2/4, source: library }
-          - { set: certified, shard: 3/4, source: library }
-    name: slow ${{ matrix.source || 'catalog' }} ${{ matrix.set }} ${{ matrix.shard }}
+        shard: [0/4, 1/4, 2/4, 3/4]
+    name: slow ${{ matrix.shard }}
     runs-on: ubuntu-24.04
-    continue-on-error: ${{ matrix.set == 'community' }}
     timeout-minutes: 360
     steps:
       - name: Free disk space
@@ -144,46 +128,13 @@ jobs:
         run: go test -c -tags e2e -o /tmp/conformance-e2e ./internal/wings/conformance
       - name: Run eggs
         run: |
-          sudo RAPTOR_CONFORMANCE_TIER=slow RAPTOR_CONFORMANCE_SET=${{ matrix.set }} \
-            RAPTOR_CONFORMANCE_SOURCE=${{ matrix.source || 'catalog' }} \
-            RAPTOR_CONFORMANCE_SHARD=${{ matrix.shard }} RAPTOR_CONFORMANCE_PRUNE=1 \
+          sudo RAPTOR_CONFORMANCE_TIER=slow RAPTOR_CONFORMANCE_SHARD=${{ matrix.shard }} RAPTOR_CONFORMANCE_PRUNE=1 \
             RAPTOR_CONFORMANCE_REPORT="$GITHUB_STEP_SUMMARY" \
             /tmp/conformance-e2e -test.v -test.timeout 350m -test.run 'TestConformance/${{ inputs.run || '.' }}'
 
-  # The whole library's fast tier: nightly and on demand, not on PRs, which
-  # run the library eggs they change (library-pr).
-  library-fast:
-    if: >-
-      github.event_name == 'push' || github.event.schedule == '17 4 * * *' ||
-      (github.event_name == 'workflow_dispatch' && inputs.tier != 'slow')
-    strategy:
-      fail-fast: false
-      matrix:
-        runner: [ubuntu-24.04, ubuntu-24.04-arm]
-        shard: [0/4, 1/4, 2/4, 3/4]
-    name: fast library ${{ matrix.shard }} (${{ matrix.runner }})
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 180
-    steps:
-      - name: Free disk space
-        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
-        with:
-          go-version-file: go.mod
-      - name: Install nftables
-        run: command -v nft || (sudo apt-get update && sudo apt-get install -y --no-install-recommends nftables)
-      - name: Build the harness
-        run: go test -c -tags e2e -o /tmp/conformance-e2e ./internal/wings/conformance
-      - name: Run eggs
-        run: |
-          sudo RAPTOR_CONFORMANCE_TIER=fast RAPTOR_CONFORMANCE_SET=certified RAPTOR_CONFORMANCE_PRUNE=1 \
-            RAPTOR_CONFORMANCE_SOURCE=library RAPTOR_CONFORMANCE_SHARD=${{ matrix.shard }} \
-            RAPTOR_CONFORMANCE_REPORT="$GITHUB_STEP_SUMMARY" \
-            /tmp/conformance-e2e -test.v -test.timeout 170m -test.run 'TestConformance/${{ inputs.run || '.' }}'
-
-  # A PR's changed library eggs, whatever their tier, on both CPUs (eggs for
-  # one CPU are skipped on the other).
+  # A PR's changed library eggs, whatever their tier, and Raptor's test
+  # server, the quickest check that Wings still runs eggs, on both CPUs
+  # (eggs for one CPU are skipped on the other).
   library-changes:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
@@ -197,18 +148,18 @@ jobs:
         run: |
           ids=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" -- library/ |
             awk -F/ 'NF >= 4 { print $2 "/" $3 }' | sort -u |
-            while read -r id; do if [ -f "library/$id/raptor.yaml" ]; then echo "$id"; fi; done | paste -sd' ' -)
+            while read -r id; do if [ -f "library/$id/raptor.yaml" ]; then echo "$id"; fi; done |
+            { echo generic/raptor-test; cat; } | sort -u | paste -sd' ' -)
           echo "ids=$ids" >> "$GITHUB_OUTPUT"
-          echo "Changed library eggs: ${ids:-none}"
+          echo "Eggs to run: $ids"
 
   library-pr:
     needs: library-changes
-    if: needs.library-changes.outputs.ids != ''
     strategy:
       fail-fast: false
       matrix:
         runner: [ubuntu-24.04, ubuntu-24.04-arm]
-    name: library changes (${{ matrix.runner }})
+    name: test server and changed eggs (${{ matrix.runner }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 360
     steps:
@@ -228,6 +179,6 @@ jobs:
         env:
           IDS: ${{ needs.library-changes.outputs.ids }}
         run: |
-          sudo RAPTOR_CONFORMANCE_SOURCE=library RAPTOR_CONFORMANCE_IDS="$IDS" RAPTOR_CONFORMANCE_PRUNE=1 \
+          sudo RAPTOR_CONFORMANCE_IDS="$IDS" RAPTOR_CONFORMANCE_PRUNE=1 \
             RAPTOR_CONFORMANCE_REPORT="$GITHUB_STEP_SUMMARY" \
             /tmp/conformance-e2e -test.v -test.timeout 350m -test.run 'TestConformance'

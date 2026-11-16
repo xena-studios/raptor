@@ -17,8 +17,8 @@ export const file_raptor_panel_v1_catalog: GenFile = /*@__PURE__*/
 /**
  * CatalogEgg is an egg in the library (EggService, docs/PANEL.md#eggs), as
  * lists show it and server creation needs it. (The name is from when it
- * described the built-in catalog, which is now part of the official
- * library.)
+ * described the built-in catalog, which is now Raptor's egg library,
+ * seeded into the official library.)
  *
  * @generated from message raptor.panel.v1.CatalogEgg
  */
@@ -46,7 +46,7 @@ export type CatalogEgg = Message<"raptor.panel.v1.CatalogEgg"> & {
   category: string;
 
   /**
-   * The file is the one Raptor's conformance suite tests (eggs/ in the
+   * The file is the one Raptor's conformance suite tests (library/ in the
    * repository); editing it clears this.
    *
    * @generated from field: bool certified = 5;
@@ -80,8 +80,8 @@ export type CatalogEgg = Message<"raptor.panel.v1.CatalogEgg"> & {
   features: string[];
 
   /**
-   * Where the egg comes from: for Raptor's catalog, the upstream file at
-   * the copied commit; for an imported egg, the link it was fetched from.
+   * Where the egg comes from: for Raptor's egg library, the file in the
+   * repository; for an imported egg, the link it was fetched from.
    *
    * @generated from field: string source_url = 10;
    */
@@ -103,7 +103,7 @@ export type CatalogEgg = Message<"raptor.panel.v1.CatalogEgg"> & {
   scope: string;
 
   /**
-   * How it came to be: "catalog" (Raptor's catalog), "scratch", "import",
+   * How it came to be: "catalog" (Raptor's egg library), "scratch", "import",
    * or "fork" (a customized copy).
    *
    * @generated from field: string origin = 13;

@@ -1,11 +1,6 @@
-// Package catalog is Raptor's built-in egg catalog: Raptor's own eggs and
-// unmodified copies of upstream ones, one directory each, with a raptor.yaml
-// describing where the egg came from, whether it's certified, and how the
-// conformance suite tests it (docs/EGGS.md#built-in-catalog).
-package catalog
+package library
 
 import (
-	"embed"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -25,22 +20,17 @@ import (
 	"github.com/xena-studios/raptor/internal/shared/ordered"
 )
 
-//go:embed */*/*
-var files embed.FS
-
-// Entry is one egg in the catalog.
+// Entry is one egg in the library.
 type Entry struct {
-	// ID is the directory under eggs/ (or library/), e.g. "minecraft/paper".
+	// ID is the directory under library/, e.g. "minecraft/paper": the
+	// egg's ID in the Panel's official library, which never changes.
 	ID string
-	// Root is the repository folder the entry is in: "eggs" (the catalog)
-	// or "library" (eggs imported by hand, docs/EGGS.md#egg-library).
-	Root string
 	// File is the egg's file name, as upstream named it.
 	File string
 	// Egg is the egg exactly as upstream published it.
 	Egg []byte
 	// Icon is the entry's icon.png, if it has one: shown instead of the
-	// icon in the egg (docs/EGGS.md#built-in-catalog).
+	// icon in the egg (docs/EGGS.md#egg-library).
 	Icon []byte
 	Meta
 }
@@ -57,11 +47,15 @@ type Meta struct {
 	// licence ("https://github.com/pelican-eggs/minecraft (MIT)").
 	Credits   []string `yaml:"credits"`
 	Certified bool     `yaml:"certified"`
+	// Internal eggs are Raptor's own tools (the test server): seeded into
+	// the official library for staff and the conformance suite, but not
+	// listed in orgs' libraries.
+	Internal bool `yaml:"internal"`
 	// Arch lists the CPU architectures the game itself supports.
 	Arch []string `yaml:"arch"`
 	// Players says how to ask the game for its player count (the egg's
 	// x-raptor.players, which upstream eggs don't have): the Panel adds it
-	// to the egg when it creates a server from the catalog.
+	// to the egg servers are made from (ServerEgg).
 	Players struct {
 		Query string `yaml:"query"` // minecraft or source
 		Port  string `yaml:"port"`  // "" = the primary port, "+1", or a variable's name
@@ -143,13 +137,9 @@ func (d *Duration) UnmarshalYAML(n *yaml.Node) error {
 	return nil
 }
 
-// All returns every entry, sorted by ID. Every entry is validated.
-func All() ([]Entry, error) { return LoadFS(files, "eggs") }
-
-// LoadFS loads entries laid out like the catalog (<category>/<egg>/ with
-// a raptor.yaml) from fsys, which is the repository's root folder (eggs
-// or library), for Raptor's own eggs' paths. Every entry is validated.
-func LoadFS(fsys fs.FS, root string) ([]Entry, error) {
+// loadFS loads entries laid out like the library (<category>/<egg>/ with
+// a raptor.yaml) from fsys. Every entry is validated.
+func loadFS(fsys fs.FS) ([]Entry, error) {
 	metas, err := fs.Glob(fsys, "*/*/raptor.yaml")
 	if err != nil {
 		return nil, err
@@ -157,7 +147,7 @@ func LoadFS(fsys fs.FS, root string) ([]Entry, error) {
 	var out []Entry
 	var errs []error
 	for _, m := range metas {
-		e, err := load(fsys, root, path.Dir(m))
+		e, err := load(fsys, path.Dir(m))
 		if err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", path.Dir(m), err))
 			continue
@@ -171,13 +161,6 @@ func LoadFS(fsys fs.FS, root string) ([]Entry, error) {
 // OwnRepo is this repository: eggs from it are Raptor's own, versioned
 // with the code, not copies of an upstream file at a commit.
 const OwnRepo = "xena-studios/raptor"
-
-func (e Entry) root() string {
-	if e.Root == "" {
-		return "eggs"
-	}
-	return e.Root
-}
 
 // Category is the folder the egg is in, which is its category in a Panel's
 // egg library ("minecraft", "steam", …).
@@ -201,8 +184,8 @@ func (e Entry) SourceURL() string {
 // iconFile is an entry's own icon, used instead of the one in the egg.
 const iconFile = "icon.png"
 
-func load(fsys fs.FS, root, dir string) (Entry, error) {
-	e := Entry{ID: dir, Root: root}
+func load(fsys fs.FS, dir string) (Entry, error) {
+	e := Entry{ID: dir}
 	b, err := fs.ReadFile(fsys, dir+"/raptor.yaml")
 	if err != nil {
 		return e, err
@@ -245,8 +228,8 @@ func (e *Entry) validate() error {
 		return err
 	}
 	s := e.Source
-	if e.Own() && (s.Commit != "" || s.Path != e.root()+"/"+e.ID+"/"+e.File) {
-		return fmt.Errorf("an egg of Raptor's own has no commit, and its path is %s/%s/%s", e.root(), e.ID, e.File)
+	if e.Own() && (s.Commit != "" || s.Path != "library/"+e.ID+"/"+e.File) {
+		return fmt.Errorf("an egg of Raptor's own has no commit, and its path is library/%s/%s", e.ID, e.File)
 	}
 	switch {
 	case !e.Own() && (s.Repo == "" || len(s.Commit) != 40 || s.Path == ""):
@@ -322,7 +305,7 @@ func (e *Entry) validate() error {
 func (e *Entry) Supports(arch string) bool { return slices.Contains(e.Arch, arch) }
 
 // ServerEgg is the egg a server created from this entry gets: the upstream
-// egg with the catalog's x-raptor block added (the architectures, and how to
+// egg with the library's x-raptor block added (the architectures, and how to
 // ask for the player count), which upstream eggs don't have. Key order and
 // the file's format (JSON or YAML) are kept.
 func (e *Entry) ServerEgg() ([]byte, error) {
@@ -402,7 +385,8 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 	return yaml.Marshal(root)
 }
 
-// ImportFile is the egg as one file to import into a Panel's egg library:
+// ImportFile is the egg as one file to import into another Panel's egg
+// library (task library:export; Raptor's Panel seeds the library itself):
 // the server egg with the entry's icon.png in "image", as a data: URI (the
 // way Pelican eggs carry their icons, which the Panel reads as the egg's
 // icon).
@@ -415,9 +399,8 @@ func (e *Entry) ImportFile() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	// The entry's ID, so importing it into the official library again
-	// (or over a catalog egg of the same ID) adds a version to that egg
-	// instead of a second one (docs/EGGS.md#egg-library).
+	// The entry's ID, which the Panel matches an imported egg-library
+	// file by (docs/EGGS.md#egg-library).
 	set(raptorBlock(root), "library", str(e.ID))
 	if len(e.Icon) > 0 {
 		set(root, "image", str("data:image/png;base64,"+base64.StdEncoding.EncodeToString(e.Icon)))

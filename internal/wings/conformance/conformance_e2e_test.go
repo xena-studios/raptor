@@ -1,6 +1,6 @@
 //go:build e2e
 
-// Package conformance runs every egg in the built-in catalog through the full
+// Package conformance runs every egg in the egg library through the full
 // Wings lifecycle, with the real server manager, Docker, and the egg's
 // unmodified images (docs/EGGS.md#conformance-test-suite):
 //
@@ -14,8 +14,6 @@
 //	task e2e:conformance TIER=slow RUN=steam/rust
 //
 // Environment:
-//   - RAPTOR_CONFORMANCE_SOURCE: catalog (default; the built-in catalog) or
-//     library (the egg library, docs/EGGS.md#egg-library)
 //   - RAPTOR_CONFORMANCE_TIER: fast (default), slow, manual, or all
 //   - RAPTOR_CONFORMANCE_SET: certified, community, or all (default)
 //   - RAPTOR_CONFORMANCE_SHARD: "i/n" runs every n-th selected egg from the
@@ -26,7 +24,7 @@
 //   - RAPTOR_CONFORMANCE_IDS: space-separated egg IDs to run, whatever their
 //     tier (except manual), in place of the tier: a PR's changed eggs
 //
-// -test.run picks eggs by catalog ID. Eggs for another CPU architecture are
+// -test.run picks eggs by library ID. Eggs for another CPU architecture are
 // skipped.
 package conformance
 
@@ -46,7 +44,6 @@ import (
 	"testing"
 	"time"
 
-	catalog "github.com/xena-studios/raptor/eggs"
 	"github.com/xena-studios/raptor/internal/eggs"
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/docker"
@@ -69,15 +66,11 @@ const uid, gid = 988, 988
 const replyTimeout = time.Minute
 
 func TestConformance(t *testing.T) {
-	load := catalog.All
-	if os.Getenv("RAPTOR_CONFORMANCE_SOURCE") == "library" {
-		load = library.All
-	}
-	all, err := load()
+	all, err := library.All()
 	if err != nil {
 		t.Fatal(err)
 	}
-	tier := catalog.Tier(envOr("RAPTOR_CONFORMANCE_TIER", string(catalog.TierFast)))
+	tier := library.Tier(envOr("RAPTOR_CONFORMANCE_TIER", string(library.TierFast)))
 	set := envOr("RAPTOR_CONFORMANCE_SET", "all")
 	shard, shards := 0, 1
 	if v := os.Getenv("RAPTOR_CONFORMANCE_SHARD"); v != "" {
@@ -86,11 +79,11 @@ func TestConformance(t *testing.T) {
 		}
 	}
 	ids := strings.Fields(os.Getenv("RAPTOR_CONFORMANCE_IDS"))
-	var selected []catalog.Entry
+	var selected []library.Entry
 	for _, e := range all {
 		inTier := tier == "all" || e.Test.Tier == tier
 		if len(ids) > 0 {
-			inTier = slices.Contains(ids, e.ID) && e.Test.Tier != catalog.TierManual
+			inTier = slices.Contains(ids, e.ID) && e.Test.Tier != library.TierManual
 		}
 		if inTier && (set == "all" || (set == "certified") == e.Certified) {
 			selected = append(selected, e)
@@ -128,7 +121,7 @@ func TestConformance(t *testing.T) {
 // run is one egg's lifecycle.
 type run struct {
 	t       *testing.T
-	e       catalog.Entry
+	e       library.Entry
 	env     *env
 	m       *server.Manager
 	id      string
@@ -432,7 +425,7 @@ func (r *run) command(cmd string) {
 	}
 }
 
-// backupHooks sends the catalog's pre-backup commands, as a backup does,
+// backupHooks sends the library's pre-backup commands, as a backup does,
 // and checks the game answers with the wait_for line in time; then the
 // post commands.
 func (r *run) backupHooks(h eggs.BackupHooks) {
@@ -504,7 +497,7 @@ func (r *run) restartWings() {
 
 // checkConfig checks files the egg's config parsers must have written.
 // players asks the running game for its player count the way metrics do,
-// checking the catalog's players.query against the real game.
+// checking the library's players.query against the real game.
 func (r *run) players(query string, port int) {
 	r.t.Helper()
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
@@ -631,7 +624,7 @@ func pruneImages() {
 // report collects results for the Markdown summary.
 type report struct {
 	mu   sync.Mutex
-	tier catalog.Tier
+	tier library.Tier
 	set  string
 	rows []string
 }
@@ -639,7 +632,7 @@ type report struct {
 // Steps shown in the summary, in order.
 var reportSteps = []string{"install", "start", "command", "wings_restart", "stop", "reinstall", "restart_after_reinstall"}
 
-func (p *report) add(e catalog.Entry, result, note string, steps map[string]time.Duration) {
+func (p *report) add(e library.Entry, result, note string, steps map[string]time.Duration) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	cells := []string{"`" + e.ID + "`", result}

@@ -9,16 +9,16 @@ import (
 	"testing"
 	"time"
 
-	catalog "github.com/xena-studios/raptor/eggs"
 	"github.com/xena-studios/raptor/internal/eggs"
 	"github.com/xena-studios/raptor/internal/eggs/spec"
+	"github.com/xena-studios/raptor/library"
 )
 
 // Reading an egg and writing it back unchanged must not change what it
-// does, for every egg in the catalog and the parser's fixtures (every
+// does, for every egg in the library and the parser's fixtures (every
 // Pterodactyl and Pelican version, JSON and YAML, icons included).
 func TestRoundTripCatalog(t *testing.T) {
-	all, err := catalog.All()
+	all, err := library.All()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -71,7 +71,7 @@ task wings:vm:shell     # shell into the VM (then: sudo raptor status)
 
 ### Egg conformance tests
 
-Catalog eggs (`eggs/`) are tested by installing and running them with their real, unmodified images through the full Wings lifecycle (install, start, console command, Wings restart, stop, reinstall):
+The egg library's eggs (`library/`) are tested by installing and running them with their real, unmodified images through the full Wings lifecycle (install, start, console command, Wings restart, stop, reinstall):
 
 ```bash
 task e2e:conformance                             # the fast tier in the VM
@@ -81,7 +81,7 @@ task e2e:conformance TIER=slow RUN=steam/rust    # x86-only: not on an ARM Mac
 
 `task e2e:pterodactyl` compares Raptor with the real Pterodactyl Panel and Wings in the VM (`scripts/pterodactyl/setup.sh` starts them; `setup.sh down` removes them). See [EGGS.md](docs/EGGS.md#behavioral-diff-against-pterodactyl).
 
-The **Egg conformance** GitHub workflow runs the fast tier on amd64 and arm64 for PRs that touch eggs or the code that runs them, and nightly; the slow tier (big SteamCMD games) runs weekly. Start either from the Actions tab, or push a branch named `conformance/<anything>` to run both. To add an egg, see [EGGS.md](docs/EGGS.md#built-in-catalog).
+The **Egg conformance** GitHub workflow runs Raptor's test server and the library eggs a PR changes, on amd64 and arm64, for PRs that touch eggs or the code that runs them; the whole fast tier runs nightly and the slow tier (big SteamCMD games) weekly. Start either from the Actions tab, or push a branch named `conformance/<anything>` to run both. To add an egg, see [library/README.md](library/README.md) and [EGGS.md](docs/EGGS.md#egg-library): a merged egg reaches the official library on the Panel's next deploy.
 
 ### Fuzz tests
 

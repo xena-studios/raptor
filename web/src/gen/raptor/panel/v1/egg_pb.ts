@@ -1373,7 +1373,7 @@ export const EggWarningSchema: GenMessage<EggWarning> = /*@__PURE__*/
 
 /**
  * EggService is the egg library (docs/PANEL.md#eggs): Raptor's official
- * eggs (managed by staff; Raptor's catalog is seeded into them), and each
+ * eggs (managed by staff; Raptor's egg library is seeded into them), and each
  * org's own (imported, made from scratch, or customized copies) and those
  * it shares. An org's admins and owners change the org's eggs; members see
  * them. org_id empty means the official library: staff admins change it,
