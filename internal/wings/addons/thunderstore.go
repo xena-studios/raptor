@@ -71,6 +71,7 @@ var (
 	ErrTooManyFiles  = fmt.Errorf("packages have at most %d files; nothing was installed", MaxEntries)
 	ErrUnpackTooLong = fmt.Errorf("packages unpack to at most %d MiB; nothing was installed", MaxUnpacked>>20)
 	ErrNotZip        = errors.New("the download isn't a zip; nothing was installed")
+	ErrNoSpace       = errors.New("the server's disk limit has no room for the package; nothing was installed")
 )
 
 // packageFile is a version's file name: Namespace-Name-1.2.3.zip.
@@ -159,7 +160,11 @@ func (s *Service) installPackage(ctx context.Context, f *files.FS, id, user stri
 			_ = f.RemoveAll(stage)
 		}
 	}()
-	if err := Unpack(ctx, f, tmp, stage, s.Unpack); err != nil {
+	limits, err := s.unpackLimits(ctx, id, size)
+	if err != nil {
+		return File{}, err
+	}
+	if err := Unpack(ctx, f, tmp, stage, limits); err != nil {
 		return File{}, err
 	}
 	rec, err := json.Marshal(record{Package: full, Sha512: sums[0], Sha256: sums[1], Size: size})
@@ -184,6 +189,35 @@ func (s *Service) installPackage(ctx context.Context, f *files.FS, id, user stri
 		return File{}, err
 	}
 	return File{Name: folder, Size: size, Modified: fi.ModTime().UnixMilli(), Sha512: sums[0], Sha256: sums[1], Package: full}, nil
+}
+
+// spaceLefter is a Servers that knows a server's disk limit (Wings' server
+// manager does).
+type spaceLefter interface {
+	SpaceLeft(ctx context.Context, id string) (int64, error)
+}
+
+// unpackLimits are the service's limits, with the bytes cut to what the
+// server's disk limit has left (less the zip, still on disk), as the file
+// manager's decompress does, so a package can't fill past it.
+func (s *Service) unpackLimits(ctx context.Context, id string, zipSize int64) (Limits, error) {
+	l := s.Unpack
+	sl, ok := s.Servers.(spaceLefter)
+	if !ok {
+		return l, nil
+	}
+	left, err := sl.SpaceLeft(ctx, id)
+	if err != nil || left < 0 {
+		return l, err
+	}
+	left -= zipSize
+	if left <= 0 {
+		return l, ErrNoSpace
+	}
+	if left < l.bytes() {
+		l.Bytes = left
+	}
+	return l, nil
 }
 
 // hashFile is a file's SHA-512 and SHA-256, and its size.

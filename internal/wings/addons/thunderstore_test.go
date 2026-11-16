@@ -248,3 +248,30 @@ func TestThunderstoreUnsafe(t *testing.T) {
 		t.Errorf("left behind: %v", left)
 	}
 }
+
+// A package unpacks only into what the server's disk limit has left.
+func TestThunderstoreDiskLimit(t *testing.T) {
+	ctx := context.Background()
+	pkg := zipOf(t, entry{name: "big.bin", body: strings.Repeat("x", 5000)})
+	svc, _, dir := thunderstoreSetup(t, map[string][]byte{"A-B-1.0.0.zip": pkg})
+	install := func() error {
+		_, err := svc.Install(ctx, srvID, "user", addons.Install{Kind: "thunderstore", URL: cdnURL("A-B-1.0.0.zip"), Sha256: sum256(pkg), Filename: "A-B-1.0.0.zip"})
+		return err
+	}
+	srv := svc.Servers.(*valheim)
+	srv.space = int64(len(pkg)) + 1000 // room for the zip, not its 5000 bytes
+	if err := install(); !errors.Is(err, addons.ErrUnpackTooLong) {
+		t.Errorf("past the disk limit: %v", err)
+	}
+	srv.space = int64(len(pkg)) // the zip fills it
+	if err := install(); !errors.Is(err, addons.ErrNoSpace) {
+		t.Errorf("no room at all: %v", err)
+	}
+	if left, _ := filepath.Glob(filepath.Join(dir, "BepInEx", "plugins", "*")); len(left) > 0 {
+		t.Errorf("left behind: %v", left)
+	}
+	srv.space = 1 << 20
+	if err := install(); err != nil {
+		t.Errorf("with room: %v", err)
+	}
+}

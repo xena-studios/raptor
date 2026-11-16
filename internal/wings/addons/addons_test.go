@@ -28,12 +28,21 @@ const srvID = "0199a0b1-7c2e-7a41-9f3e-2b1c4d5e6f70"
 
 // servers is a fake server manager with one Paper server (that also
 // takes uMod plugins, in the folder its FRAMEWORK picks).
-type servers struct{ dir, framework, user, token string }
+type servers struct {
+	dir, framework, user, token string
+	// space is what SpaceLeft says (0: no limit).
+	space int64
+}
 
 func (s *servers) FilesDir(string) (string, error)                  { return s.dir, nil }
 func (s *servers) CheckFiles(context.Context, string, bool) error   { return nil }
 func (s *servers) Denylist(string) ([]string, error)                { return []string{"plugins/locked.jar"}, nil }
-func (s *servers) SpaceLeft(context.Context, string) (int64, error) { return -1, nil }
+func (s *servers) SpaceLeft(context.Context, string) (int64, error) {
+	if s.space == 0 {
+		return -1, nil
+	}
+	return s.space, nil
+}
 func (s *servers) TrashDir(id string) (string, error) {
 	return filepath.Join(filepath.Dir(s.dir), ".trash", id), nil
 }
