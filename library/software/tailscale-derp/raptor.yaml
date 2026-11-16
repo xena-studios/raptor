@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/tailscale-derp/egg-tailscale-derp.json
+license: MIT
+credits:
+  - "Written for Raptor from Tailscale's custom DERP server documentation, https://tailscale.com/kb/1118/custom-derp-servers (derper is BSD-3-Clause); no upstream egg"
+  - "Icon: the Tailscale logo, from https://github.com/tailscale"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m
+  variables:
+    DERP_HOSTNAME: 127.0.0.1
+    CERT_MODE: manual

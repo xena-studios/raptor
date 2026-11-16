@@ -1,0 +1,82 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from the project's own documentation; no upstream egg.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "LibreTranslate",
+    "author": "support@raptorpanel.net",
+    "description": "LibreTranslate is a self-hosted machine translation API with a web page, running offline on Argos Translate's models. Only the languages you choose are downloaded, and an API key is required: the first one is shown in the console, and keys, key-add and key-remove manage them there.",
+    "features": [],
+    "docker_images": {
+        "Python 3.13": "ghcr.io/xena-studios/yolks:python_3.13@sha256:72e9beb9618e5ebecf1d3211271308dc506ada537fa458911b866a23c787e617",
+        "Python 3.12": "ghcr.io/xena-studios/yolks:python_3.12@sha256:7cebda1186da0e0830d7947537d488e8d0f039249a70391c907ceac92fb0ce76"
+    },
+    "file_denylist": [],
+    "startup": "h=$( (python3 --version; cat .raptor-libretranslate.txt) | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat .venv/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing LibreTranslate\"; rm -rf .venv .raptor-tmp && mkdir -p .raptor-tmp && python3 -m venv .venv && TMPDIR=/home/container/.raptor-tmp .venv/bin/pip install --no-cache-dir --disable-pip-version-check -q -r .raptor-libretranslate.txt && rm -rf .raptor-tmp && echo \"$h\" > .venv/.raptor-installed || exit 1; fi; export PYTHONWARNINGS=\"ignore:urllib3\"; mkdir -p db; k() { .venv/bin/ltmanage keys --api-keys-db-path db/api_keys.db \"$@\"; }; if [ ! -f db/api_keys.db ]; then .venv/bin/python -c 'from libretranslate.api_keys import Database; Database(\"db/api_keys.db\")' && echo \"LibreTranslate's first API key is $(k add 120) (120 requests a minute). Type keys, key-add <requests a minute> or key-remove <key> in the console to manage keys.\" || exit 1; fi; exec 3<&0; (while read -r c a <&3; do a=${a%$'\\r'}; case \"${c%$'\\r'}\" in keys) k ;; key-add) k add \"${a:-60}\" ;; key-remove) k remove \"$a\" ;; \"\") ;; *) echo \"Commands: keys, key-add <requests a minute>, key-remove <key>\" ;; esac; done) & set -- --api-keys --api-keys-db-path db/api_keys.db; [ \"{{REQUIRE_API_KEY}}\" = 1 ] && set -- \"$@\" --under-attack; exec .venv/bin/python -c 'import logging, sys; logging.basicConfig(level=logging.WARNING); import argostranslate.utils; logging.getLogger(\"argostranslate.utils\").setLevel(logging.WARNING); sys.argv[0] = \"libretranslate\"; from libretranslate.main import main; main()' --host 0.0.0.0 --port {{SERVER_PORT}} --load-only \"{{LANGUAGES}}\" --char-limit {{CHAR_LIMIT}} --threads {{THREADS}} \"$@\"",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Running on http\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# LibreTranslate: checks the chosen version on PyPI and writes it to\n# .raptor-libretranslate.txt; the server installs it (in .venv, for the Python\n# version it runs) when it next starts, with the language models chosen.\n# The API keys database and downloaded models are never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n\nmeta=$(curl -fsSL --retry 3 -A \"raptor-installer (+https://raptorpanel.net)\" https://pypi.org/pypi/libretranslate/json) ||\n    fail \"PyPI can't be reached right now. Reinstall to try again.\"\nlatest=$(jq -r .info.version <<<\"$meta\")\nwant=\"${VERSION:-latest}\"\n[ \"$want\" = latest ] && want=\"$latest\"\njq -e --arg v \"$want\" '.releases[$v] | length > 0 and all(.yanked | not)' <<<\"$meta\" >/dev/null ||\n    fail \"LibreTranslate has no version $want. Set Version to latest, or to a release such as $latest, then reinstall.\"\n\necho \"libretranslate==$want\" > .raptor-libretranslate.txt.new\nmv -f .raptor-libretranslate.txt.new .raptor-libretranslate.txt\nmkdir -p db\necho \"Installed LibreTranslate $want; it's set up when the server starts.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The LibreTranslate release to install from PyPI, such as 1.9.6, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Languages",
+            "description": "The language codes to translate between, separated by commas, such as en,es,fr,de. Each language downloads about 200 MB of models.",
+            "env_variable": "LANGUAGES",
+            "default_value": "en,es,fr",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:300|regex:/^[A-Za-z-]+(,[A-Za-z-]+)*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Require an API key",
+            "description": "Refuse translations without a valid API key, the web page's included. Off lets anyone use it.",
+            "env_variable": "REQUIRE_API_KEY",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Character limit",
+            "description": "The most characters one request may translate, or -1 for no limit.",
+            "env_variable": "CHAR_LIMIT",
+            "default_value": "5000",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:-1",
+            "field_type": "text"
+        },
+        {
+            "name": "Threads",
+            "description": "How many translations run at once.",
+            "env_variable": "THREADS",
+            "default_value": "4",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,64",
+            "field_type": "text"
+        }
+    ]
+}

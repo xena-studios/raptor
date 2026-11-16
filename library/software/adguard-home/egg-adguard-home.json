@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from the project's own documentation; no upstream egg.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "AdGuard Home",
+    "author": "support@raptorpanel.net",
+    "description": "AdGuard Home is a DNS server that blocks ads and trackers for every device that uses it, managed from a web page on the server's address. Most devices only use DNS on port 53, so give the server a second allocation on port 53 if the node allows it, and set DNS port to it.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "if grep -q '^users: \\[\\]' AdGuardHome.yaml; then pw=\"${ADMIN_PASSWORD}\"; if [ -z \"$pw\" ]; then pw=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 20); echo \"AdGuard Home's admin is {{ADMIN_USERNAME}}, with the password $pw. Log in and change it.\"; fi; PW=\"$pw\" U=\"{{ADMIN_USERNAME}}\" perl -i -pe 'BEGIN { @c = (\"a\"..\"z\", \"A\"..\"Z\", 0..9, \".\", \"/\"); $h = crypt($ENV{PW}, q($2b$10$) . join(\"\", map { $c[rand 64] } 1..22)); $h =~ /^\\$2b\\$/ or die \"bcrypt failed\\n\" } s/^users: \\[\\]$/users:\\n  - name: $ENV{U}\\n    password: $h/' AdGuardHome.yaml || exit 1; fi; exec ./adguardhome --no-check-update -c AdGuardHome.yaml -w /home/container",
+    "config": {
+        "files": "{\"AdGuardHome.yaml\": {\"parser\": \"yaml\", \"find\": {\"http.address\": \"0.0.0.0:{{server.build.default.port}}\", \"dns.port\": \"{{server.build.env.DNS_PORT}}\"}}}",
+        "startup": "{\"done\": [\"regex:\\\\[info\\\\] starting plain server\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# AdGuard Home: downloads AdGuard Home from its GitHub releases, checked\n# against GitHub's SHA-256, and writes a starting AdGuardHome.yaml if there's\n# none (the admin account is added when the server first starts). An\n# existing configuration and the data folder are never touched.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) echo \"AdGuard Home has no build for this CPU ($(uname -m)).\"; exit 1 ;;\nesac\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag AdguardTeam/AdGuardHome \"$version\") || exit 1\n\nif [ -x adguardhome ] && [ \"$(cat .adguardhome-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"AdGuard Home $tag is already installed.\"\nelse\n    echo \"Downloading AdGuard Home $tag.\"\n    gh-release download AdguardTeam/AdGuardHome \"$tag\" \"AdGuardHome_linux_${arch}.tar.gz\" \"$work/agh.tar.gz\"\n    tar -xzf \"$work/agh.tar.gz\" -C \"$work\"\n    install -m 0755 \"$work/AdGuardHome/AdGuardHome\" adguardhome.new\n    mv -f adguardhome.new adguardhome\n    echo \"$tag\" > .adguardhome-version\nfi\n\nif [ ! -f AdGuardHome.yaml ]; then\n    # The ports are set at every start from the server's allocation and DNS\n    # port. users stays empty until the first start adds the admin.\n    cat > AdGuardHome.yaml <<'YAML'\nhttp:\n  address: 0.0.0.0:3000\nusers: []\ndns:\n  bind_hosts:\n    - 0.0.0.0\n  port: 53\n  upstream_dns:\n    - https://dns10.quad9.net/dns-query\n  bootstrap_dns:\n    - 9.9.9.10\n    - 149.112.112.10\n    - 2620:fe::10\n    - 2620:fe::fe:10\n# The configuration format of AdGuard Home v0.107.80; newer releases update it.\nschema_version: 34\nYAML\n    echo \"Wrote a starting AdGuardHome.yaml.\"\nfi\nmkdir -p data\necho \"Installed AdGuard Home $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The AdGuard Home release to install, such as 0.107.80, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "DNS port",
+            "description": "The port AdGuard Home answers DNS on: one of the server's allocations, 53 for most devices to use it.",
+            "env_variable": "DNS_PORT",
+            "default_value": "53",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin username",
+            "description": "The web page's first user, created when the server first starts.",
+            "env_variable": "ADMIN_USERNAME",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9._@-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The first user's password. Leave it empty for a random one, shown in the console at the first start.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:72",
+            "field_type": "text"
+        }
+    ]
+}

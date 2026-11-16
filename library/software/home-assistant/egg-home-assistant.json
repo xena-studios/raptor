@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from the project's own documentation; no upstream egg.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Home Assistant",
+    "author": "support@raptorpanel.net",
+    "description": "Home Assistant Core, the home automation platform, in a Python environment. It can't find devices on your network or use USB and Bluetooth devices, which need host networking, and voice and the companion app aren't available; add devices that are reachable by address. The owner account is created at the first start.",
+    "features": [],
+    "docker_images": {
+        "Python 3.14": "ghcr.io/xena-studios/yolks:python_3.14@sha256:fb52a42f00788ae6bf2b1dca5ab499e325a737c20aab9a6f8c9f800c9fced225"
+    },
+    "file_denylist": [],
+    "startup": "export TMPDIR=/home/container/.raptor-tmp; mkdir -p \"$TMPDIR\"; h=$( (python3 --version; cat .raptor-homeassistant.txt) | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat .venv/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing Home Assistant; this takes a few minutes.\"; rm -rf .venv && python3 -m venv .venv && .venv/bin/pip install --no-cache-dir --disable-pip-version-check -q -r .raptor-homeassistant.txt && echo \"$h\" > .venv/.raptor-installed || exit 1; fi; if ! grep -qs '\"is_owner\": true' config/.storage/auth; then .venv/bin/python .raptor-owner.py config \"{{ADMIN_USERNAME}}\" || exit 1; grep -qs '\"is_owner\": true' config/.storage/auth || { echo \"Home Assistant's owner account couldn't be created, so it isn't started: anyone could claim it. Reinstall to try again.\"; exit 1; }; fi; export SETUP_PORT={{SERVER_PORT}}; if [ -f config/.storage/http ]; then .venv/bin/python -c 'import json, sys; p = \"config/.storage/http\"; d = json.load(open(p)); [c.update(server_port=int(sys.argv[1])) for c in (d[\"data\"][\"stable\"], d[\"data\"][\"pending\"]) if c]; open(p + \".new\", \"w\").write(json.dumps(d, indent=2)); __import__(\"os\").replace(p + \".new\", p)' {{SERVER_PORT}} || exit 1; fi; exec .venv/bin/hass --config config --log-no-color --skip-pip-packages pymicro-vad,pyspeex-noise",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Home Assistant initialized in\"]}",
+        "logs": "{}",
+        "stop": "^SIGTERM"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Home Assistant: checks the chosen version of Home Assistant Core on PyPI\n# and writes it to .raptor-homeassistant.txt; the server installs it (in\n# .venv, for the Python version it runs) when it next starts. Writes a\n# starting configuration if there's none, and the helper that creates the\n# owner account at the first start. The config folder is never overwritten.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n\nmeta=$(curl -fsSL --retry 3 -A \"raptor-installer (+https://raptorpanel.net)\" https://pypi.org/pypi/homeassistant/json) ||\n    fail \"PyPI can't be reached right now. Reinstall to try again.\"\nlatest=$(jq -r .info.version <<<\"$meta\")\nwant=\"${VERSION:-latest}\"\n[ \"$want\" = latest ] && want=\"$latest\"\njq -e --arg v \"$want\" '.releases[$v] | length > 0 and all(.yanked | not)' <<<\"$meta\" >/dev/null ||\n    fail \"Home Assistant has no version $want. Set Version to latest, or to a release such as $latest, then reinstall.\"\n\necho \"homeassistant==$want\" > .raptor-homeassistant.txt.new\nmv -f .raptor-homeassistant.txt.new .raptor-homeassistant.txt\n\ncat > .raptor-owner.py <<'PY'\n\"\"\"Creates Home Assistant's owner account before its first start, so the\nonboarding page can't be claimed by whoever opens it first. Written by\nRaptor's install; run with the server's virtual environment.\"\"\"\nimport asyncio\nimport os\nimport secrets\nimport sys\n\nfrom homeassistant import runner\nfrom homeassistant.auth import auth_manager_from_config\nfrom homeassistant.auth.const import GROUP_ID_ADMIN\nfrom homeassistant.config_entries import ConfigEntries\nfrom homeassistant.const import EVENT_HOMEASSISTANT_FINAL_WRITE\nfrom homeassistant.core import HomeAssistant\nfrom homeassistant.helpers import device_registry as dr, entity_registry as er\n\n\nasync def main(config_dir: str, username: str) -> None:\n    hass = HomeAssistant(os.path.abspath(config_dir))\n    hass.config_entries = ConfigEntries(hass, {})\n    await hass.config_entries.async_initialize()\n    dr.async_setup(hass)\n    await asyncio.gather(dr.async_load(hass), er.async_load(hass))\n    hass.auth = await auth_manager_from_config(hass, [{\"type\": \"homeassistant\"}], [])\n    provider = hass.auth.auth_providers[0]\n    await provider.async_initialize()\n    if not any(u.is_owner for u in await hass.auth.async_get_users()):\n        password = os.environ.get(\"ADMIN_PASSWORD\") or \"\"\n        if not password:\n            password = secrets.token_urlsafe(15)\n            print(f\"Home Assistant's owner is {username}, with the password {password}. Log in and change it.\")\n        if username in [c[\"username\"] for c in provider.data.users]:\n            provider.data.change_password(username, password)\n        else:\n            provider.data.add_auth(username, password)\n        await provider.data.async_save()\n        credentials = await provider.async_get_or_create_credentials({\"username\": username})\n        user = await hass.auth.async_create_user(username, group_ids=[GROUP_ID_ADMIN])\n        await hass.auth.async_link_user(user, credentials)\n        print(f\"Created Home Assistant's owner account, {username}.\")\n    # Home Assistant writes its stores when it shuts down; this one never\n    # started, so ask them to write now.\n    hass.bus.async_fire(EVENT_HOMEASSISTANT_FINAL_WRITE)\n    await hass.async_block_till_done()\n    await hass.async_stop()\n\n\nasyncio.run(main(sys.argv[1], sys.argv[2]), loop_factory=runner.create_event_loop)\nPY\n\nmkdir -p config\nif [ ! -f config/configuration.yaml ]; then\n    cat > config/configuration.yaml <<'YAML'\n# Home Assistant's configuration: https://www.home-assistant.io/docs/configuration/\n# This is default_config without what can't work in a container (finding\n# devices on your network: dhcp, ssdp, zeroconf; USB and Bluetooth devices)\n# and the integrations that call out on their own (cloud,\n# homeassistant_alerts). Voice (Assist) and the companion app (mobile_app)\n# need packages that have to be compiled, and the server has no compiler.\n# Add any of them back here if you need them.\nconfig:\nconversation:\nenergy:\nfile:\nfrontend:\nhistory:\nlogbook:\nmedia_source:\nmy:\nsun:\nusage_prediction:\nwebhook:\n\nautomation: !include automations.yaml\nscript: !include scripts.yaml\nscene: !include scenes.yaml\n\n# Warnings and errors in the console, plus when Home Assistant has started.\nlogger:\n  default: warning\n  logs:\n    homeassistant.bootstrap: info\nYAML\n    [ -f config/automations.yaml ] || echo \"[]\" > config/automations.yaml\n    touch config/scripts.yaml config/scenes.yaml\n    echo \"Wrote a starting configuration.yaml.\"\nfi\necho \"Installed Home Assistant $want; it's set up when the server starts.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Home Assistant Core release to install from PyPI, such as 2026.11.1, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|\\d{4}\\.\\d{1,2}\\.\\d+(b\\d+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Owner username",
+            "description": "The owner account's username, created at the first start.",
+            "env_variable": "ADMIN_USERNAME",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[a-z0-9._@-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Owner password",
+            "description": "The owner's password. Leave it empty for a random one, shown in the console at the first start.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100",
+            "field_type": "text"
+        }
+    ]
+}

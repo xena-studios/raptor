@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/libretranslate/egg-libretranslate.json
+license: MIT
+credits:
+  - "Written for Raptor from LibreTranslate's documentation, https://github.com/LibreTranslate/LibreTranslate (AGPL-3.0); no upstream egg"
+  - "Icon: the LibreTranslate logo, from https://github.com/LibreTranslate"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 2048
+  done_timeout: 15m
+  variables:
+    LANGUAGES: en,es
+  command: "keys"
+  expect: "[0-9a-f-]{36}: 120"
