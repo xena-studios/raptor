@@ -1,0 +1,81 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "SFTPGo",
+    "author": "support@raptorpanel.net",
+    "description": "SFTPGo is an SFTP and WebDAV server with a web admin and a web client for its users. The egg runs it on SQLite, with the web interface on the server's port and an admin account made on the first start.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "if [ ! -f sftpgo.db ] && [ -z \"${SFTPGO_DEFAULT_ADMIN_PASSWORD:-}\" ]; then echo \"Set Admin password in the server's settings, then start the server again.\"; exit 1; fi; mkdir -p data; export SFTPGO_DATA_PROVIDER__CREATE_DEFAULT_ADMIN=true SFTPGO_DATA_PROVIDER__USERS_BASE_DIR=/home/container/data SFTPGO_HTTPD__BINDINGS__0__PORT={{SERVER_PORT}} SFTPGO_SFTPD__BINDINGS__0__PORT={{SFTP_PORT}} SFTPGO_WEBDAVD__BINDINGS__0__PORT={{WEBDAV_PORT}}; exec ./sftpgo serve --config-dir /home/container --log-file-path \"\" --log-level info",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"\\\"sender\\\":\\\"httpd\\\",\\\"message\\\":\\\"server listener registered\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# SFTPGo: downloads SFTPGo from its GitHub releases, checked against\n# GitHub's SHA-256. The users' files (data), the database, the host keys\n# and sftpgo.json are never touched once there.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n# Downloads unpack in a folder in the server's (the install's /tmp is\n# small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=x86_64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"SFTPGo has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\ntag=$(gh-release tag drakkan/sftpgo \"$version\") ||\n    fail \"Set Version to latest, or to a release such as 2.7.6, then reinstall.\"\n\nif [ -x sftpgo ] && [ -d templates ] && [ \"$(cat .sftpgo-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"SFTPGo $tag is already installed.\"\nelse\n    echo \"Downloading SFTPGo $tag.\"\n    gh-release download drakkan/sftpgo \"$tag\" \"sftpgo_${tag}_linux_${arch}.tar.xz\" \"$work/sftpgo.tar.xz\"\n    mkdir \"$work/new\"\n    tar -xJf \"$work/sftpgo.tar.xz\" -C \"$work/new\" sftpgo sftpgo.json templates static openapi\n    # The web interface's files go with the binary: replace them together.\n    for d in templates static openapi; do\n        rm -rf \"$d\"\n        mv \"$work/new/$d\" \"$d\"\n    done\n    install -m 0755 \"$work/new/sftpgo\" sftpgo.new\n    mv -f sftpgo.new sftpgo\n    [ -f sftpgo.json ] || mv \"$work/new/sftpgo.json\" sftpgo.json\n    echo \"$tag\" > .sftpgo-version\nfi\nmkdir -p data\necho \"Installed SFTPGo $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The SFTPGo version to install, such as 2.7.6, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.]+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "SFTP port",
+            "description": "The port SFTP listens on. Add it to the server's ports too.",
+            "env_variable": "SFTP_PORT",
+            "default_value": "2022",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "WebDAV port",
+            "description": "The port WebDAV listens on, or 0 to turn WebDAV off. Add it to the server's ports too.",
+            "env_variable": "WEBDAV_PORT",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:0,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin username",
+            "description": "The name of the admin account made on the first start.",
+            "env_variable": "SFTPGO_DEFAULT_ADMIN_USERNAME",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:50|regex:/^[A-Za-z0-9._@-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The admin account's password, needed for the first start. Change it later in the web admin.",
+            "env_variable": "SFTPGO_DEFAULT_ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100",
+            "field_type": "text"
+        }
+    ]
+}

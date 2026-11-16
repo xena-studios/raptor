@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Homepage",
+    "author": "support@raptorpanel.net",
+    "description": "Homepage is a start page for your services and bookmarks, with widgets for many self-hosted apps. The egg builds it on the first start and serves it behind a password you set; edit the files in the config folder to build your page.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:d0378084b323d05e146b21d85cd8243b660ecf9dc17ccf967d09ec0347896307"
+    },
+    "file_denylist": [],
+    "startup": "v=$(cat source/.raptor-version 2>/dev/null); b=\"$v $(node --version)\"; if [ \"$b\" != \"$(cat app/.raptor-built 2>/dev/null)\" ]; then [ -f source/package.json ] || { echo \"Reinstall the server to download Homepage.\"; exit 1; }; echo \"Building Homepage $v for Node.js $(node --version). This takes a few minutes, once.\"; (cd source && export COREPACK_ENABLE_DOWNLOAD_PROMPT=0 NEXT_TELEMETRY_DISABLED=1 CI=1 NEXT_PUBLIC_VERSION=\"$v\" npm_config_store_dir=/home/container/source/.pnpm-store && corepack pnpm@10 install --frozen-lockfile --reporter=append-only && corepack pnpm@10 run build) || { echo \"Homepage's build failed: see the errors above.\"; exit 1; }; rm -rf app.new && cp -a source/.next/standalone app.new && cp -a source/public app.new/public && cp -a source/.next/static app.new/.next/static && echo \"$b\" > app.new/.raptor-built && rm -rf app && mv app.new app && rm -rf source/node_modules source/.next source/.pnpm-store && echo \"Built Homepage $v.\" || exit 1; fi; if [ -z \"${HOMEPAGE_AUTH_PASSWORD:-}\" ]; then echo \"Set Login password in the server's settings, then start the server again.\"; exit 1; fi; url=\"${HOMEPAGE_EXTERNAL_URL:-}\"; [ -n \"$url\" ] || url=\"http://${SERVER_IP:-127.0.0.1}:{{SERVER_PORT}}\"; host=${url#*://}; host=${host%%/*}; export HOMEPAGE_EXTERNAL_URL=\"$url\" HOMEPAGE_ALLOWED_HOSTS=\"$host,localhost:{{SERVER_PORT}},127.0.0.1:{{SERVER_PORT}}${ALLOWED_HOSTS:+,$ALLOWED_HOSTS}\" HOMEPAGE_AUTH_ENABLED=true HOMEPAGE_AUTH_SECRET=\"$(cat .auth-secret)\" HOMEPAGE_CONFIG_DIR=/home/container/config LOG_TARGETS=stdout NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT={{SERVER_PORT}}; cd app && exec node server.js",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"Ready in\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Homepage: downloads the source of the chosen Homepage release from GitHub\n# into the source folder; the server builds it at its next start, for the\n# Node.js version it runs (Homepage publishes no ready-made build). The\n# config folder (your services, bookmarks, widgets) is never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\ntag=$(gh-release tag gethomepage/homepage \"$version\") ||\n    fail \"Set Version to latest, or to a release such as 2.8.0, then reinstall.\"\nmajor=${tag#v}; major=${major%%.*}\n# Homepage has its own login from 2.0 on, which this egg turns on.\n[ \"$major\" -ge 2 ] || fail \"This egg runs Homepage 2.0 and newer. Set Version to latest, or to a release such as 2.8.0, then reinstall.\"\n\nif [ -f source/package.json ] && [ \"$(cat source/.raptor-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Homepage $tag is already downloaded.\"\nelse\n    echo \"Downloading Homepage $tag.\"\n    curl -fsSL --retry 3 -o \"$work/homepage.tar.gz\" \"https://github.com/gethomepage/homepage/archive/refs/tags/$tag.tar.gz\" ||\n        fail \"The download failed. Reinstall to try again.\"\n    mkdir \"$work/source\"\n    tar -xzf \"$work/homepage.tar.gz\" -C \"$work/source\" --strip-components=1\n    [ -f \"$work/source/pnpm-lock.yaml\" ] || fail \"Homepage $tag has no pnpm-lock.yaml, so this egg can't build it. Set Version to latest, then reinstall.\"\n    echo \"$tag\" > \"$work/source/.raptor-version\"\n    rm -rf source\n    mv \"$work/source\" source\nfi\n\nmkdir -p config\n# The key Homepage signs its login cookies with.\n[ -s .auth-secret ] || head -c 32 /dev/urandom | base64 > .auth-secret\necho \"Installed Homepage $tag. It is built when the server starts.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Homepage version to install, such as 2.8.0, or latest. Reinstall to change it, and the next start builds it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Login password",
+            "description": "The password to sign in to Homepage with, at least 12 characters.",
+            "env_variable": "HOMEPAGE_AUTH_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:12|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Address",
+            "description": "The full address you open Homepage at, with http or https in front. Empty uses the server's address and port.",
+            "env_variable": "HOMEPAGE_EXTERNAL_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Allowed hosts",
+            "description": "Other host names Homepage answers to, with their port where it isn't 80 or 443, separated by commas.",
+            "env_variable": "ALLOWED_HOSTS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        }
+    ]
+}

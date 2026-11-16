@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/directus/egg-directus.json
+license: MIT
+credits:
+  - "Written for Raptor from Directus's documentation, https://directus.io/docs (Directus is BSL-1.1); no upstream egg"
+  - "Icon: the Directus logo, from https://github.com/directus"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1536
+  # The first start installs Directus and its dependencies with npm.
+  done_timeout: 12m
+  variables:
+    ADMIN_PASSWORD: "raptor-test-password"
