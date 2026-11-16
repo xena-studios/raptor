@@ -4,6 +4,7 @@ import { ChangeServerType } from "@/components/change-server-type";
 import { DeleteServer } from "@/components/delete-server";
 import { MoveServer } from "@/components/move-server";
 import { ServerEggVersion } from "@/components/server-egg-update";
+import { ServerListLook } from "@/components/server-list-look";
 import { ServerDetails, ServerSettings } from "@/components/server-settings";
 import { useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
@@ -35,6 +36,14 @@ function SettingsTab() {
             : undefined
         }
       />
+      {can(server, "files.read") && (
+        <ServerListLook
+          orgId={orgId}
+          nodeId={nodeId}
+          serverId={serverId}
+          canWrite={can(server, "files.write")}
+        />
+      )}
       <ServerSettings
         section="behavior"
         orgId={orgId}
