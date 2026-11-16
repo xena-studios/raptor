@@ -28,6 +28,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/hangar"
 	"github.com/xena-studios/raptor/internal/panel/images"
 	"github.com/xena-studios/raptor/internal/panel/live"
+	"github.com/xena-studios/raptor/internal/panel/modpacks"
 	"github.com/xena-studios/raptor/internal/panel/modrinth"
 	"github.com/xena-studios/raptor/internal/panel/mojang"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
@@ -90,6 +91,8 @@ type Config struct {
 	Versions *gameversions.Client
 	// Mojang looks Minecraft players up (nil: api.mojang.com).
 	Mojang *mojang.Client
+	// Modpacks finds FTB's and Technic's packs (nil: their APIs).
+	Modpacks *modpacks.Client
 	// Support takes nodes' support bundles (nil: not configured).
 	Support http.Handler
 	// Transfers opens file transfer connections to nodes (*nodes.Router),
@@ -191,8 +194,12 @@ func Handler(cfg Config) http.Handler {
 		if mj == nil {
 			mj = &mojang.Client{UserAgent: ua}
 		}
+		mp := cfg.Modpacks
+		if mp == nil {
+			mp = &modpacks.Client{UserAgent: ua}
+		}
 		// A lookup is up to 500 SHA-512s, with their SHA-256s.
-		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg, Steam: st, UMod: um, Factorio: fa, Versions: gv, Mojang: mj}, opts(connect.WithReadMaxBytes(256<<10))...)
+		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg, Steam: st, UMod: um, Factorio: fa, Versions: gv, Mojang: mj, Modpacks: mp}, opts(connect.WithReadMaxBytes(256<<10))...)
 		api.Handle(path, handler)
 	}
 	if cfg.Orgs != nil {

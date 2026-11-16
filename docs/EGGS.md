@@ -321,7 +321,7 @@ Modpack eggs name the variables that pick their pack under `x-raptor.modpack` (#
 
 ```yaml
 modpack:
-  source: modrinth          # where packs are found (Modrinth only, for now)
+  source: modrinth          # where packs are found: modrinth, ftb, or technic
   project: PROJECT_ID       # the pack's slug or ID
   version: VERSION_ID       # a version's ID, or latest
   game_version: MINECRAFT_VERSION   # optional: a game version the chosen version is for
@@ -329,7 +329,7 @@ modpack:
 
 - **Raptor downloads nothing:** the picker fills the variables, and the egg's install script fetches the pack, as with IDs typed in. The variables must be the egg's; `source` must be `modrinth`.
 - The picker (`web/src/components/modpack-picker.tsx`) is on the new-server form and on Startup (for whoever may edit the pack's variable). It searches Modrinth's modpacks (`AddonService.SearchAddons` and `ListAddonVersions` with kind `modpacks`, which need no loader) and offers **the newest** (`latest`, updated at each reinstall) or a version, which sets the game version to one it's for, since the Modrinth egg filters versions by it. On Startup it says to save and reinstall, with a backup first.
-- The library's Modrinth modpack egg sets it. FTB, Technic, and CurseForge (#412) packs come later. The summary Wings reports carries it (`modpack`), so servers on older Wings show no picker on Startup until they update; the new-server form reads it from the catalog.
+- The library's Modrinth, FTB, and Technic modpack eggs set it (FTB: `FTB_MODPACK_ID` and `FTB_MODPACK_VERSION_ID`, where an empty version is the newest; Technic: `TECHNIC_PACK` and `TECHNIC_VERSION`, recommended or latest). FTB's and Technic's packs come from their APIs through the Panel (`internal/panel/modpacks`, `SearchAddons`/`ListAddonVersions` with source `ftb` or `technic`, the modpacks kind only): FTB's most installed when nothing's typed, its private packs and versions left out; Technic's by name. CurseForge's (#412) come later. The summary Wings reports carries it (`modpack`), so servers on older Wings show no picker on Startup until they update; the new-server form reads it from the catalog.
 
 ## Bedrock players (Geyser)
 

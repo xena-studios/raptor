@@ -423,6 +423,7 @@ function SettingsForm({
                 <Label>Modpack</Label>
                 <ModpackButton
                   orgId={orgId}
+                  source={cfg.egg.modpack.source}
                   current={values[cfg.egg.modpack.project]}
                   onPick={(p) => {
                     const m = cfg.egg?.modpack;

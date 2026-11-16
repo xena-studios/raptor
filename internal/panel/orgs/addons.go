@@ -22,6 +22,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/factorio"
 	"github.com/xena-studios/raptor/internal/panel/gameversions"
 	"github.com/xena-studios/raptor/internal/panel/hangar"
+	"github.com/xena-studios/raptor/internal/panel/modpacks"
 	"github.com/xena-studios/raptor/internal/panel/modrinth"
 	"github.com/xena-studios/raptor/internal/panel/mojang"
 	"github.com/xena-studios/raptor/internal/panel/steam"
@@ -38,6 +39,7 @@ type Addons struct {
 	Steam    *steam.Client
 	UMod     *umod.Client
 	Factorio *factorio.Client
+	Modpacks *modpacks.Client
 	Versions *gameversions.Client
 	Mojang   *mojang.Client
 }
@@ -52,6 +54,9 @@ const (
 	sourceHangar   = "hangar"
 	sourceUMod     = "umod"
 	sourceFactorio = "factorio"
+	// FTB's and Technic's modpacks, for the pack picker only.
+	sourceFTB     = "ftb"
+	sourceTechnic = "technic"
 )
 
 // umodGame is the uMod category the umod kind's plugins come from.
@@ -132,6 +137,10 @@ func modrinthError(err error) error {
 		return connect.NewError(connect.CodeNotFound, err)
 	case errors.Is(err, umod.ErrUnavailable):
 		return connect.NewError(connect.CodeUnavailable, umod.ErrUnavailable)
+	case errors.Is(err, modpacks.ErrNotFound):
+		return connect.NewError(connect.CodeNotFound, err)
+	case errors.Is(err, modpacks.ErrUnavailable):
+		return connect.NewError(connect.CodeUnavailable, modpacks.ErrUnavailable)
 	case errors.Is(err, factorio.ErrNotFound):
 		return connect.NewError(connect.CodeNotFound, err)
 	case errors.Is(err, factorio.ErrUnavailable):
@@ -154,8 +163,9 @@ func hangarPlatform(kind string, loaders []string) (string, error) {
 }
 
 func checkSource(source string) error {
-	if source != "" && source != sourceModrinth && source != sourceHangar && source != sourceUMod && source != sourceFactorio {
-		return invalid(errors.New("the source is modrinth, hangar, umod, or factorio"))
+	if source != "" && source != sourceModrinth && source != sourceHangar && source != sourceUMod && source != sourceFactorio &&
+		source != sourceFTB && source != sourceTechnic {
+		return invalid(errors.New("the source is modrinth, hangar, umod, factorio, ftb, or technic"))
 	}
 	return nil
 }
@@ -274,8 +284,25 @@ func (s *Addons) SearchAddons(ctx context.Context, req *panelv1.SearchAddonsRequ
 		query = query[:100]
 	}
 	offset := int(min(max(req.GetOffset(), 0), 10_000))
-	if req.GetKind() == kindModpacks && req.GetSource() != "" && req.GetSource() != sourceModrinth {
-		return nil, invalid(errors.New("modpacks come from Modrinth"))
+	if packSource(req.GetSource()) || (req.GetKind() == kindModpacks && req.GetSource() != "" && req.GetSource() != sourceModrinth) {
+		if req.GetKind() != kindModpacks || !packSource(req.GetSource()) {
+			return nil, invalid(errors.New("modpacks come from Modrinth, FTB, or Technic"))
+		}
+		packs, err := s.Modpacks.Search(ctx, req.GetSource(), query)
+		if err != nil {
+			return nil, modrinthError(err)
+		}
+		out := &panelv1.SearchAddonsResponse{Total: int32(len(packs))} //nolint:gosec // a page
+		if offset > 0 {
+			return out, nil // one page
+		}
+		for _, p := range packs {
+			out.Projects = append(out.Projects, &panelv1.AddonProject{
+				Id: p.ID, Slug: p.Slug, Title: p.Title, Description: p.Description, IconUrl: p.Icon,
+				Downloads: p.Installs, Url: p.URL, Source: req.GetSource(),
+			})
+		}
+		return out, nil
 	}
 	if req.GetKind() == "factorio" || req.GetSource() == sourceFactorio {
 		if req.GetKind() != "factorio" || req.GetSource() != sourceFactorio {
@@ -342,8 +369,32 @@ func (s *Addons) ListAddonVersions(ctx context.Context, req *panelv1.ListAddonVe
 	if err := checkSource(req.GetSource()); err != nil {
 		return nil, err
 	}
+	if packSource(req.GetSource()) {
+		if req.GetKind() != kindModpacks || len(req.GetProjectId()) > 100 {
+			return nil, invalid(errors.New("modpacks come from Modrinth, FTB, or Technic"))
+		}
+		vs, err := s.Modpacks.Versions(ctx, req.GetSource(), req.GetProjectId())
+		if err != nil {
+			return nil, modrinthError(err)
+		}
+		out := &panelv1.ListAddonVersionsResponse{}
+		for _, v := range vs {
+			if len(out.Versions) == 50 {
+				break
+			}
+			pv := &panelv1.AddonVersion{Id: v.ID, ProjectId: req.GetProjectId(), Name: v.Name, VersionNumber: v.Name}
+			if !v.When.IsZero() && v.When.Unix() > 0 {
+				pv.PublishedAt = timestamppb.New(v.When)
+			}
+			if !v.Stable {
+				pv.VersionNumber += " (not a release)"
+			}
+			out.Versions = append(out.Versions, pv)
+		}
+		return out, nil
+	}
 	if req.GetKind() == kindModpacks && req.GetSource() != "" && req.GetSource() != sourceModrinth {
-		return nil, invalid(errors.New("modpacks come from Modrinth"))
+		return nil, invalid(errors.New("modpacks come from Modrinth, FTB, or Technic"))
 	}
 	if req.GetSource() == sourceFactorio {
 		mod, err := s.Factorio.Get(ctx, req.GetProjectId())
@@ -690,3 +741,6 @@ func (s *Addons) LookupMinecraftPlayer(ctx context.Context, req *panelv1.LookupM
 	}
 	return &panelv1.LookupMinecraftPlayerResponse{Name: p.Name, Uuid: p.UUID}, nil
 }
+
+// packSource reports whether a source is one only the pack picker uses.
+func packSource(s string) bool { return s == sourceFTB || s == sourceTechnic }

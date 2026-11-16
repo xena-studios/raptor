@@ -404,6 +404,7 @@ function Settings({
               <Label>Modpack</Label>
               <ModpackButton
                 orgId={orgId}
+                source={egg.modpack.source}
                 current={values[egg.modpack.project]}
                 onPick={(p) => {
                   const m = egg.modpack;

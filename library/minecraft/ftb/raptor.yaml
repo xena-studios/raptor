@@ -9,6 +9,11 @@ certified: true
 arch: [amd64, arm64]
 players:
   query: minecraft
+# The app's pack picker fills these (#413).
+modpack:
+  source: ftb
+  project: FTB_MODPACK_ID
+  version: FTB_MODPACK_VERSION_ID
 test:
   tier: slow
   # FTB Unstable 1.20: Forge, one of FTB's smaller packs (about 300 MB).

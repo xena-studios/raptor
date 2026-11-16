@@ -11,6 +11,11 @@ arch: [amd64, arm64]
 # Classic, Hexxit) only the legacy one, so their player count is empty.
 players:
   query: minecraft
+# The app's pack picker fills these (#413).
+modpack:
+  source: technic
+  project: TECHNIC_PACK
+  version: TECHNIC_VERSION
 test:
   tier: slow
   # Tekkit 2: Forge 1.12.2, about 200 MB, on Java 8 (the egg's first
