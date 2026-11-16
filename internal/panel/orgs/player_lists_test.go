@@ -20,3 +20,16 @@ func TestPlayerLists(t *testing.T) {
 		t.Error("eggOf")
 	}
 }
+
+func TestResourceScan(t *testing.T) {
+	for egg, want := range map[string]bool{
+		`{"scan":{"rules":"fivem","dirs":["resources"]}}`: true,
+		`{"scan":{}}`:             false,
+		`{"players":"minecraft"}`: false,
+		``:                        false,
+	} {
+		if got := resourceScan([]byte(egg)); got != want {
+			t.Errorf("%s: %v", egg, got)
+		}
+	}
+}

@@ -44,6 +44,10 @@ func TestRules(t *testing.T) {
 			t.Errorf("permission %q", p)
 		}
 	}
+	// The backdoor scan only reads the server's files (#428).
+	if p, ok := For("files.scan"); !ok || p != FilesRead || !Read("files.scan") {
+		t.Errorf("files.scan: %q %v", p, ok)
+	}
 	// Any grant at all lets a member see a server's graphs; none doesn't,
 	// and view can't be granted.
 	if p, _ := For("server.metrics"); !Allows([]string{FilesRead}, p) || Allows(nil, p) || Valid(View) {

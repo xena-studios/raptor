@@ -6,12 +6,14 @@ import {
   type LucideIcon,
   PackageCheck,
   PackageX,
+  ShieldAlert,
   TriangleAlert,
   X,
 } from "lucide-react";
 import { type ReactNode, useMemo, useState } from "react";
 
 import { useInstalledAddons } from "@/components/addons-data";
+import { useLastScan } from "@/components/resource-scan";
 import { useEggVersions } from "@/components/server-egg-update";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { type Node, OrgService, type Server } from "@/gen/raptor/panel/v1/org_pb";
@@ -21,9 +23,11 @@ import {
   diskItem,
   eggItem,
   installItem,
+  scanItem,
   sortItems,
 } from "@/lib/attention";
 import { addonKinds } from "@/lib/eggs";
+import { counts } from "@/lib/fivem";
 import { formatBytes, type Metrics } from "@/lib/metrics";
 import { can } from "@/lib/org-data";
 import { gameVersion, type ServerConfig } from "@/lib/servers";
@@ -77,6 +81,12 @@ export function NeedsAttention({
   const eggSource =
     can(server, "*") && node?.capabilities.includes("change-egg") ? server.eggSource : "";
   const egg = useEggVersions(orgId, eggSource, eggSource ? cfg : undefined);
+  // The resource scan run on this page this session (#428), if any.
+  const scan = useLastScan(nodeId, serverId);
+  const findings =
+    server.resourceScan && can(server, "files.read") ? (scan.data?.findings ?? []) : [];
+  const worst = counts(findings).high ? "high" : "medium";
+  const flagged = new Set(findings.filter((f) => f.severity === worst).map((f) => f.file)).size;
   const items = sortItems(
     [
       installItem(server, can(server, "reinstall")),
@@ -87,6 +97,7 @@ export function NeedsAttention({
           can(server, "files.write"),
           formatBytes,
         ),
+      scanItem(counts(findings), flagged),
       egg &&
         eggItem({
           name: egg.egg.name,
@@ -157,6 +168,7 @@ const icons: Record<string, LucideIcon> = {
   egg: PackageCheck,
   missing: PackageX,
   updates: ArrowUpCircle,
+  scan: ShieldAlert,
 };
 
 const action = buttonVariants({ size: "sm", variant: "outline" });
@@ -181,6 +193,11 @@ function Row({ orgId, serverId, item }: { orgId: string; serverId: string; item:
         <Link to="/orgs/$orgId/servers/$serverId/settings" params={params} className={action}>
           {a.label}
         </Link>
+      )}
+      {a?.to === "scan" && (
+        <a href="#resource-scan" className={action}>
+          {a.label}
+        </a>
       )}
       {a?.to === "files" && (
         <Link to="/orgs/$orgId/servers/$serverId/files" params={params} className={action}>

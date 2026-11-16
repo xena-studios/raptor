@@ -19,3 +19,24 @@ func TestCheckWeb(t *testing.T) {
 		}
 	}
 }
+
+func TestCheckScan(t *testing.T) {
+	for _, s := range []*Scan{nil, {Rules: "fivem", Dirs: []string{"resources", "txData"}}, {Rules: "fivem", Dirs: []string{"a/b"}}} {
+		if err := CheckScan(s); err != nil {
+			t.Errorf("%+v: %v", s, err)
+		}
+	}
+	for name, s := range map[string]*Scan{
+		"unknown rules": {Rules: "minecraft", Dirs: []string{"plugins"}},
+		"no dirs":       {Rules: "fivem"},
+		"absolute":      {Rules: "fivem", Dirs: []string{"/etc"}},
+		"climbs":        {Rules: "fivem", Dirs: []string{"../x"}},
+		"the root":      {Rules: "fivem", Dirs: []string{"."}},
+		"unclean":       {Rules: "fivem", Dirs: []string{"a//b"}},
+		"empty":         {Rules: "fivem", Dirs: []string{""}},
+	} {
+		if err := CheckScan(s); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+}

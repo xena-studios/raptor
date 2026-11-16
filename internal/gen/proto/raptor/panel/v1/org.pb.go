@@ -2693,7 +2693,10 @@ type Server struct {
 	// It has Minecraft's player lists (#422): a Minecraft Java egg, not a
 	// proxy. For the Players tab, which members without the startup
 	// permission (who get no config) can have too.
-	PlayerLists   bool `protobuf:"varint,11,opt,name=player_lists,json=playerLists,proto3" json:"player_lists,omitempty"`
+	PlayerLists bool `protobuf:"varint,11,opt,name=player_lists,json=playerLists,proto3" json:"player_lists,omitempty"`
+	// Its scripts can be scanned for backdoors (#428): the egg has
+	// x-raptor.scan (FiveM). For members with files.read but no config.
+	ResourceScan  bool `protobuf:"varint,12,opt,name=resource_scan,json=resourceScan,proto3" json:"resource_scan,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2801,6 +2804,13 @@ func (x *Server) GetEggSource() string {
 func (x *Server) GetPlayerLists() bool {
 	if x != nil {
 		return x.PlayerLists
+	}
+	return false
+}
+
+func (x *Server) GetResourceScan() bool {
+	if x != nil {
+		return x.ResourceScan
 	}
 	return false
 }
@@ -6207,7 +6217,7 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\x12RemoveNodeResponse\"D\n" +
 	"\x12ListServersRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x17\n" +
-	"\anode_id\x18\x02 \x01(\tR\x06nodeId\"\xca\x02\n" +
+	"\anode_id\x18\x02 \x01(\tR\x06nodeId\"\xef\x02\n" +
 	"\x06Server\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -6221,7 +6231,8 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\n" +
 	"egg_source\x18\n" +
 	" \x01(\tR\teggSource\x12!\n" +
-	"\fplayer_lists\x18\v \x01(\bR\vplayerLists\"H\n" +
+	"\fplayer_lists\x18\v \x01(\bR\vplayerLists\x12#\n" +
+	"\rresource_scan\x18\f \x01(\bR\fresourceScan\"H\n" +
 	"\x13ListServersResponse\x121\n" +
 	"\aservers\x18\x01 \x03(\v2\x17.raptor.panel.v1.ServerR\aservers\"_\n" +
 	"\x10GetServerRequest\x12\x15\n" +

@@ -15,7 +15,7 @@ export const rank = {
 } as const;
 
 // Where an item's button goes, on this server.
-export type Target = "settings" | "files" | "addons";
+export type Target = "settings" | "files" | "addons" | "scan";
 
 export type AttentionItem = {
   // Stable for the thing it's about, so a dismissal sticks to it.
@@ -170,4 +170,23 @@ export function sortItems(items: AttentionItem[]): AttentionItem[] {
     .map((it, i) => [it, i] as const)
     .sort((a, b) => a[0].rank - b[0].rank || a[1] - b[1])
     .map(([it]) => it);
+}
+
+// scanItem is what the last resource scan found (#428), when it found
+// high- or medium-severity lines; the Resource scan card on the same page
+// lists them.
+export function scanItem(
+  c: { high: number; medium: number },
+  files: number,
+): AttentionItem | undefined {
+  if (c.high + c.medium === 0) return undefined;
+  const sev = c.high ? "high" : "medium";
+  const n = c[sev];
+  return {
+    id: "scan",
+    sig: `${c.high}:${c.medium}:${files}`,
+    rank: rank.security,
+    text: `The resource scan found ${n} ${sev}-severity ${n === 1 ? "line" : "lines"} in ${files} ${files === 1 ? "file" : "files"} that may be a backdoor.`,
+    action: { label: "Review", to: "scan" },
+  };
 }

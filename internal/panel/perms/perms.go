@@ -60,6 +60,9 @@ var actions = map[string]string{
 	"files.stat":     FilesRead,
 	"files.read":     FilesRead,
 	"files.download": FilesRead,
+	// Reads the egg's script folders on the node and reports suspicious
+	// lines (#428); it changes nothing.
+	"files.scan": FilesRead,
 
 	"files.write":         FilesWrite,
 	"addons.install":      FilesWrite, // a plugin or mod into the egg's folder (docs/EGGS.md#add-ons)
@@ -269,7 +272,7 @@ func Valid(p string) bool {
 // audit log.
 func Read(action string) bool {
 	switch action {
-	case "files.list", "addons.list", "files.stat", "files.trash", "files.read", "files.download", "files.upload.status", "keys.list",
+	case "files.list", "addons.list", "files.stat", "files.trash", "files.read", "files.download", "files.scan", "files.upload.status", "keys.list",
 		"backup.browse", "backup.read", "backup.activity", "server.metrics", "server.ports", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "node.networks", "node.db.instances", "node.db.usage", "db.list", "db.schema", "db.rows", "db.query.read", "db.query.cancel", "db.processes", "node.db.databases", "node.db.users", "node.db.processes", "db.transfer.status", "db.keys", "db.key", "db.redis.command.read", "db.collections", "db.documents", "support.list",
 		"backup.destinations", "backup.hostkey", "backup.policy", "backup.orphans":
 		return true

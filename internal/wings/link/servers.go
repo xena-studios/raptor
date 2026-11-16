@@ -109,6 +109,8 @@ type eggInfo struct {
 	Web *eggWeb `json:"web,omitempty"`
 	// Modpack names the variables that pick a modpack (#413).
 	Modpack *eggModpack `json:"modpack,omitempty"`
+	// Scan says the server's scripts can be scanned for backdoors (#428).
+	Scan *eggScan `json:"scan,omitempty"`
 	// Players is how the game answers player queries ("minecraft" for the
 	// Java edition), so the Panel knows which servers get an SRV record.
 	Players string `json:"players,omitempty"`
@@ -119,6 +121,11 @@ type eggModpack struct {
 	Project     string `json:"project"`
 	Version     string `json:"version"`
 	GameVersion string `json:"game_version,omitempty"`
+}
+
+type eggScan struct {
+	Rules string   `json:"rules"`
+	Dirs  []string `json:"dirs"`
 }
 
 type eggWeb struct {
@@ -176,6 +183,9 @@ func describeEgg(s *server.Server) *eggInfo {
 	}
 	if m := e.Raptor.Modpack; m != nil {
 		out.Modpack = &eggModpack{Source: m.Source, Project: m.Project, Version: m.Version, GameVersion: m.GameVersion}
+	}
+	if sc := e.Raptor.Scan; sc != nil {
+		out.Scan = &eggScan{Rules: sc.Rules, Dirs: sc.Dirs}
 	}
 	if w := e.Raptor.Workshop; w != nil {
 		apply := w.Apply
