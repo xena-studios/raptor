@@ -68,6 +68,12 @@ message CatalogEgg {
   bool icon_uploaded = 27;
   // Which variables pick a modpack, for the pack picker (#413).
   EggModpack modpack = 28;
+  // For Popular (#457), over the same servers as servers: each server
+  // counts 10, one running now 10 more, one made in the last 30 days 10
+  // more. Aggregate only.
+  int32 popularity = 29;
+  // Servers made from it in the last 30 days (for "Trending").
+  int32 servers_recent = 30;
 }
 
 // EggModpack is where a modpack egg takes its pack (x-raptor.modpack).

@@ -77,13 +77,19 @@ SELECT EXISTS (SELECT 1 FROM eggs WHERE org_id = $1 AND sha256 = $2);
 -- How many servers (on any node) were made from each egg, by the
 -- egg_source the web app sends: a library egg's ID (or "org:" and the ID,
 -- before the library), or a catalog ID (before the catalog was in it).
+-- With how many run now and how many were made in the last 30 days, for
+-- Popular (#457). Aggregate only: nothing per org.
 SELECT CASE WHEN egg_source LIKE 'org:%' THEN substr(egg_source, 5) ELSE egg_source END::text AS egg,
-    count(*)::int AS n
+    count(*)::int AS n,
+    count(*) FILTER (WHERE state = 'running')::int AS running,
+    count(*) FILTER (WHERE created_at > now() - interval '30 days')::int AS recent
 FROM m_servers WHERE egg_source <> '' GROUP BY 1;
 
 -- name: OrgEggServerCounts :many
 SELECT CASE WHEN s.egg_source LIKE 'org:%' THEN substr(s.egg_source, 5) ELSE s.egg_source END::text AS egg,
-    count(*)::int AS n
+    count(*)::int AS n,
+    count(*) FILTER (WHERE s.state = 'running')::int AS running,
+    count(*) FILTER (WHERE s.created_at > now() - interval '30 days')::int AS recent
 FROM m_servers s JOIN nodes n ON n.id = s.node_id
 WHERE n.org_id = $1 AND s.egg_source <> '' GROUP BY 1;
 

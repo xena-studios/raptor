@@ -11,6 +11,7 @@ import {
   type LucideIcon,
   Mic,
   Pickaxe,
+  TrendingUp,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -29,7 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { CatalogEgg } from "@/gen/raptor/panel/v1/catalog_pb";
-import { type EggSort, eggSorts, isEggSort, sortEggs } from "@/lib/egg-sort";
+import { type EggSort, eggSorts, isEggSort, type Rank, ranks, sortEggs } from "@/lib/egg-sort";
 import { categories, categoryName, originNames, statusNames, usage } from "@/lib/eggs";
 
 // The egg library's two places: an org's Eggs page, and the admin panel's
@@ -104,12 +105,21 @@ export function EggIcon({
 export function EggBadges({
   egg,
   showOfficial = true,
+  rank,
 }: {
   egg: CatalogEgg;
   showOfficial?: boolean;
+  // Among the most used in its category, or picked most lately (#457).
+  rank?: Rank;
 }) {
   return (
     <>
+      {rank === "popular" && <Badge>Popular</Badge>}
+      {rank === "trending" && (
+        <Badge variant="outline" className="gap-1">
+          <TrendingUp className="size-3" /> Trending
+        </Badge>
+      )}
       {egg.certified && (
         <Badge variant="secondary" className="gap-1">
           <BadgeCheck className="size-3" /> Certified
@@ -148,7 +158,10 @@ export function EggList({
   const [view, setView] = useState<ListView>("grid");
   const [category, setCategory] = useState("all");
   // The order, remembered in this browser; Popular to start (#457).
+  // A link's ?sort= wins, so a shared link keeps its order.
   const [sort, setSortState] = useState<EggSort>(() => {
+    const linked = new URLSearchParams(window.location.search).get("sort");
+    if (isEggSort(linked)) return linked;
     try {
       const saved = localStorage.getItem(sortKey);
       return isEggSort(saved) ? saved : "popular";
@@ -158,12 +171,17 @@ export function EggList({
   });
   const setSort = (s: EggSort) => {
     setSortState(s);
+    const url = new URL(window.location.href);
+    if (s === "popular") url.searchParams.delete("sort");
+    else url.searchParams.set("sort", s);
+    window.history.replaceState(window.history.state, "", url);
     try {
       localStorage.setItem(sortKey, s);
     } catch {
       // Private windows: Popular next time.
     }
   };
+  const rankOf = ranks(eggs.filter((e) => e.status === "published"));
   const present = categories.filter((c) => eggs.some((e) => e.category === c));
   const active = category === "all" || present.includes(category as never) ? category : "all";
   const q = query.trim().toLowerCase();
@@ -244,11 +262,11 @@ export function EggList({
             {view === "grid" ? (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {(group as CatalogEgg[]).map((e) => (
-                  <EggCard key={e.id} lib={lib} egg={e} />
+                  <EggCard key={e.id} lib={lib} egg={e} rank={rankOf.get(e.id)} />
                 ))}
               </div>
             ) : (
-              <EggTable lib={lib} eggs={group as CatalogEgg[]} />
+              <EggTable lib={lib} eggs={group as CatalogEgg[]} rankOf={rankOf} />
             )}
           </section>
         ),
@@ -257,7 +275,7 @@ export function EggList({
   );
 }
 
-export function EggCard({ lib, egg }: { lib: Library; egg: CatalogEgg }) {
+export function EggCard({ lib, egg, rank }: { lib: Library; egg: CatalogEgg; rank?: Rank }) {
   return (
     <Link
       {...lib.detail(egg.id)}
@@ -283,7 +301,7 @@ export function EggCard({ lib, egg }: { lib: Library; egg: CatalogEgg }) {
             {egg.summary || egg.description || "No description."}
           </p>
           <div className="mt-auto flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-            <EggBadges egg={egg} showOfficial={!!lib.orgId} />
+            <EggBadges egg={egg} showOfficial={!!lib.orgId} rank={rank} />
             {egg.removed && <Badge variant="destructive">Removed</Badge>}
             {egg.sharedAt && egg.scope === "org" && <Badge variant="outline">Shared</Badge>}
             <span className="ml-auto">
@@ -300,7 +318,15 @@ export function EggCard({ lib, egg }: { lib: Library; egg: CatalogEgg }) {
   );
 }
 
-function EggTable({ lib, eggs }: { lib: Library; eggs: CatalogEgg[] }) {
+function EggTable({
+  lib,
+  eggs,
+  rankOf,
+}: {
+  lib: Library;
+  eggs: CatalogEgg[];
+  rankOf?: Map<string, Rank>;
+}) {
   return (
     <Card className="py-0">
       <Table>
@@ -332,7 +358,7 @@ function EggTable({ lib, eggs }: { lib: Library; eggs: CatalogEgg[] }) {
               </TableCell>
               <TableCell className="hidden sm:table-cell">
                 <span className="flex flex-wrap gap-1.5">
-                  <EggBadges egg={e} showOfficial={!!lib.orgId} />
+                  <EggBadges egg={e} showOfficial={!!lib.orgId} rank={rankOf?.get(e.id)} />
                   {e.status === "published" && !e.certified && e.scope === "org" && (
                     <span className="text-sm text-muted-foreground">Published</span>
                   )}

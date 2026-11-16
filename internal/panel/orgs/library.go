@@ -155,21 +155,39 @@ func eggID(id string) (pgtype.UUID, bool) {
 
 // counts is how many servers were made from each egg: the org's, or
 // everyone's for the official library.
-func (s *Eggs) counts(ctx context.Context, l *lib) (map[string]int32, error) {
-	out := map[string]int32{}
+func (s *Eggs) counts(ctx context.Context, l *lib) (map[string]eggCount, error) {
+	out := map[string]eggCount{}
 	q := store.New(s.Orgs.DB)
 	if l.official {
 		rows, err := q.EggServerCounts(ctx)
 		for _, r := range rows {
-			out[r.Egg] = r.N
+			out[r.Egg] = eggCount{r.N, r.Running, r.Recent}
 		}
 		return out, err
 	}
 	rows, err := q.OrgEggServerCounts(ctx, l.org)
 	for _, r := range rows {
-		out[r.Egg] = r.N
+		out[r.Egg] = eggCount{r.N, r.Running, r.Recent}
 	}
 	return out, err
+}
+
+// eggCount is how many servers were made from an egg, run now, and were
+// made in the last 30 days.
+type eggCount struct{ made, running, recent int32 }
+
+func (c eggCount) add(o eggCount) eggCount {
+	return eggCount{c.made + o.made, c.running + o.running, c.recent + o.recent}
+}
+
+// popularity is Popular's score (#457): each server 10, running now 10
+// more, made in the last 30 days 10 more, so what people keep running and
+// what they pick now rank above what they tried once long ago.
+func (c eggCount) popularity() int32 { return 10 * (c.made + c.running + c.recent) }
+
+// withCounts sets an egg's counts.
+func withCounts(p *panelv1.CatalogEgg, c eggCount) {
+	p.Servers, p.Popularity, p.ServersRecent = c.made, c.popularity(), c.recent
 }
 
 // described caches what an egg file says (catalog.Proto), by SHA-256:
@@ -208,10 +226,10 @@ func describeEgg(l *lib, e store.Egg, createdBy string) (*panelv1.CatalogEgg, er
 
 // servers is how many servers were made from an egg: by its ID, or by its
 // catalog ID for servers made before the catalog was in the library.
-func servers(counts map[string]int32, e store.Egg) int32 {
+func servers(counts map[string]eggCount, e store.Egg) eggCount {
 	n := counts[idString(e.ID)]
 	if e.CatalogID.Valid {
-		n += counts[e.CatalogID.String]
+		n = n.add(counts[e.CatalogID.String])
 	}
 	return n
 }
@@ -250,7 +268,7 @@ func (s *Eggs) ListEggs(ctx context.Context, req *panelv1.EggServiceListEggsRequ
 		}
 		for _, r := range rows {
 			if p, err := describeEgg(l, r.egg, r.email.String); err == nil {
-				p.Servers = servers(counts, r.egg)
+				withCounts(p, servers(counts, r.egg))
 				out.Eggs = append(out.Eggs, p)
 			}
 		}
@@ -422,7 +440,7 @@ func (s *Eggs) GetEggDetails(ctx context.Context, req *panelv1.GetEggDetailsRequ
 		if err != nil {
 			return err
 		}
-		out.Egg.Servers = servers(counts, *row)
+		withCounts(out.Egg, servers(counts, *row))
 		versions, err := l.q.ListEggVersions(ctx, row.ID)
 		for _, v := range versions {
 			out.Versions = append(out.Versions, &panelv1.EggVersion{
@@ -838,7 +856,7 @@ func (s *Eggs) DeleteEgg(ctx context.Context, req *panelv1.DeleteEggRequest) (*p
 		if err != nil {
 			return err
 		}
-		if n := servers(counts, row); n > 0 {
+		if n := servers(counts, row).made; n > 0 {
 			return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("%s still use this egg; archive it instead", plural(int(n), "server")))
 		}
 		if _, err := l.q.DeleteEgg(ctx, row.ID); err != nil {

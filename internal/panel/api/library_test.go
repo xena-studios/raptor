@@ -251,8 +251,11 @@ func TestEggLibrary(t *testing.T) {
 	if _, err := alice.lib.DeleteEgg(ctx, &panelv1.DeleteEggRequest{OrgId: org, Id: id}); connect.CodeOf(err) != connect.CodeFailedPrecondition || !strings.Contains(err.Error(), "1 server") {
 		t.Errorf("deleting an egg in use: %v", err)
 	}
-	if d, _ := bob.lib.GetEggDetails(ctx, &panelv1.GetEggDetailsRequest{OrgId: org, Id: id}); d.GetEgg().GetServers() != 1 {
-		t.Errorf("servers: %v", d.GetEgg().GetServers())
+	exec(`INSERT INTO m_servers (node_id, server_id, name, version, created_at, updated_at, egg_source, state) VALUES ($1, 's2', 'old', 1, now() - interval '90 days', now(), $2, 'running')`, node, id)
+	// Popular (#457): s1 is new (10 + 10), s2 old but running (10 + 10).
+	if d, _ := bob.lib.GetEggDetails(ctx, &panelv1.GetEggDetailsRequest{OrgId: org, Id: id}); d.GetEgg().GetServers() != 2 ||
+		d.GetEgg().GetPopularity() != 40 || d.GetEgg().GetServersRecent() != 1 {
+		t.Errorf("servers: %v, popularity %v, recent %v", d.GetEgg().GetServers(), d.GetEgg().GetPopularity(), d.GetEgg().GetServersRecent())
 	}
 	if _, err := alice.lib.SetEggStatus(ctx, &panelv1.SetEggStatusRequest{OrgId: org, Id: id, Status: "archived"}); err != nil {
 		t.Fatal(err)

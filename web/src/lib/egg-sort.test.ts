@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { libraryId, popularity, sortEggs } from "./egg-sort.ts";
+import { libraryId, popularity, ranks, sortEggs } from "./egg-sort.ts";
 
 const egg = (name: string, o: Record<string, unknown> = {}) => ({
   name,
@@ -63,4 +63,51 @@ test("sorting the library", () => {
     sortEggs(fresh, "popular").map((e) => e.name),
     ["Ours", "Paper", "Rust", "Abiotic Factor", "Draft one"],
   );
+});
+
+test("the Panel's score, when it sends one", () => {
+  const url = "https://github.com/x/raptor/blob/main/library/minecraft/paper/egg-paper.json";
+  // Two running, recent servers (60) outrank five old, stopped ones (50).
+  assert.ok(
+    popularity({ servers: 2, popularity: 60, sourceUrl: "" }) >
+      popularity({ servers: 5, popularity: 50, sourceUrl: "" }),
+  );
+  // Older Panels: 10 a server, and the head start either way.
+  assert.equal(popularity({ servers: 2, sourceUrl: "" }), 20);
+  assert.ok(popularity({ servers: 0, popularity: 0, sourceUrl: url }) > 0);
+});
+
+test("Popular and Trending badges", () => {
+  const e = (
+    id: string,
+    category: string,
+    servers: number,
+    popularity: number,
+    recent: number,
+  ) => ({
+    id,
+    category,
+    servers,
+    popularity,
+    serversRecent: recent,
+  });
+  const r = ranks(
+    [
+      e("paper", "minecraft", 50, 900, 1),
+      e("fabric", "minecraft", 30, 600, 2),
+      e("purpur", "minecraft", 10, 250, 0),
+      e("folia", "minecraft", 5, 120, 0),
+      e("leaf", "minecraft", 4, 110, 4),
+      e("rust", "steam", 2, 60, 2),
+      e("valheim", "steam", 3, 40, 0),
+    ],
+    3,
+  );
+  assert.equal(r.get("paper"), "popular");
+  assert.equal(r.get("purpur"), "popular");
+  assert.equal(r.get("folia"), undefined);
+  assert.equal(r.get("leaf"), "trending");
+  // Fewer than 3 servers: no badge, however it ranks.
+  assert.equal(r.get("rust"), undefined);
+  assert.equal(r.get("valheim"), "popular");
 });

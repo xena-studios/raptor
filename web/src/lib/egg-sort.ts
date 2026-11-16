@@ -52,12 +52,42 @@ export function libraryId(e: Pick<CatalogEgg, "sourceUrl">): string {
   return /\/library\/([^/]+\/[^/]+)\//.exec(e.sourceUrl)?.[1] ?? "";
 }
 
-// popularity ranks an egg for "Popular": servers made from it (counted
-// ten times, so real use wins), plus a head start for the well-known
-// games, so a new Panel still opens on what people host.
-export function popularity(e: Pick<CatalogEgg, "servers" | "sourceUrl">): number {
+// popularity ranks an egg for "Popular": the Panel's score (servers made
+// from it, more for running ones and recent ones; 10 a server before it
+// sent one), plus a head start for the well-known games, so a new Panel
+// still opens on what people host.
+export function popularity(
+  e: Pick<CatalogEgg, "servers" | "sourceUrl"> & { popularity?: number },
+): number {
   const i = seed.indexOf(libraryId(e));
-  return e.servers * 10 + (i < 0 ? 0 : seed.length - i);
+  return (e.popularity || e.servers * 10) + (i < 0 ? 0 : seed.length - i);
+}
+
+// Badges (#457): the few most popular eggs of each category, by real use
+// (at least 3 servers), and those most picked lately that aren't already.
+export type Rank = "popular" | "trending";
+
+export function ranks(
+  list: (Pick<CatalogEgg, "id" | "category" | "servers"> & {
+    popularity?: number;
+    serversRecent?: number;
+  })[],
+  top = 3,
+): Map<string, Rank> {
+  const out = new Map<string, Rank>();
+  const cats = new Set(list.map((e) => e.category));
+  for (const c of cats) {
+    const inCat = list.filter((e) => e.category === c);
+    const used = inCat
+      .filter((e) => e.servers >= 3)
+      .sort((a, b) => (b.popularity || b.servers * 10) - (a.popularity || a.servers * 10));
+    for (const e of used.slice(0, top)) out.set(e.id, "popular");
+    const lately = inCat
+      .filter((e) => (e.serversRecent ?? 0) >= 3 && !out.has(e.id))
+      .sort((a, b) => (b.serversRecent ?? 0) - (a.serversRecent ?? 0));
+    for (const e of lately.slice(0, top)) out.set(e.id, "trending");
+  }
+  return out;
 }
 
 const status = { published: 0, draft: 1, archived: 2 } as Record<string, number>;
@@ -65,7 +95,7 @@ const status = { published: 0, draft: 1, archived: 2 } as Record<string, number>
 type Sortable = Pick<
   CatalogEgg,
   "name" | "scope" | "status" | "certified" | "servers" | "copies" | "sourceUrl"
-> & { updatedAt?: { seconds: bigint } };
+> & { updatedAt?: { seconds: bigint }; popularity?: number };
 
 // sortEggs orders the library: the org's own before Raptor's, published
 // before drafts and archived ones, then by the chosen order, then
