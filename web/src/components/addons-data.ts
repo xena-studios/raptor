@@ -3,6 +3,7 @@ import { useQuery as useTanQuery } from "@tanstack/react-query";
 
 import { useFilesApi } from "@/components/file-manager/data";
 import { AddonService } from "@/gen/raptor/panel/v1/addon_pb";
+import { addonNames } from "@/lib/addon-install";
 import { onCurseForge } from "@/lib/eggs";
 import { useServer } from "@/lib/org-data";
 
@@ -20,6 +21,8 @@ export type AddonListing = {
     sha1?: string;
     cf_fingerprint?: number;
     disabled?: boolean;
+    // Thunderstore's: the version Wings unpacked into this folder.
+    package?: string;
   }[];
 };
 
@@ -56,11 +59,9 @@ export function useInstalledAddons(
     files.flatMap((f) => (f.sha512 && f.sha256 ? [[f.sha512, f.sha256]] : [])),
   );
   // uMod has no lookup by hash: its plugins are named by file, and
-  // compared by SHA-1.
+  // compared by SHA-1. Thunderstore's packages are named by version.
   const byName = kind === "umod" || kind === "factorio";
-  const names = byName
-    ? Object.fromEntries(files.flatMap((f) => (f.sha512 ? [[f.sha512, f.name]] : [])))
-    : {};
+  const names = addonNames(kind, files);
   const sha1 = byName
     ? Object.fromEntries(files.flatMap((f) => (f.sha512 && f.sha1 ? [[f.sha512, f.sha1]] : [])))
     : {};

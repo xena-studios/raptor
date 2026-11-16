@@ -2,6 +2,7 @@
 title: Plugins, mods, and the Workshop
 description: Install Minecraft plugins, mods, and datapacks from Modrinth and Hangar, Steam Workshop items, and Counter-Strike 2's plugin frameworks, from the app.
 description: Install Minecraft plugins, mods, and datapacks from Modrinth and Hangar, Steam Workshop items, and Arma Reforger mods, from the app.
+description: Install Minecraft plugins, mods, and datapacks from Modrinth and Hangar, Valheim and V Rising mods from Thunderstore, and Steam Workshop items, from the app.
 sidebar:
   order: 6
 ---
@@ -50,6 +51,15 @@ Factorio servers get a **Mods** section for mods from the [Factorio mod portal](
 - Set **your factorio.com username and token** in Startup first (the token is on your factorio.com profile page): the portal only lets accounts that own Factorio download mods. Raptor's node adds them to each download itself.
 - **Install** brings the mods it needs with it (and offers the optional ones), and says when it can't run beside one you have. Each download is checked against the portal's hash.
 - **Installed** names mods by their file and offers updates for your Factorio version. Factorio turns on every mod in the folder; to turn one off without removing it, use the game's mod settings or `mods/mod-list.json`.
+
+## Valheim and V Rising mods (Thunderstore)
+
+Valheim and V Rising servers get a **Mods** section for BepInEx mods from [Thunderstore](https://thunderstore.io), most downloaded first. Set **Mod loader** to BepInEx in Startup and reinstall the server first (on Valheim, Valheim Plus works too): the reinstall installs BepInEx, which loads the mods.
+
+- **Install** brings the mods it needs with it, each at its newest version. BepInEx itself isn't listed: the server already has it. Mods marked **Client-only** only run on players' computers.
+- Thunderstore doesn't publish hashes, so the Panel downloads the mod first and hashes it; the machine then downloads the same file from Thunderstore and keeps it only if it matches.
+- Each mod is unpacked into its own folder in `BepInEx/plugins`. **Remove** moves that folder to the trash; an update replaces it, with the old one in the trash.
+- Mods' settings are in `BepInEx/config` in the file manager, made when the server first starts with the mod.
 
 ## Rust plugins (uMod)
 

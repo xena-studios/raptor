@@ -233,6 +233,10 @@ const (
 	// CapAddonsCurseForge: add-ons from CurseForge's CDN (checked by
 	// SHA-1), and listings with CurseForge's fingerprint.
 	CapAddonsCurseForge = "addons-curseforge"
+	// CapAddonsThunderstore: the thunderstore add-on kind (Thunderstore's
+	// CDN, checked by the SHA-256 the Panel took), whose zips are unpacked
+	// one folder each.
+	CapAddonsThunderstore = "addons-thunderstore"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
@@ -241,7 +245,7 @@ var nodeCapabilities = []string{
 	CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal, CapDatabaseDocuments, CapDatabaseAlerts,
 	CapDatabaseSettings, CapDatabaseQueryStream, CapDatabaseInstanceBrowser, CapDatabaseRedisExternal,
 	CapDatabaseUsage, CapDatabaseShared, CapDatabaseInstanceBackups, CapRaptorEggs, CapAddonsUMod, CapAddonsFactorio,
-	CapAddonsCurseForge,
+	CapAddonsCurseForge, CapAddonsThunderstore,
 }
 
 // NewHello starts a handshake for a node.

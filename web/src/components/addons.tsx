@@ -1,5 +1,5 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { useInfiniteQuery, useQuery } from "@connectrpc/connect-query";
+import { useInfiniteQuery, useMutation, useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpCircle,
@@ -39,6 +39,7 @@ import {
   type ResolvedAddon,
 } from "@/gen/raptor/panel/v1/addon_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
+import { fileOf, type InstallFile, modLoaderOff } from "@/lib/addon-install";
 import { addonKinds, addonSources, loaderName, sourceNames } from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { dateOnly } from "@/lib/format";
@@ -50,7 +51,8 @@ import { gameVersion, type ServerConfig } from "@/lib/servers";
 // the server's add-on folder, named from Modrinth by each file's SHA-512
 // (or Hangar by its SHA-256) with updates offered, and a search to add
 // more. Wings downloads from their CDNs only and keeps a file only if its
-// hash is the one asked for.
+// hash is the one asked for. Thunderstore lists no hashes, so the Panel
+// hashes its packages first (#410), and Wings unpacks each into a folder.
 
 type Listing = AddonListing;
 
@@ -119,6 +121,13 @@ export function AddonsPage({
           plugins here.
         </p>
       )}
+      {modLoaderOff(kind, cfg.variables) && (
+        <p className="mb-4 rounded-lg border px-3 py-2 text-sm">
+          This server runs the game without BepInEx, which loads these mods. Set{" "}
+          <strong>Mod loader</strong> to BepInEx in Startup and reinstall the server, then install
+          mods here.
+        </p>
+      )}
       <Addons
         orgId={orgId}
         nodeId={nodeId}
@@ -170,6 +179,22 @@ function Addons({
   const [needs, setNeeds] = useState<IdentifiedAddon>();
   const { confirm } = useConfirm();
   const refresh = () => client.invalidateQueries({ queryKey: key });
+  const hash = useMutation(AddonService.method.hashAddonFile);
+  // run installs a file; a Thunderstore one is hashed by the Panel first.
+  async function run(f: InstallFile & { replace?: string }) {
+    let file: InstallFile = f;
+    if (f.hashVersion) {
+      const res = await hash.mutateAsync({
+        orgId,
+        source: "thunderstore",
+        versionId: f.hashVersion,
+      });
+      if (!res.file) throw new Error("The Panel couldn't hash the download.");
+      file = fileOf(res.file);
+    }
+    const { hashVersion: _, ...rest } = file;
+    return api.run("addons.install", { kind, ...rest, replace: f.replace });
+  }
   type Row = Listing["files"][number];
   // Installed files with a newer version for this server's loaders and
   // game version.
@@ -181,15 +206,7 @@ function Addons({
   function update(f: Row, a: IdentifiedAddon) {
     const latest = a.latest?.file;
     if (!latest?.url) return Promise.resolve();
-    return api.run("addons.install", {
-      kind,
-      url: latest.url,
-      sha512: latest.sha512 || undefined,
-      sha256: latest.sha256 || undefined,
-      sha1: latest.sha1 || undefined,
-      filename: latest.filename,
-      replace: f.name,
-    });
+    return run({ ...fileOf(latest, a.project?.source, a.latest?.id), replace: f.name });
   }
 
   async function updateAll() {
@@ -251,7 +268,7 @@ function Addons({
     await act(
       `install:${files.at(-1)?.filename}`,
       async () => {
-        for (const f of files) await api.run("addons.install", { kind, ...f });
+        for (const f of files) await run(f);
       },
       `${done} Restart the server to load ${files.length === 1 ? "it" : "them"}.`,
     );
@@ -397,7 +414,8 @@ function Addons({
                         )}
                       </div>
                       <p className="truncate text-xs text-muted-foreground">
-                        {f.name} · {bytes(f.size)}
+                        {f.name}
+                        {f.size ? ` · ${bytes(f.size)}` : ""}
                       </p>
                     </div>
                     {canWrite && a?.version && missingFor(a).length > 0 && (
@@ -490,14 +508,6 @@ function Addons({
     </div>
   );
 }
-
-type InstallFile = {
-  url: string;
-  sha512?: string;
-  sha256?: string;
-  sha1?: string;
-  filename: string;
-};
 
 function Finder({
   orgId,
@@ -684,9 +694,9 @@ function InstallDialog({
   const [busy, setBusy] = useState(false);
   const list = versions.data?.versions ?? [];
   const v = list.find((x) => x.id === chosen) ?? list[0];
-  // What else it needs (Modrinth, Factorio, and CurseForge list
-  // dependencies; Hangar's aren't read).
-  const resolves = ["modrinth", "factorio", "curseforge"].includes(project.source);
+  // What else it needs (Modrinth, Factorio, CurseForge, and Thunderstore
+  // list dependencies; Hangar's aren't read).
+  const resolves = ["modrinth", "factorio", "curseforge", "thunderstore"].includes(project.source);
   const deps = useQuery(
     AddonService.method.resolveAddonDependencies,
     {
@@ -710,7 +720,9 @@ function InstallDialog({
         <DialogHeader>
           <DialogTitle>Install {project.title}</DialogTitle>
           <DialogDescription>
-            Wings downloads it from {from} and checks it's exactly the file {from} lists.
+            {project.source === "thunderstore"
+              ? "Thunderstore lists no hashes, so the Panel downloads it and hashes it, and Wings keeps only the same file from Thunderstore's CDN."
+              : `Wings downloads it from ${from} and checks it's exactly the file ${from} lists.`}
           </DialogDescription>
         </DialogHeader>
         {versions.error ? (
@@ -733,14 +745,16 @@ function InstallDialog({
             >
               {list.map((x) => (
                 <option key={x.id} value={x.id}>
-                  {x.versionNumber} · {x.gameVersions.slice(-3).join(", ")}
+                  {x.versionNumber}
+                  {x.gameVersions.length > 0 ? ` · ${x.gameVersions.slice(-3).join(", ")}` : ""}
                   {x.publishedAt ? ` · ${dateOnly(timestampDate(x.publishedAt))}` : ""}
                 </option>
               ))}
             </select>
             {v?.file && (
               <p className="text-xs text-muted-foreground">
-                {v.file.filename} · {bytes(Number(v.file.size))}
+                {v.file.filename}
+                {v.file.size ? ` · ${bytes(Number(v.file.size))}` : ""}
               </p>
             )}
             {v?.file?.manualUrl && (
@@ -785,7 +799,7 @@ function InstallDialog({
                   : (deps.data?.optional ?? []).filter((o) => optional.has(o.project?.id ?? ""));
                 const more = filesOf([...required, ...extra]);
                 await onInstall(
-                  [...more, fileOf(v.file)],
+                  [...more, fileOf(v.file, project.source, v.id)],
                   more.length === 0
                     ? `Installed ${v.file.filename}.`
                     : `Installed ${project.title} and ${more.length} more it uses.`,
@@ -804,24 +818,10 @@ function InstallDialog({
   );
 }
 
-function fileOf(f: {
-  url: string;
-  sha512: string;
-  sha256: string;
-  sha1: string;
-  filename: string;
-}): InstallFile {
-  return {
-    url: f.url,
-    sha512: f.sha512 || undefined,
-    sha256: f.sha256 || undefined,
-    sha1: f.sha1 || undefined,
-    filename: f.filename,
-  };
-}
-
 function filesOf(list: ResolvedAddon[]): InstallFile[] {
-  return list.flatMap((r) => (r.version?.file ? [fileOf(r.version.file)] : []));
+  return list.flatMap((r) =>
+    r.version?.file ? [fileOf(r.version.file, r.project?.source, r.version.id)] : [],
+  );
 }
 
 type Resolution = {
@@ -943,7 +943,7 @@ function NeedsDialog({
     loaders,
     gameVersion: version,
     installed,
-    source: ["factorio", "curseforge"].includes(addon.project?.source ?? "")
+    source: ["factorio", "curseforge", "thunderstore"].includes(addon.project?.source ?? "")
       ? (addon.project?.source ?? "")
       : "",
   });

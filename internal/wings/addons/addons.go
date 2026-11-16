@@ -1,6 +1,6 @@
 // Package addons installs plugins and mods into servers whose egg turns on
-// an add-on (docs/EGGS.md#add-ons). Files come only from Modrinth's and
-// Hangar's CDNs and uMod, over https, and are kept only if their hash is
+// an add-on (docs/EGGS.md#add-ons). Files come only from the sources' own
+// hosts (DefaultHosts), over https, and are kept only if their hash is
 // the one asked for (SHA-512 from Modrinth, SHA-256 from Hangar, SHA-1
 // from uMod, the only one it publishes), so the Panel
 // can't make a node fetch anything else, and a swapped file on the way is
@@ -59,10 +59,12 @@ const (
 	// CurseForge's CDN: its files list a SHA-1 (and an MD5).
 	CurseForgeHost  = "edge.forgecdn.net"
 	CurseForgeHost2 = "mediafilez.forgecdn.net"
+	// Thunderstore's CDN is ThunderstoreHost: it lists no hashes, so the
+	// Panel hashes its files (thunderstore.go).
 )
 
 // DefaultHosts are where files may come from.
-var DefaultHosts = []string{ModrinthHost, HangarHost, UModHost, FactorioHost, CurseForgeHost, CurseForgeHost2}
+var DefaultHosts = []string{ModrinthHost, HangarHost, UModHost, FactorioHost, CurseForgeHost, CurseForgeHost2, ThunderstoreHost}
 
 // ErrNoAccount is a download that needs an account the server hasn't set.
 var ErrNoAccount = errors.New("the mod portal needs your factorio.com username and token: set them in Startup first")
@@ -70,7 +72,7 @@ var ErrNoAccount = errors.New("the mod portal needs your factorio.com username a
 // Errors.
 var (
 	ErrNoAddon  = errors.New("this server's egg doesn't have that add-on")
-	ErrSource   = errors.New("add-ons are downloaded from Modrinth, Hangar, CurseForge, uMod, and Factorio's mod portal only")
+	ErrSource   = errors.New("add-ons are downloaded from Modrinth, Hangar, CurseForge, uMod, Factorio's mod portal, and Thunderstore only")
 	ErrHash     = errors.New("the download doesn't match the file its source lists; nothing was installed")
 	ErrName     = errors.New("that isn't an add-on file name")
 	ErrTooLarge = fmt.Errorf("add-on files are at most %d MiB", MaxFile>>20)
@@ -93,6 +95,8 @@ type Service struct {
 	// Hosts are the hosts files may come from (nil: DefaultHosts).
 	Hosts     []string
 	UserAgent string
+	// Unpack bounds Thunderstore's packages (zero: MaxEntries, MaxUnpacked).
+	Unpack Limits
 
 	hashes sync.Map // hashKey -> fileHashes
 }
@@ -120,6 +124,9 @@ type File struct {
 	Fingerprint uint32 `json:"cf_fingerprint,omitempty"`
 	// Disabled: renamed to .disabled, which the software skips.
 	Disabled bool `json:"disabled,omitempty"`
+	// Package is a Thunderstore package's version (Namespace-Name-1.2.3),
+	// from Wings' record in its folder; the hashes are its zip's.
+	Package string `json:"package,omitempty"`
 }
 
 // Listing is a server's files of one add-on kind.
@@ -193,6 +200,9 @@ func (s *Service) List(ctx context.Context, id, kind string) (Listing, error) {
 		return out, err
 	}
 	defer func() { _ = f.Close() }()
+	if kind == KindThunderstore {
+		return s.listPackages(f, a.Dir, out)
+	}
 	infos, err := f.List(a.Dir)
 	if errors.Is(err, fs.ErrNotExist) {
 		return out, nil
@@ -299,6 +309,11 @@ func (s *Service) Install(ctx context.Context, id, user string, p Install) (File
 	if err != nil || s.checkURL(u) != nil {
 		return File{}, ErrSource
 	}
+	// Only Thunderstore's packages are unpacked, and they come only from
+	// its CDN.
+	if (p.Kind == KindThunderstore) != strings.EqualFold(u.Hostname(), ThunderstoreHost) {
+		return File{}, ErrSource
+	}
 	want, err := wantHash(u.Hostname(), p)
 	if err != nil {
 		return File{}, err
@@ -307,6 +322,14 @@ func (s *Service) Install(ctx context.Context, id, user string, p Install) (File
 		if u, err = s.withAccount(ctx, id, a.Auth, u); err != nil {
 			return File{}, err
 		}
+	}
+	if p.Kind == KindThunderstore {
+		f, err := s.Files.Open(ctx, id, true)
+		if err != nil {
+			return File{}, err
+		}
+		defer func() { _ = f.Close() }()
+		return s.installPackage(ctx, f, id, user, a, p, func(tmp string) error { return s.download(ctx, f, tmp, u, want) })
 	}
 	if err := checkName(p.Kind, p.Filename); err != nil {
 		return File{}, err
@@ -374,10 +397,11 @@ type expected struct {
 // wantHash is the hash a file from a host must have: the one its source
 // lists. A file from Modrinth needs its SHA-512 and one from Hangar its
 // SHA-256, so the weaker hash is never enough for Modrinth's files.
+// Thunderstore's need the SHA-256 the Panel took of its download.
 func wantHash(host string, p Install) (expected, error) {
 	hexSum, size, newHash, name := p.Sha512, sha512.Size, sha512.New, "SHA-512"
 	switch {
-	case strings.EqualFold(host, HangarHost):
+	case strings.EqualFold(host, HangarHost), strings.EqualFold(host, ThunderstoreHost):
 		hexSum, size, newHash, name = p.Sha256, sha256.Size, sha256.New, "SHA-256"
 	case strings.EqualFold(host, UModHost), strings.EqualFold(host, FactorioHost),
 		strings.EqualFold(host, CurseForgeHost), strings.EqualFold(host, CurseForgeHost2):
