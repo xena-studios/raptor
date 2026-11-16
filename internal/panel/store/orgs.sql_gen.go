@@ -313,7 +313,8 @@ func (q *Queries) NodeServer(ctx context.Context, arg NodeServerParams) (NodeSer
 const nodeServers = `-- name: NodeServers :many
 SELECT s.server_id, s.name, s.state, s.egg_name, s.egg_source, s.install_state, s.install_error,
        coalesce(s.config->'allocations', '[]')::jsonb AS allocations,
-       coalesce(a.display_address, '')::text AS display_address
+       coalesce(a.display_address, '')::text AS display_address,
+       coalesce(s.config->'egg', '{}')::jsonb AS egg
 FROM m_servers s
 LEFT JOIN server_addresses a ON a.node_id = s.node_id AND a.server_id = s.server_id
 WHERE s.node_id = $1 ORDER BY s.name, s.server_id
@@ -329,6 +330,7 @@ type NodeServersRow struct {
 	InstallError   string
 	Allocations    []byte
 	DisplayAddress string
+	Egg            []byte
 }
 
 func (q *Queries) NodeServers(ctx context.Context, nodeID pgtype.UUID) ([]NodeServersRow, error) {
@@ -350,6 +352,7 @@ func (q *Queries) NodeServers(ctx context.Context, nodeID pgtype.UUID) ([]NodeSe
 			&i.InstallError,
 			&i.Allocations,
 			&i.DisplayAddress,
+			&i.Egg,
 		); err != nil {
 			return nil, err
 		}

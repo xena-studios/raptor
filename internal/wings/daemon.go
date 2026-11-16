@@ -831,6 +831,7 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	})
 	actions.RegisterFiles(r.commands, fsvc)
 	dbsvc.SetFiles(fsvc)
+	actions.RegisterPlayers(r.commands, mgr, fsvc)
 	actions.RegisterAddons(r.commands, &addons.Service{Files: fsvc, Servers: mgr, UserAgent: "raptor-wings/" + buildinfo.Version})
 	// Jobs start after reconcile, so interrupted installs resume against
 	// servers that are already loaded.

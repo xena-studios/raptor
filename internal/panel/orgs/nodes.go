@@ -118,7 +118,7 @@ func (s *Service) ListServers(ctx context.Context, req *panelv1.ListServersReque
 			out.Servers = append(out.Servers, &panelv1.Server{
 				Id: r.ServerID, Name: r.Name, State: r.State, EggName: r.EggName, EggSource: r.EggSource, Permissions: perms,
 				Ports: ports(r.Allocations), InstallState: r.InstallState, InstallError: r.InstallError,
-				DisplayAddress: r.DisplayAddress,
+				DisplayAddress: r.DisplayAddress, PlayerLists: playerLists(r.Egg),
 			})
 		}
 		return err
@@ -174,7 +174,7 @@ func (s *Service) GetServer(ctx context.Context, req *panelv1.GetServerRequest) 
 		out.Server = &panelv1.Server{
 			Id: r.ServerID, Name: r.Name, State: r.State, EggName: r.EggName, EggSource: r.EggSource, Permissions: perms,
 			Ports: ports(r.Allocations), InstallState: r.InstallState, InstallError: r.InstallError,
-			DisplayAddress: r.DisplayAddress,
+			DisplayAddress: r.DisplayAddress, PlayerLists: playerLists(eggOf(r.Config)),
 		}
 		if slices.Contains(perms, "*") || slices.Contains(perms, "startup") {
 			out.ConfigJson = string(r.Config)
@@ -472,4 +472,37 @@ func (s *Service) DenySupportRequest(ctx context.Context, req *panelv1.DenySuppo
 	}
 	_ = s.audit(ctx, nil, sess, org, "support.deny", idString(rid), nil, nil)
 	return &panelv1.DenySupportRequestResponse{}, nil
+}
+
+// eggOf is a server config's egg, as JSON.
+func eggOf(config []byte) []byte {
+	var c struct {
+		Egg json.RawMessage `json:"egg"`
+	}
+	if json.Unmarshal(config, &c) != nil {
+		return nil
+	}
+	return c.Egg
+}
+
+// playerLists reports whether a server's egg (its config's egg, as JSON)
+// has Minecraft's player lists: its player query is minecraft and it isn't
+// a proxy (whose first add-on loader is velocity, bungeecord, or
+// waterfall).
+func playerLists(egg []byte) bool {
+	var e struct {
+		Players string `json:"players"`
+		Addons  map[string]struct {
+			Loaders []string `json:"loaders"`
+		} `json:"addons"`
+	}
+	if json.Unmarshal(egg, &e) != nil || e.Players != "minecraft" {
+		return false
+	}
+	for _, a := range e.Addons {
+		if len(a.Loaders) > 0 && slices.Contains([]string{"velocity", "bungeecord", "waterfall"}, a.Loaders[0]) {
+			return false
+		}
+	}
+	return true
 }

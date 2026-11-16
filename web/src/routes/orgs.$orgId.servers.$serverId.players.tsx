@@ -16,6 +16,7 @@ export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/players")({
         nodeId={nodeId}
         serverId={serverId}
         running={server.state === "running" || server.state === "starting"}
+        canPlayers={can(server, "players")}
         canCommand={can(server, "console.write")}
         canWrite={can(server, "files.write")}
       />

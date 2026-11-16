@@ -22,6 +22,7 @@ const permissions: [string, string][] = [
   ["reinstall", "Reinstall"],
   ["databases.read", "See databases"],
   ["databases.write", "Change databases"],
+  ["players", "Manage players"],
 ];
 
 // Access: what each member may do on this server (admins and owners can

@@ -30,6 +30,24 @@ import { addonClient, commandClient } from "@/lib/transport";
 
 type ListKey = keyof typeof listFiles;
 
+// players.lists' answer: the list files, and the two settings they hang on.
+type PlayerLists = {
+  whitelist?: Player[];
+  ops?: Op[];
+  bans?: BanEntry[];
+  ip_bans?: IpBan[];
+  seen?: Seen[];
+  properties?: Record<string, string>;
+};
+
+type ManageParams = {
+  op: string;
+  name?: string;
+  uuid?: string;
+  ip?: string;
+  reason?: string;
+};
+
 // Players manages a Minecraft server's whitelist, operators, and bans
 // (#422). Running, it tells the game (console commands, as typing them
 // would); stopped, it edits the files the game reads at its next start,
@@ -39,6 +57,7 @@ export function Players({
   nodeId,
   serverId,
   running,
+  canPlayers,
   canCommand,
   canWrite,
 }: {
@@ -46,47 +65,76 @@ export function Players({
   nodeId: string;
   serverId: string;
   running: boolean;
-  // console.write (running), files.write (stopped).
+  // The players permission: Wings' players.* actions, running or not.
+  canPlayers: boolean;
+  // Without it: console.write (running), files.write (stopped).
   canCommand: boolean;
   canWrite: boolean;
 }) {
   const api = useFilesApi(nodeId, serverId);
   const client = useQueryClient();
+  const byFiles = !canPlayers;
   const files = {
-    whitelist: useTextFile(api, listFiles.whitelist),
-    ops: useTextFile(api, listFiles.ops),
-    bans: useTextFile(api, listFiles.bans),
-    ipBans: useTextFile(api, listFiles.ipBans),
-    seen: useTextFile(api, listFiles.seen),
-    props: useTextFile(api, "server.properties"),
+    whitelist: useTextFile(api, listFiles.whitelist, byFiles),
+    ops: useTextFile(api, listFiles.ops, byFiles),
+    bans: useTextFile(api, listFiles.bans, byFiles),
+    ipBans: useTextFile(api, listFiles.ipBans, byFiles),
+    seen: useTextFile(api, listFiles.seen, byFiles),
+    props: useTextFile(api, "server.properties", byFiles),
   };
-  const lists = {
-    whitelist: parseList<Player>(files.whitelist.data),
-    ops: parseList<Op>(files.ops.data),
-    bans: parseList<BanEntry>(files.bans.data),
-    ipBans: parseList<IpBan>(files.ipBans.data),
-    seen: parseList<Seen>(files.seen.data),
-  };
-  const offline = propertyValue(files.props.data ?? "", "online-mode") === "false";
-  const whitelistOn = propertyValue(files.props.data ?? "", "white-list") === "true";
-  const can = running ? canCommand : canWrite;
+  const playersKey = ["players.lists", nodeId, serverId];
+  const fromWings = useTanQuery({
+    enabled: canPlayers,
+    queryKey: playersKey,
+    queryFn: () => api.run<PlayerLists>("players.lists", {}),
+    refetchOnWindowFocus: false,
+  });
+  const w = fromWings.data;
+  const lists = w
+    ? {
+        whitelist: w.whitelist ?? [],
+        ops: w.ops ?? [],
+        bans: w.bans ?? [],
+        ipBans: w.ip_bans ?? [],
+        seen: w.seen ?? [],
+      }
+    : {
+        whitelist: parseList<Player>(files.whitelist.data),
+        ops: parseList<Op>(files.ops.data),
+        bans: parseList<BanEntry>(files.bans.data),
+        ipBans: parseList<IpBan>(files.ipBans.data),
+        seen: parseList<Seen>(files.seen.data),
+      };
+  const prop = (k: string) => (w ? w.properties?.[k] : propertyValue(files.props.data ?? "", k));
+  const offline = prop("online-mode") === "false";
+  const whitelistOn = prop("white-list") === "true";
+  const can = canPlayers || (running ? canCommand : canWrite);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
 
   const refresh = () =>
-    Promise.all(
-      Object.values(listFiles).map((p) =>
+    Promise.all([
+      client.invalidateQueries({ queryKey: playersKey }),
+      ...Object.values(listFiles).map((p) =>
         client.invalidateQueries({ queryKey: api.contentKey(p) }),
       ),
-    );
+    ]);
 
-  async function run(label: string, cmd: string, edit: () => Promise<void>) {
+  async function run(
+    label: string,
+    cmd: string,
+    edit: () => Promise<void>,
+    manage?: () => Promise<ManageParams>,
+  ) {
     setBusy(label);
     setError("");
     setNote("");
     try {
-      if (running) {
+      if (canPlayers && manage) {
+        await api.run("players.manage", await manage());
+        if (running) await new Promise((r) => setTimeout(r, 1500));
+      } else if (running) {
         await commandClient.execute({
           nodeId,
           action: "server.command",
@@ -112,6 +160,13 @@ export function Players({
     return { name: p.name, uuid: p.uuid };
   }
 
+  // who is a player for players.manage: a stopped server's files need the
+  // UUID, which the Panel looks up.
+  async function who(name: string): Promise<{ name: string; uuid?: string }> {
+    if (running) return { name };
+    return lookup(name);
+  }
+
   async function write(key: ListKey, text: string) {
     await api.run("files.write", {
       path: listFiles[key],
@@ -121,74 +176,109 @@ export function Players({
 
   const actions = {
     whitelist: (name: string) =>
-      run(`whitelist:${name}`, commands.whitelistAdd(name), async () =>
-        write("whitelist", withEntry(lists.whitelist, await lookup(name), "uuid")),
+      run(
+        `whitelist:${name}`,
+        commands.whitelistAdd(name),
+        async () => write("whitelist", withEntry(lists.whitelist, await lookup(name), "uuid")),
+        async () => ({ op: "whitelist.add", ...(await who(name)) }),
       ),
     unwhitelist: (name: string) =>
-      run(`unwhitelist:${name}`, commands.whitelistRemove(name), () =>
-        write("whitelist", without(lists.whitelist, "name", name)),
+      run(
+        `unwhitelist:${name}`,
+        commands.whitelistRemove(name),
+        () => write("whitelist", without(lists.whitelist, "name", name)),
+        async () => ({ op: "whitelist.remove", name }),
       ),
     op: (name: string) =>
-      run(`op:${name}`, commands.op(name), async () =>
-        write(
-          "ops",
-          withEntry(
-            lists.ops,
-            { ...(await lookup(name)), level: 4, bypassesPlayerLimit: false },
-            "uuid",
+      run(
+        `op:${name}`,
+        commands.op(name),
+        async () =>
+          write(
+            "ops",
+            withEntry(
+              lists.ops,
+              { ...(await lookup(name)), level: 4, bypassesPlayerLimit: false },
+              "uuid",
+            ),
           ),
-        ),
+        async () => ({ op: "op", ...(await who(name)) }),
       ),
     deop: (name: string) =>
-      run(`deop:${name}`, commands.deop(name), () =>
-        write("ops", without(lists.ops, "name", name)),
+      run(
+        `deop:${name}`,
+        commands.deop(name),
+        () => write("ops", without(lists.ops, "name", name)),
+        async () => ({ op: "deop", name }),
       ),
     ban: (name: string, reason: string) =>
-      run(`ban:${name}`, commands.ban(name, reason), async () =>
-        write(
-          "bans",
-          withEntry(
-            lists.bans,
-            {
-              ...(await lookup(name)),
-              created: mcDate(new Date()),
-              source: "Raptor",
-              expires: "forever",
-              reason: reasonText(reason) || "Banned by an operator.",
-            },
-            "uuid",
+      run(
+        `ban:${name}`,
+        commands.ban(name, reason),
+        async () =>
+          write(
+            "bans",
+            withEntry(
+              lists.bans,
+              {
+                ...(await lookup(name)),
+                created: mcDate(new Date()),
+                source: "Raptor",
+                expires: "forever",
+                reason: reasonText(reason) || "Banned by an operator.",
+              },
+              "uuid",
+            ),
           ),
-        ),
+        async () => ({ op: "ban", reason, ...(await who(name)) }),
       ),
     pardon: (name: string) =>
-      run(`pardon:${name}`, commands.pardon(name), () =>
-        write("bans", without(lists.bans, "name", name)),
+      run(
+        `pardon:${name}`,
+        commands.pardon(name),
+        () => write("bans", without(lists.bans, "name", name)),
+        async () => ({ op: "pardon", name }),
       ),
     banIp: (ip: string, reason: string) =>
-      run(`banip:${ip}`, commands.banIp(ip, reason), () =>
-        write(
-          "ipBans",
-          withEntry(
-            lists.ipBans,
-            {
-              ip,
-              created: mcDate(new Date()),
-              source: "Raptor",
-              expires: "forever",
-              reason: reasonText(reason) || "Banned by an operator.",
-            },
-            "ip",
+      run(
+        `banip:${ip}`,
+        commands.banIp(ip, reason),
+        () =>
+          write(
+            "ipBans",
+            withEntry(
+              lists.ipBans,
+              {
+                ip,
+                created: mcDate(new Date()),
+                source: "Raptor",
+                expires: "forever",
+                reason: reasonText(reason) || "Banned by an operator.",
+              },
+              "ip",
+            ),
           ),
-        ),
+        async () => ({ op: "ban-ip", ip, reason }),
       ),
     pardonIp: (ip: string) =>
-      run(`pardonip:${ip}`, commands.pardonIp(ip), () =>
-        write("ipBans", without(lists.ipBans, "ip", ip)),
+      run(
+        `pardonip:${ip}`,
+        commands.pardonIp(ip),
+        () => write("ipBans", without(lists.ipBans, "ip", ip)),
+        async () => ({ op: "pardon-ip", ip }),
       ),
-    kick: (name: string) => run(`kick:${name}`, commands.kick(name), async () => {}),
+    kick: (name: string) =>
+      run(
+        `kick:${name}`,
+        commands.kick(name),
+        async () => {},
+        async () => ({ op: "kick", name }),
+      ),
   };
 
-  const loading = Object.values(files).some((f) => f.isPending);
+  const loading = canPlayers ? fromWings.isPending : Object.values(files).some((f) => f.isPending);
+  if (fromWings.error)
+    return <p className="text-sm text-destructive">{message(fromWings.error)}</p>;
   if (loading) return <p className="text-sm text-muted-foreground">Loading players…</p>;
   const disabled = !can || !!busy;
 
@@ -387,8 +477,9 @@ export function Players({
 }
 
 // useTextFile is a server file's text; "" when it isn't there yet.
-function useTextFile(api: ReturnType<typeof useFilesApi>, path: string) {
+function useTextFile(api: ReturnType<typeof useFilesApi>, path: string, enabled: boolean) {
   return useTanQuery({
+    enabled,
     queryKey: api.contentKey(path),
     queryFn: async () => {
       try {

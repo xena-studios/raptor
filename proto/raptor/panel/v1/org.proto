@@ -558,6 +558,10 @@ message Server {
   // The library egg it was made from (its ID, or a catalog ID like
   // "minecraft/paper"); empty when it doesn't say (made outside the app).
   string egg_source = 10;
+  // It has Minecraft's player lists (#422): a Minecraft Java egg, not a
+  // proxy. For the Players tab, which members without the startup
+  // permission (who get no config) can have too.
+  bool player_lists = 11;
 }
 
 message ListServersResponse {
