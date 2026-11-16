@@ -639,8 +639,15 @@ export function describeDevice(ua: string): string {
   return browser || os || ua.slice(0, 60);
 }
 
-function DeviceIcon({ ua }: { ua: string }) {
-  const Icon = /iPhone|Android.*Mobile/.test(ua) ? Smartphone : Monitor;
+// describeSession is a device in the list: Raptor's phone app by the name
+// it gave, a browser by its user agent.
+function describeSession(s: { client: string; deviceName: string; userAgent: string }): string {
+  if (s.client) return `Raptor's app on ${s.deviceName || "a phone"}`;
+  return describeDevice(s.userAgent);
+}
+
+function DeviceIcon({ ua, app }: { ua: string; app?: boolean }) {
+  const Icon = app || /iPhone|Android.*Mobile/.test(ua) ? Smartphone : Monitor;
   return <Icon className="size-4" />;
 }
 
@@ -741,11 +748,11 @@ export function Devices() {
             >
               <div className="flex min-w-0 items-center gap-3">
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border text-muted-foreground">
-                  <DeviceIcon ua={s.userAgent} />
+                  <DeviceIcon ua={s.userAgent} app={!!s.client} />
                 </span>
                 <div className="min-w-0">
                   <p className="flex items-center gap-2 text-sm font-medium">
-                    {describeDevice(s.userAgent)}
+                    {describeSession(s)}
                     {s.current && <Badge variant="secondary">This device</Badge>}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
@@ -758,9 +765,7 @@ export function Devices() {
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() =>
-                  s.current ? signOutHere() : signOut(s.id, describeDevice(s.userAgent))
-                }
+                onClick={() => (s.current ? signOutHere() : signOut(s.id, describeSession(s)))}
               >
                 Sign out
               </Button>
@@ -830,6 +835,13 @@ function describeEvent(action: string, meta: Meta): { text: string; icon: Lucide
   const provider = providerNames[str(meta.provider)] ?? str(meta.provider);
   switch (action) {
     case "signin":
+      if (str(meta.method) === "app") {
+        const device = str(meta.device);
+        return {
+          text: device ? `Signed in to Raptor's app on ${device}` : "Signed in to Raptor's app",
+          icon: Smartphone,
+        };
+      }
       return { text: `Signed in${via}`, icon: LogIn };
     case "signin.first_factor":
       return { text: `Started signing in${via}`, icon: LogIn };
@@ -842,6 +854,11 @@ function describeEvent(action: string, meta: Meta): { text: string; icon: Lucide
     case "session.signout":
       return { text: "Signed out", icon: LogOut };
     case "session.revoke":
+      if (str(meta.reason) === "refresh_reused")
+        return {
+          text: "Raptor's app was signed out: its sign-in was used from two places",
+          icon: ShieldAlert,
+        };
       return { text: "Signed a device out", icon: LogOut };
     case "passkey.add":
       return { text: name ? `Added the passkey "${name}"` : "Added a passkey", icon: KeyRound };

@@ -152,6 +152,9 @@ func Handler(cfg Config) http.Handler {
 		// Outside /api: browsers arrive here from the provider's site, by
 		// navigation, without an Origin to check.
 		mux.Handle("GET /oauth/{provider}/callback", cfg.Auth.OAuthCallback())
+		// The phone app's token endpoint: not a browser's, so not behind
+		// browserGuard; it refuses requests that have an Origin.
+		mux.Handle("POST "+auth.AppTokenPath, cfg.Auth.AppToken())
 	}
 	if cfg.Commands != nil {
 		path, handler := panelv1connect.NewCommandServiceHandler(cfg.Commands, opts(connect.WithReadMaxBytes(7<<20))...)

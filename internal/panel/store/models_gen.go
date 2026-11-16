@@ -99,6 +99,17 @@ type Announcement struct {
 	UpdatedAt pgtype.Timestamptz
 }
 
+type AppCode struct {
+	CodeHash    []byte
+	UserID      pgtype.UUID
+	Client      string
+	RedirectUri string
+	Challenge   string
+	DeviceName  string
+	ExpiresAt   pgtype.Timestamptz
+	CreatedAt   pgtype.Timestamptz
+}
+
 type AuditLog struct {
 	ID        pgtype.UUID
 	OrgID     pgtype.UUID
@@ -569,17 +580,22 @@ type ServerGrant struct {
 }
 
 type Session struct {
-	ID         pgtype.UUID
-	UserID     pgtype.UUID
-	TokenHash  []byte
-	CreatedAt  pgtype.Timestamptz
-	LastSeenAt pgtype.Timestamptz
-	ExpiresAt  pgtype.Timestamptz
-	ReauthAt   pgtype.Timestamptz
-	Ip         *netip.Addr
-	UserAgent  string
-	RevokedAt  pgtype.Timestamptz
-	PasskeyAt  pgtype.Timestamptz
+	ID                  pgtype.UUID
+	UserID              pgtype.UUID
+	TokenHash           []byte
+	CreatedAt           pgtype.Timestamptz
+	LastSeenAt          pgtype.Timestamptz
+	ExpiresAt           pgtype.Timestamptz
+	ReauthAt            pgtype.Timestamptz
+	Ip                  *netip.Addr
+	UserAgent           string
+	RevokedAt           pgtype.Timestamptz
+	PasskeyAt           pgtype.Timestamptz
+	Client              string
+	DeviceName          string
+	AccessExpiresAt     pgtype.Timestamptz
+	RefreshHash         []byte
+	PreviousRefreshHash []byte
 }
 
 type SftpPassword struct {

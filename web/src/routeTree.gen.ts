@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AuthorizeRouteImport } from './routes/authorize'
 import { Route as InviteRouteImport } from './routes/invite'
 import { Route as PopoutRouteImport } from './routes/popout'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -105,6 +106,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthorizeRoute = AuthorizeRouteImport.update({
+  id: '/authorize',
+  path: '/authorize',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InviteRoute = InviteRouteImport.update({
@@ -579,6 +585,7 @@ const OrgsOrgIdServersServerIdDatabasesDatabaseIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/authorize': typeof AuthorizeRoute
   '/invite': typeof InviteRoute
   '/popout': typeof PopoutRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
@@ -667,6 +674,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/authorize': typeof AuthorizeRoute
   '/invite': typeof InviteRoute
   '/popout': typeof PopoutRouteWithChildren
   '/admin/announcements': typeof AdminAnnouncementsRoute
@@ -751,6 +759,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/authorize': typeof AuthorizeRoute
   '/invite': typeof InviteRoute
   '/popout': typeof PopoutRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
@@ -842,6 +851,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/authorize'
     | '/invite'
     | '/popout'
     | '/settings'
@@ -930,6 +940,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/authorize'
     | '/invite'
     | '/popout'
     | '/admin/announcements'
@@ -1013,6 +1024,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/authorize'
     | '/invite'
     | '/popout'
     | '/settings'
@@ -1103,6 +1115,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  AuthorizeRoute: typeof AuthorizeRoute
   InviteRoute: typeof InviteRoute
   PopoutRoute: typeof PopoutRouteWithChildren
   SettingsRoute: typeof SettingsRouteWithChildren
@@ -1126,6 +1139,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/authorize': {
+      id: '/authorize'
+      path: '/authorize'
+      fullPath: '/authorize'
+      preLoaderRoute: typeof AuthorizeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invite': {
@@ -2026,6 +2046,7 @@ const OrgsOrgIdRouteWithChildren = OrgsOrgIdRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  AuthorizeRoute: AuthorizeRoute,
   InviteRoute: InviteRoute,
   PopoutRoute: PopoutRouteWithChildren,
   SettingsRoute: SettingsRouteWithChildren,

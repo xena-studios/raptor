@@ -67,7 +67,7 @@ func (s *Service) allow(ctx context.Context, key string, l Limit) (bool, error) 
 // and pictures nothing uses any more.
 func (s *Service) Prune(ctx context.Context) error {
 	q := s.q()
-	for _, f := range []func(context.Context) error{q.PruneRateEvents, q.PruneEmailCodes, q.PruneCeremonies, q.PruneSessions, q.PrunePending, q.PruneTOTPSetups, q.PruneOAuthFlows, q.PruneAuditLog, q.PruneSFTPPasswords, q.PruneImages} {
+	for _, f := range []func(context.Context) error{q.PruneRateEvents, q.PruneEmailCodes, q.PruneCeremonies, q.PruneSessions, q.PrunePending, q.PruneTOTPSetups, q.PruneOAuthFlows, q.PruneAppCodes, q.PruneAuditLog, q.PruneSFTPPasswords, q.PruneImages} {
 		if err := f(ctx); err != nil {
 			return err
 		}

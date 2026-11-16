@@ -21,6 +21,62 @@ func (q *Queries) AddRateEvent(ctx context.Context, key string) error {
 	return err
 }
 
+const appSessionByPreviousRefresh = `-- name: AppSessionByPreviousRefresh :one
+SELECT id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at, passkey_at, client, device_name, access_expires_at, refresh_hash, previous_refresh_hash FROM sessions WHERE previous_refresh_hash = $1 AND client <> '' FOR UPDATE
+`
+
+func (q *Queries) AppSessionByPreviousRefresh(ctx context.Context, previousRefreshHash []byte) (Session, error) {
+	row := q.db.QueryRow(ctx, appSessionByPreviousRefresh, previousRefreshHash)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.TokenHash,
+		&i.CreatedAt,
+		&i.LastSeenAt,
+		&i.ExpiresAt,
+		&i.ReauthAt,
+		&i.Ip,
+		&i.UserAgent,
+		&i.RevokedAt,
+		&i.PasskeyAt,
+		&i.Client,
+		&i.DeviceName,
+		&i.AccessExpiresAt,
+		&i.RefreshHash,
+		&i.PreviousRefreshHash,
+	)
+	return i, err
+}
+
+const appSessionByRefresh = `-- name: AppSessionByRefresh :one
+SELECT id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at, passkey_at, client, device_name, access_expires_at, refresh_hash, previous_refresh_hash FROM sessions WHERE refresh_hash = $1 AND client <> '' FOR UPDATE
+`
+
+func (q *Queries) AppSessionByRefresh(ctx context.Context, refreshHash []byte) (Session, error) {
+	row := q.db.QueryRow(ctx, appSessionByRefresh, refreshHash)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.TokenHash,
+		&i.CreatedAt,
+		&i.LastSeenAt,
+		&i.ExpiresAt,
+		&i.ReauthAt,
+		&i.Ip,
+		&i.UserAgent,
+		&i.RevokedAt,
+		&i.PasskeyAt,
+		&i.Client,
+		&i.DeviceName,
+		&i.AccessExpiresAt,
+		&i.RefreshHash,
+		&i.PreviousRefreshHash,
+	)
+	return i, err
+}
+
 const copyUserAvatar = `-- name: CopyUserAvatar :execrows
 UPDATE users SET avatar = $2, avatar_source = $3 WHERE id = $1 AND avatar_source = ''
 `
@@ -65,6 +121,86 @@ func (q *Queries) CountRateEvents(ctx context.Context, arg CountRateEventsParams
 	return count, err
 }
 
+const createAppCode = `-- name: CreateAppCode :exec
+INSERT INTO app_codes (code_hash, user_id, client, redirect_uri, challenge, device_name, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+`
+
+type CreateAppCodeParams struct {
+	CodeHash    []byte
+	UserID      pgtype.UUID
+	Client      string
+	RedirectUri string
+	Challenge   string
+	DeviceName  string
+	ExpiresAt   pgtype.Timestamptz
+}
+
+func (q *Queries) CreateAppCode(ctx context.Context, arg CreateAppCodeParams) error {
+	_, err := q.db.Exec(ctx, createAppCode,
+		arg.CodeHash,
+		arg.UserID,
+		arg.Client,
+		arg.RedirectUri,
+		arg.Challenge,
+		arg.DeviceName,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
+const createAppSession = `-- name: CreateAppSession :one
+INSERT INTO sessions (user_id, token_hash, expires_at, ip, user_agent, client, device_name, access_expires_at, refresh_hash)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+RETURNING id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at, passkey_at, client, device_name, access_expires_at, refresh_hash, previous_refresh_hash
+`
+
+type CreateAppSessionParams struct {
+	UserID          pgtype.UUID
+	TokenHash       []byte
+	ExpiresAt       pgtype.Timestamptz
+	Ip              *netip.Addr
+	UserAgent       string
+	Client          string
+	DeviceName      string
+	AccessExpiresAt pgtype.Timestamptz
+	RefreshHash     []byte
+}
+
+func (q *Queries) CreateAppSession(ctx context.Context, arg CreateAppSessionParams) (Session, error) {
+	row := q.db.QueryRow(ctx, createAppSession,
+		arg.UserID,
+		arg.TokenHash,
+		arg.ExpiresAt,
+		arg.Ip,
+		arg.UserAgent,
+		arg.Client,
+		arg.DeviceName,
+		arg.AccessExpiresAt,
+		arg.RefreshHash,
+	)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.TokenHash,
+		&i.CreatedAt,
+		&i.LastSeenAt,
+		&i.ExpiresAt,
+		&i.ReauthAt,
+		&i.Ip,
+		&i.UserAgent,
+		&i.RevokedAt,
+		&i.PasskeyAt,
+		&i.Client,
+		&i.DeviceName,
+		&i.AccessExpiresAt,
+		&i.RefreshHash,
+		&i.PreviousRefreshHash,
+	)
+	return i, err
+}
+
 const createEmailCode = `-- name: CreateEmailCode :exec
 INSERT INTO email_codes (email, code_hash, link_token_hash, expires_at, purpose) VALUES ($1, $2, $3, $4, $5)
 `
@@ -91,7 +227,7 @@ func (q *Queries) CreateEmailCode(ctx context.Context, arg CreateEmailCodeParams
 const createSession = `-- name: CreateSession :one
 INSERT INTO sessions (user_id, token_hash, expires_at, ip, user_agent, reauth_at)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at, passkey_at
+RETURNING id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at, passkey_at, client, device_name, access_expires_at, refresh_hash, previous_refresh_hash
 `
 
 type CreateSessionParams struct {
@@ -125,6 +261,11 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		&i.UserAgent,
 		&i.RevokedAt,
 		&i.PasskeyAt,
+		&i.Client,
+		&i.DeviceName,
+		&i.AccessExpiresAt,
+		&i.RefreshHash,
+		&i.PreviousRefreshHash,
 	)
 	return i, err
 }
@@ -198,7 +339,7 @@ func (q *Queries) EmailCodeByLink(ctx context.Context, linkTokenHash []byte) (Em
 }
 
 const getSession = `-- name: GetSession :one
-SELECT id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at, passkey_at FROM sessions WHERE id = $1
+SELECT id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at, passkey_at, client, device_name, access_expires_at, refresh_hash, previous_refresh_hash FROM sessions WHERE id = $1
 `
 
 func (q *Queries) GetSession(ctx context.Context, id pgtype.UUID) (Session, error) {
@@ -216,6 +357,11 @@ func (q *Queries) GetSession(ctx context.Context, id pgtype.UUID) (Session, erro
 		&i.UserAgent,
 		&i.RevokedAt,
 		&i.PasskeyAt,
+		&i.Client,
+		&i.DeviceName,
+		&i.AccessExpiresAt,
+		&i.RefreshHash,
+		&i.PreviousRefreshHash,
 	)
 	return i, err
 }
@@ -304,7 +450,7 @@ func (q *Queries) LatestEmailCode(ctx context.Context, arg LatestEmailCodeParams
 }
 
 const listUserSessions = `-- name: ListUserSessions :many
-SELECT id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at, passkey_at FROM sessions
+SELECT id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at, passkey_at, client, device_name, access_expires_at, refresh_hash, previous_refresh_hash FROM sessions
 WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > now()
 ORDER BY last_seen_at DESC
 `
@@ -330,6 +476,11 @@ func (q *Queries) ListUserSessions(ctx context.Context, userID pgtype.UUID) ([]S
 			&i.UserAgent,
 			&i.RevokedAt,
 			&i.PasskeyAt,
+			&i.Client,
+			&i.DeviceName,
+			&i.AccessExpiresAt,
+			&i.RefreshHash,
+			&i.PreviousRefreshHash,
 		); err != nil {
 			return nil, err
 		}
@@ -339,6 +490,15 @@ func (q *Queries) ListUserSessions(ctx context.Context, userID pgtype.UUID) ([]S
 		return nil, err
 	}
 	return items, nil
+}
+
+const pruneAppCodes = `-- name: PruneAppCodes :exec
+DELETE FROM app_codes WHERE expires_at < now()
+`
+
+func (q *Queries) PruneAppCodes(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, pruneAppCodes)
+	return err
 }
 
 const pruneEmailCodes = `-- name: PruneEmailCodes :exec
@@ -405,8 +565,43 @@ func (q *Queries) RevokeSessionByToken(ctx context.Context, tokenHash []byte) er
 	return err
 }
 
+const rotateAppSession = `-- name: RotateAppSession :exec
+UPDATE sessions SET token_hash = $2, access_expires_at = $3, refresh_hash = $4, previous_refresh_hash = $5,
+    expires_at = $6, last_seen_at = $9, ip = $7, user_agent = $8
+WHERE id = $1
+`
+
+type RotateAppSessionParams struct {
+	ID                  pgtype.UUID
+	TokenHash           []byte
+	AccessExpiresAt     pgtype.Timestamptz
+	RefreshHash         []byte
+	PreviousRefreshHash []byte
+	ExpiresAt           pgtype.Timestamptz
+	Ip                  *netip.Addr
+	UserAgent           string
+	LastSeenAt          pgtype.Timestamptz
+}
+
+// New tokens for an app session; the refresh token just used is kept to
+// notice it being used again.
+func (q *Queries) RotateAppSession(ctx context.Context, arg RotateAppSessionParams) error {
+	_, err := q.db.Exec(ctx, rotateAppSession,
+		arg.ID,
+		arg.TokenHash,
+		arg.AccessExpiresAt,
+		arg.RefreshHash,
+		arg.PreviousRefreshHash,
+		arg.ExpiresAt,
+		arg.Ip,
+		arg.UserAgent,
+		arg.LastSeenAt,
+	)
+	return err
+}
+
 const sessionByToken = `-- name: SessionByToken :one
-SELECT id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at, passkey_at FROM sessions WHERE token_hash = $1
+SELECT id, user_id, token_hash, created_at, last_seen_at, expires_at, reauth_at, ip, user_agent, revoked_at, passkey_at, client, device_name, access_expires_at, refresh_hash, previous_refresh_hash FROM sessions WHERE token_hash = $1
 `
 
 func (q *Queries) SessionByToken(ctx context.Context, tokenHash []byte) (Session, error) {
@@ -424,6 +619,11 @@ func (q *Queries) SessionByToken(ctx context.Context, tokenHash []byte) (Session
 		&i.UserAgent,
 		&i.RevokedAt,
 		&i.PasskeyAt,
+		&i.Client,
+		&i.DeviceName,
+		&i.AccessExpiresAt,
+		&i.RefreshHash,
+		&i.PreviousRefreshHash,
 	)
 	return i, err
 }
@@ -599,6 +799,27 @@ func (q *Queries) SetUserThemeStyle(ctx context.Context, arg SetUserThemeStylePa
 		&i.ThemeStyle,
 		&i.Avatar,
 		&i.AvatarSource,
+	)
+	return i, err
+}
+
+const takeAppCode = `-- name: TakeAppCode :one
+DELETE FROM app_codes WHERE code_hash = $1 RETURNING code_hash, user_id, client, redirect_uri, challenge, device_name, expires_at, created_at
+`
+
+// A code works once, even if the exchange then fails.
+func (q *Queries) TakeAppCode(ctx context.Context, codeHash []byte) (AppCode, error) {
+	row := q.db.QueryRow(ctx, takeAppCode, codeHash)
+	var i AppCode
+	err := row.Scan(
+		&i.CodeHash,
+		&i.UserID,
+		&i.Client,
+		&i.RedirectUri,
+		&i.Challenge,
+		&i.DeviceName,
+		&i.ExpiresAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }
