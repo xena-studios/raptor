@@ -1,0 +1,228 @@
+---
+import Logo from "../components/Logo.astro";
+import "../styles/site.css";
+
+// The privacy policy for Raptor: the Panel, the web app, the phone app,
+// and this site. Plain words, and only what's true of the code: when what
+// the Panel keeps or who processes it changes, change this page too
+// (docs/PANEL.md, docs/DEPLOY.md).
+const updated = "November 16, 2026";
+const title = "Privacy policy: Raptor";
+const description = "What Raptor collects when you use it, why, who else handles it, how long it's kept, and how to have it deleted.";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href="https://raptorpanel.net/privacy" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#1a1314" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f8f5f5" media="(prefers-color-scheme: light)" />
+  </head>
+  <body>
+    <a class="skip button small" href="#main">Skip to content</a>
+    <header class="wrap top">
+      <a class="brand" href="/" aria-label="Raptor, home"><Logo /></a>
+    </header>
+
+    <main id="main" class="wrap legal">
+      <h1>Privacy policy</h1>
+      <p class="meta">Last updated {updated}</p>
+
+      <p>
+        Raptor runs game servers on machines you own, managed from our Panel at app.raptorpanel.net and from
+        Raptor's phone app. This page says what we collect to do that, why, who else handles it, and how long
+        we keep it. "We" is Xena Studios, which makes Raptor.
+      </p>
+      <p>
+        The short version: we collect what it takes to run your account and your servers, we don't sell it, we
+        don't show ads, and we don't track you across other apps or websites.
+      </p>
+
+      <h2>What we collect</h2>
+      <dl>
+        <dt>Your account</dt>
+        <dd>
+          Your email address, the name you give, and your settings. If you sign in with Google, GitHub, or
+          Discord, we keep which account it is, and its name and picture.
+        </dd>
+
+        <dt>How you sign in</dt>
+        <dd>
+          Your passkeys' public keys (never the private key, which stays on your device), and your
+          authenticator app's secret and recovery codes, encrypted. Email sign-in codes are kept only as
+          hashes, and stop working after a few minutes.
+        </dd>
+
+        <dt>Your devices and activity</dt>
+        <dd>
+          For each place you're signed in: the IP address, the browser or device, and when it was last used, so
+          you can see and sign out your devices. An activity log of what happens on your account and in your
+          teams (sign-ins, changes, server actions), with the IP address and browser of each.
+        </dd>
+
+        <dt>Your teams, machines, and servers</dt>
+        <dd>
+          What you set up in Raptor: your teams and who's in them, your machines (nodes), and your servers:
+          their names, settings, state, resource use, and player counts. Your servers' files, worlds, and
+          console run on your machines, not ours. When you open a console or move files in the browser, they
+          pass through our network to reach you, and aren't stored.
+        </dd>
+
+        <dt>Alerts</dt>
+        <dd>
+          Alerts you've been sent, and the channels you've asked to get them on (email, Telegram, Discord, and
+          others). A channel's secrets, such as a webhook address, are encrypted.
+        </dd>
+
+        <dt>The phone app</dt>
+        <dd>
+          Your phone's name and model, and a push token from Apple or Google so we can send it alerts. If you
+          turn on sign-in approvals, a secret kept on your phone behind Face ID, and its counterpart on our side.
+          The app doesn't use your location, contacts, photos, or advertising identifier.
+        </dd>
+
+        <dt>Billing</dt>
+        <dd>
+          Your plan, what you've paid, and when. Payments are handled by Polar; we never see your card number.
+        </dd>
+
+        <dt>Support</dt>
+        <dd>
+          What you send us when you ask for help. Our staff can reach one of your machines only if you approve
+          it, for the time you allow, and everything they do is in your team's activity log.
+        </dd>
+
+        <dt>Backups</dt>
+        <dd>
+          If you use Raptor Backup Storage, your servers' backups are stored for you, encrypted by your machine
+          before they're uploaded.
+        </dd>
+      </dl>
+
+      <h2>What we use it for</h2>
+      <p>
+        To run Raptor: signing you in, running and showing your servers, sending your alerts, billing, keeping
+        accounts safe (spotting sign-in abuse and showing you where you're signed in), answering support, and
+        keeping the service working (we measure how it performs, not what you do). We email you about your
+        account and your servers, not marketing, unless you ask for it.
+      </p>
+
+      <h2>Who else handles it</h2>
+      <p>We use these companies to run Raptor, and they handle your data only to do that:</p>
+      <ul>
+        <li><strong>Oracle Cloud</strong> hosts the Panel and its database, in the United States.</li>
+        <li>
+          <strong>Cloudflare</strong> carries traffic to the Panel and the web app, and checks sign-in forms
+          for bots (Turnstile).
+        </li>
+        <li><strong>Resend</strong> sends our emails.</li>
+        <li><strong>Backblaze</strong> stores the Panel's backups, and Raptor Backup Storage.</li>
+        <li><strong>Polar</strong> handles payments.</li>
+        <li><strong>Grafana Cloud</strong> receives performance measurements from the Panel.</li>
+        <li><strong>Apple and Google</strong> deliver the phone app's notifications.</li>
+        <li>
+          <strong>Google, GitHub, and Discord</strong>, only if you sign in with them; and Telegram, Discord,
+          Slack, ntfy, or a webhook, only if you add one as an alert channel.
+        </li>
+      </ul>
+      <p>We don't sell your data, or share it with anyone else, unless the law requires us to.</p>
+
+      <h2>How long we keep it</h2>
+      <ul>
+        <li>Your account and what's in it: until you delete it.</li>
+        <li>Sign-ins: 30 days unused, and 90 days at most in a browser.</li>
+        <li>The activity log: a year.</li>
+        <li>Alerts in your inbox, and the history of where they were sent: 30 days.</li>
+        <li>The phone app's push token: until you sign out of the app, or remove it from your devices.</li>
+        <li>The Panel's backups: four weeks, then they roll over.</li>
+        <li>Billing records: as long as the law requires.</li>
+      </ul>
+
+      <h2>Your choices</h2>
+      <p>
+        You can see and change your account, your devices, and your activity in the web app's settings, and
+        delete your account there. Deleting it removes your account and its activity; your teams' logs keep a
+        line saying you left. To get a copy of your data, or for anything you can't do yourself, email
+        <a href="mailto:support@raptorpanel.net">support@raptorpanel.net</a>. Depending on where you live, you
+        may have more rights over your data; we'll honour them.
+      </p>
+
+      <h2>Children</h2>
+      <p>Raptor isn't meant for children under 13, and we don't knowingly collect their data.</p>
+
+      <h2>Changes</h2>
+      <p>
+        When this policy changes, we'll update the date at the top, and tell you by email if it's a change
+        that matters.
+      </p>
+
+      <h2>Questions</h2>
+      <p>
+        Email <a href="mailto:support@raptorpanel.net">support@raptorpanel.net</a>. For security problems, see
+        our <a href="https://github.com/xena-studios/raptor/blob/main/SECURITY.md">security policy</a>.
+      </p>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <span>© {new Date().getFullYear()} Xena Studios</span>
+        <nav aria-label="Footer">
+          <a href="/">Home</a>
+          <a href="https://docs.raptorpanel.net">Docs</a>
+          <a href="https://status.raptorpanel.net">Status</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .legal {
+    max-width: calc(var(--measure) + 2 * var(--page));
+    padding-block: clamp(2rem, 6vw, 4rem);
+  }
+  .legal h1 {
+    font-size: clamp(2rem, 5vw, 2.75rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .legal h2 {
+    margin-top: 2.5rem;
+    font-size: 1.35rem;
+    line-height: 1.25;
+  }
+  .legal p,
+  .legal li,
+  .legal dd {
+    line-height: 1.6;
+    text-wrap: pretty;
+  }
+  .legal .meta {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 0.85rem;
+  }
+  .legal dt {
+    margin-top: 1.25rem;
+    font-weight: 600;
+  }
+  .legal dd {
+    margin: 0.25rem 0 0;
+    color: var(--muted);
+  }
+  .legal ul {
+    padding-left: 1.25rem;
+  }
+  .legal li + li {
+    margin-top: 0.4rem;
+  }
+  .legal a {
+    color: var(--red);
+  }
+</style>
