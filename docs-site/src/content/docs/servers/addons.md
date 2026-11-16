@@ -30,7 +30,7 @@ SpigotMC isn't offered: its downloads often go to other sites without a hash, so
 
 ## Steam Workshop
 
-Games that load Steam Workshop items themselves get a **Workshop** tab: Garry's Mod (a collection), ARK (mods), and Squad (items).
+Games that load Steam Workshop items themselves get a **Workshop** tab: Garry's Mod (a collection), Counter-Strike 2 (a map collection), ARK (mods), Conan Exiles (mods, loaded in the order you list them), and Squad (items).
 
 - Paste a Workshop link or ID: Raptor shows what it is, and refuses items for another game.
 - For games that take a list, a collection's link adds its items.
