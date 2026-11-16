@@ -13,6 +13,8 @@ Raptor's [Discord server](https://discord.gg/HyUa3sRpeN) is where questions, bug
 
 - **🤝 community-help:** how do I…? Questions about setting up a node, a game, or a provider.
 - **🐛 bug-reports:** something in Raptor is broken. Say what you did, what you expected, and what happened instead.
+
+If a server won't start or keeps crashing, share its log: **Share** on the console, or on `logs/latest.log` in the file manager, gives you a link to paste instead of screenshots. IP addresses are hidden first.
 - **💡 feature-requests:** an idea for Raptor.
 - **🥚 egg-requests:** a game you'd like in the catalog.
 - **📢 announcements** and **🚀 releases:** what's new, and when.

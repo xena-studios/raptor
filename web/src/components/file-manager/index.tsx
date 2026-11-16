@@ -669,6 +669,7 @@ export function Files({
               path={file}
               canWrite={canWrite}
               transfers={transfers}
+              orgId={orgId}
               onBack={() => go({ path })}
               onClose={() => go({ path })}
               onDirty={(d) => {

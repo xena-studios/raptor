@@ -30,6 +30,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/images"
 	"github.com/xena-studios/raptor/internal/panel/machines"
 	"github.com/xena-studios/raptor/internal/panel/mail"
+	"github.com/xena-studios/raptor/internal/panel/mclogs"
 	"github.com/xena-studios/raptor/internal/panel/nodes"
 	"github.com/xena-studios/raptor/internal/panel/storage"
 	"github.com/xena-studios/raptor/internal/panel/store"
@@ -67,6 +68,8 @@ type Service struct {
 	// EggClient fetches eggs to import (nil: eggimport.Client, which only
 	// reaches public addresses).
 	EggClient *http.Client
+	// Logs shares logs on mclo.gs (nil: mclo.gs with a default user agent).
+	Logs *mclogs.Client
 	// Storage is Raptor Backup Storage (nil: not offered).
 	Storage *storage.Service
 	// Keys keeps copies of nodes' backup keys (nil: none kept).

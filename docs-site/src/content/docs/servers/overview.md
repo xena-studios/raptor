@@ -27,6 +27,7 @@ The console shows the server's output live, starting with its last 1,000 lines. 
 - Lines from Raptor itself start with `[raptor]`: starting, stopping, crashes, install results.
 - Pop the console out into its own window with the button at its top right, or make it fill the page.
 - For history further back than the console keeps, use `sudo raptor logs <server>` on the machine.
+- **Share** (the button beside full screen) puts what the console shows on [mclo.gs](https://mclo.gs), a site for sharing game server logs, and gives you a link to send to whoever's helping you. IP addresses and the node's address are hidden first; anyone with the link can read the rest. Log files (`logs/latest.log`, crash reports) have the same button in the file manager. Each share is in the server's activity.
 
 ## Power
 

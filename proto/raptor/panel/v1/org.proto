@@ -202,6 +202,12 @@ service OrgService {
   // app tells why when it can't. Any access to the server; rate limited.
   rpc TestConnection(TestConnectionRequest) returns (TestConnectionResponse) {}
 
+  // ShareLog shares a server's log (its console, or a log file the app
+  // read) on mclo.gs for support, after hiding IP addresses and node
+  // hostnames, and returns the link. The user chooses each time; it's in
+  // the audit log. Access to the server's console or files; rate limited.
+  rpc ShareLog(ShareLogRequest) returns (ShareLogResponse) {}
+
   // GetBackupStorage is the org's Raptor Backup Storage: whether this Panel
   // offers it, which nodes have it on, what's stored, and what it'd cost.
   // Admins and owners.
@@ -738,6 +744,21 @@ message SetNodeSFTPRequest {
 }
 
 message SetNodeSFTPResponse {}
+
+message ShareLogRequest {
+  string org_id = 1;
+  string node_id = 2;
+  string server_id = 3;
+  // What it is, for the audit log: "console", or the file's path.
+  string name = 4;
+  // The log, at most 1 MiB (the newest part of a longer one).
+  string content = 5;
+}
+
+message ShareLogResponse {
+  // The log on mclo.gs.
+  string url = 1;
+}
 
 message TestConnectionRequest {
   string org_id = 1;

@@ -230,7 +230,10 @@ const power = {
   label: "Power",
   actions: ["server.start", "server.stop", "server.restart", "server.kill"],
 };
-const consoleKind = { label: "Console", actions: ["server.command", "server.console"] };
+const consoleKind = {
+  label: "Console",
+  actions: ["server.command", "server.console", "server.log.share"],
+};
 const files = { label: "Files and SFTP", actions: ["files.%", "sftp.%"] };
 const backups = { label: "Backups", actions: ["backup.%", "backup_storage.%"] };
 const schedules = { label: "Schedules", actions: ["schedule.%"] };
@@ -454,6 +457,12 @@ export function OrgActivity({
             ? `set ${nodeName(e.target)}'s shown address to ${str(meta.address)}`
             : `cleared ${nodeName(e.target)}'s shown address`,
           Server,
+        ];
+        break;
+      case "server.log.share":
+        [text, icon] = [
+          `shared ${str(meta.name) === "console" ? "the console" : str(meta.name)} of ${serverName(str(meta.node), e.target)} on ${str(meta.url)}`,
+          SquareTerminal,
         ];
         break;
       case "server.display_address":

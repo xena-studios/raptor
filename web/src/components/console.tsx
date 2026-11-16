@@ -6,6 +6,7 @@ import { cn } from "cn";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
 
+import { ShareLogButton } from "@/components/share-log";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { message } from "@/lib/errors";
@@ -22,6 +23,7 @@ export default function Console({
   support,
   fill,
   onOutput,
+  orgId,
 }: {
   nodeId: string;
   serverId: string;
@@ -33,9 +35,13 @@ export default function Console({
   // Every batch of lines, for spotting problems (lib/problems); reset
   // means the lines start over (a reconnect replays the history).
   onOutput?: (lines: string[], reset: boolean) => void;
+  // Given, the console can be shared on mclo.gs (not under support).
+  orgId?: string;
 }) {
   const output = useRef(onOutput);
   output.current = onOutput;
+  // What the console shows, to share (as much as its scrollback keeps).
+  const shown = useRef<string[]>([]);
   const box = useRef<HTMLDivElement>(null);
   const [problem, setProblem] = useState<{ text: string; retrying: boolean }>();
   const [command, setCommand] = useState("");
@@ -92,6 +98,7 @@ export default function Console({
           setProblem(undefined);
           if (lines.length > 0) term.write(`${lines.join("\r\n")}\r\n`);
           output.current?.(lines, reset);
+          shown.current = (reset ? lines : [...shown.current, ...lines]).slice(-5000);
         },
         onProblem: (text, retrying) => setProblem({ text, retrying }),
       },
@@ -156,6 +163,16 @@ export default function Console({
         )}
       >
         <div ref={box} className={full || fill ? "h-full" : "h-[28rem]"} />
+        {orgId && !support && (
+          <ShareLogButton
+            orgId={orgId}
+            nodeId={nodeId}
+            serverId={serverId}
+            name="console"
+            content={() => shown.current.join("\n")}
+            className="absolute top-2 right-11 z-10 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+          />
+        )}
         <Button
           size="icon-sm"
           variant="ghost"

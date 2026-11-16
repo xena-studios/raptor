@@ -24,7 +24,13 @@ function ConsolePopout() {
   return (
     <div className="h-full p-3">
       <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the console…</p>}>
-        <Console nodeId={nodeId} serverId={serverId} canWrite={can(server, "console.write")} fill />
+        <Console
+          nodeId={nodeId}
+          serverId={serverId}
+          canWrite={can(server, "console.write")}
+          fill
+          orgId={orgId}
+        />
       </Suspense>
     </div>
   );
