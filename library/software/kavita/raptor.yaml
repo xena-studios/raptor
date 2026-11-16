@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/kavita/egg-kavita.json
+license: MIT
+credits:
+  - "Written for Raptor from Kavita's own documentation (https://wiki.kavitareader.com)"
+  - "Icon: the Kavita logo, the Kareadita avatar from https://github.com/Kareadita"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 5m

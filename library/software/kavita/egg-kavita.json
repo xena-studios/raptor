@@ -1,0 +1,41 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written from scratch.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Kavita",
+    "author": "support@raptorpanel.net",
+    "description": "Kavita is a reading server for comics, manga and ebooks, with a web reader and OPDS for reading apps. The egg creates the admin account with a password made at install and turns off its usage statistics.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "cd kavita && exec ./Kavita",
+    "config": {
+        "files": "{\"config/appsettings.json\": {\"parser\": \"json\", \"find\": {\"Port\": \"{{server.build.default.port}}\", \"IpAddresses\": \"\"}}}",
+        "startup": "{\"done\": [\"Now listening on\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Kavita: downloads Kavita from its GitHub releases, checked against\n# GitHub's checksum, into kavita/. Kavita's database, settings and covers\n# live in config/ (kavita/config points there) and the books in library/;\n# neither is ever touched. The app is only replaced once the new one has\n# downloaded and unpacked.\nset -euo pipefail\ncd /mnt/server\n\nrepo=Kareadita/Kavita\nfail() { echo \"$1\"; exit 1; }\n# gh_tag <latest|tag> prints the release's tag; returns 1 when there's no\n# such release, 2 when GitHub can't be reached.\ngh_tag() {\n    local out\n    out=$(gh-release tag \"$repo\" \"$1\" 2>&1) && { echo \"$out\"; return 0; }\n    case \"$out\" in *\"has no release\"* | *\"no releases\"*) return 1 ;; *) return 2 ;; esac\n}\noffline=\"GitHub can't be reached right now, or is limiting downloads. Reinstall to try again in a few minutes.\"\ncase \"$(uname -m)\" in\n    x86_64) arch=x64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Kavita has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nversion=\"${VERSION:-latest}\"\ncase \"$version\" in latest|v*) ;; *) version=\"v$version\" ;; esac\nrc=0; tag=$(gh_tag \"$version\") || rc=$?\nif [ \"$rc\" = 1 ]; then\n    latest=$(gh_tag latest) || fail \"$offline\"\n    fail \"Kavita has no version ${VERSION}. Set Version to latest, or to a release such as ${latest#v}.\"\nfi\n[ \"$rc\" = 0 ] || fail \"$offline\"\nversion=$tag\nasset=\"kavita-linux-$arch.tar.gz\"\nassets=$(gh-release assets \"$repo\" \"$version\") || fail \"$offline\"\nsum=$(awk -v a=\"$asset\" '$1 == a { print $2 }' <<<\"$assets\")\n[ -n \"$sum\" ] || fail \"Kavita $version has no Linux build for this CPU. Choose another version.\"\n\ntmp=/mnt/server/.raptor-build\nrm -rf \"$tmp\" .raptor-old && mkdir -p \"$tmp\"\ntrap 'rm -rf \"$tmp\" .raptor-old' EXIT\nmkdir -p config library\nif [ -x kavita/Kavita ] && [ \"$(cat .raptor-kavita 2>/dev/null)\" = \"$sum\" ]; then\n    echo \"Kavita $version is already installed.\"\nelse\n    echo \"Downloading Kavita $version\"\n    gh-release download \"$repo\" \"$version\" \"$asset\" \"$tmp/kavita.tar.gz\" || fail \"The download failed or didn't match GitHub's checksum. Reinstall to try again.\"\n    tar -xzf \"$tmp/kavita.tar.gz\" -C \"$tmp\"\n    rm -f \"$tmp/kavita.tar.gz\"\n    # The release is packed without the executable bit.\n    [ -f \"$tmp/Kavita/Kavita\" ] && chmod +x \"$tmp/Kavita/Kavita\" || fail \"Kavita $version's download doesn't have the server in it. Choose another version.\"\n    # The first run's settings, for a new server only.\n    [ -f config/appsettings.json ] || cp -n \"$tmp/Kavita/config/appsettings-init.json\" config/\n    rm -rf \"$tmp/Kavita/config\"\n    ln -s ../config \"$tmp/Kavita/config\"\n    [ ! -e kavita ] || mv kavita .raptor-old\n    mv \"$tmp/Kavita\" kavita\n    echo \"$sum\" > .raptor-kavita\nfi\n\n# A new Kavita lets whoever opens it first create the admin account, and\n# sends usage statistics to its developers. On the first install, start it\n# once here (with its internet access blocked, so nothing is sent) to create\n# the admin with a random password and turn the statistics off.\nif [ ! -f config/kavita.db ]; then\n    password=\"$(head -c 15 /dev/urandom | base64 | tr -d '/+=')A1!\"\n    port=15000\n    base=config/appsettings.json\n    [ -f \"$base\" ] || base=config/appsettings-init.json\n    jq --argjson p \"$port\" '.Port = $p' \"$base\" > \"$tmp/appsettings.json\"\n    mv -f \"$tmp/appsettings.json\" config/appsettings.json\n    rm -f config/appsettings-init.json\n    (cd kavita && HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 NO_PROXY=localhost,127.0.0.1 \\\n        DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 exec ./Kavita) > \"$tmp/first.log\" 2>&1 &\n    pid=$!\n    api=\"http://127.0.0.1:$port/api\"\n    # Requests to Kavita itself go through /usr/bin/curl: the install's curl\n    # counts every refused connection as a failed download, and Kavita takes\n    # a while to start listening (longer on ARM).\n    lcurl=/usr/bin/curl\n    up=0\n    for _ in $(seq 300); do\n        if $lcurl -fs -o /dev/null \"$api/health\"; then up=1; break; fi\n        kill -0 \"$pid\" 2>/dev/null || break\n        sleep 1\n    done\n    ok=0\n    if [ \"$up\" = 1 ] && user=$($lcurl -fsS -H 'Content-Type: application/json' -d \"$(jq -n --arg p \"$password\" '{username: \"admin\", email: \"\", password: $p}')\" \"$api/account/register\"); then\n        token=$(jq -r .token <<<\"$user\")\n        settings=$($lcurl -fsS -H \"Authorization: Bearer $token\" \"$api/settings\") &&\n            $lcurl -fsS -o /dev/null -H \"Authorization: Bearer $token\" -H 'Content-Type: application/json' \\\n                -d \"$(jq '.allowStatCollection = false' <<<\"$settings\")\" \"$api/settings\" && ok=1\n    fi\n    running=0; kill -0 \"$pid\" 2>/dev/null && running=1\n    # (A job started in the background ignores SIGINT, so it's SIGTERM.)\n    kill -TERM \"$pid\" 2>/dev/null || true\n    wait \"$pid\" || true\n    if [ \"$ok\" != 1 ]; then\n        tail -n 30 \"$tmp/first.log\"\n        rm -f config/kavita.db*\n        if [ \"$up\" = 1 ]; then\n            fail \"Kavita started but refused to create its admin account (see above). Reinstall to try again.\"\n        elif [ \"$running\" = 1 ]; then\n            fail \"Kavita didn't start answering within 5 minutes, so its admin account couldn't be created. Reinstall to try again.\"\n        else\n            fail \"Kavita stopped while starting (see above), so its admin account couldn't be created. Reinstall to try again.\"\n        fi\n    fi\n    echo \"The admin account is admin, with the password $password. Change it in Kavita's settings.\"\nfi\necho \"Installed Kavita $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Kavita version to install, such as 0.9.1.4, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?\\d+(\\.\\d+){2,3})$/",
+            "field_type": "text"
+        }
+    ]
+}

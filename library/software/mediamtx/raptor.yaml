@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/mediamtx/egg-mediamtx.json
+license: MIT
+credits:
+  - "Written for Raptor from MediaMTX's own documentation (https://github.com/bluenviron/mediamtx)"
+  - "Icon: the MediaMTX logo, the bluenviron avatar from https://github.com/bluenviron"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 3m

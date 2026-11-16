@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/icecast/egg-icecast.json
+license: MIT
+credits:
+  - "Written for Raptor from Icecast's own documentation (https://icecast.org/docs/)"
+  - "Icon: the Icecast logo, https://commons.wikimedia.org/wiki/File:Icecast_logo_large_2004.svg (CC BY 3.0)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 3m

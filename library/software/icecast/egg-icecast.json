@@ -1,0 +1,41 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written from scratch.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Icecast",
+    "author": "support@raptorpanel.net",
+    "description": "Icecast is an internet radio server that takes audio from streaming software such as BUTT, Mixxx or Liquidsoap and serves it to listeners. The egg installs Xiph's own build and writes its config with random passwords at install.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "LD_LIBRARY_PATH=/home/container/icecast/lib exec ./icecast/bin/icecast2 -c icecast.xml",
+    "config": {
+        "files": "{\"icecast.xml\": {\"parser\": \"xml\", \"find\": {\"icecast.listen-socket.port\": \"{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": [\"regex:Icecast .* server started\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Icecast: downloads Icecast from Xiph's own Debian 13 repository, and the\n# Debian 13 libraries it needs that the server's image doesn't have, each\n# checked against the checksum in its repository's package index, into\n# icecast/. icecast.xml is only written on the first install (with random\n# passwords); after that it's the owner's, like the logs.\nset -euo pipefail\ncd /mnt/server\n\nxiph=https://download.opensuse.org/repositories/multimedia:/xiph/Debian_13\ndebian=https://deb.debian.org/debian\n# Libraries Icecast (and libtheora, which links cairo) needs beyond those\n# in Raptor's Debian image.\nlibs=\"libogg0 librhash1 libspeex1 libtheora0 libtheoradec1 libtheoraenc1 libvorbis0a libvorbisenc2 libxml2 libxslt1.1\n    libcairo2 libpixman-1-0 libx11-6 libxcb1 libxcb-render0 libxcb-shm0 libxext6 libxrender1 libxau6 libxdmcp6\"\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Icecast has no build for this CPU ($(uname -m)).\" ;;\nesac\n\ntmp=/mnt/server/.raptor-build\nrm -rf \"$tmp\" .raptor-old && mkdir -p \"$tmp\"\ntrap 'rm -rf \"$tmp\" .raptor-old' EXIT\ncurl -fsSL --retry 3 -o \"$tmp/xiph\" \"$xiph/Packages\" || fail \"Xiph's download site can't be reached right now. Reinstall to try again.\"\n# pkg <index> <name>: \"<filename> <sha256> <version>\" of a package for this CPU.\npkg() {\n    awk -v p=\"$2\" -v a=\"$arch\" '\n        /^Package: / { n = $2; v = \"\"; ar = \"\"; f = \"\"; s = \"\" }\n        /^Version: / { v = $2 } /^Architecture: / { ar = $2 } /^Filename: / { f = $2 } /^SHA256: / { s = $2 }\n        /^$/ && n == p && (ar == a || ar == \"all\") { print f, s, v; found = 1; exit }\n        END { if (!found && n == p && (ar == a || ar == \"all\") && f != \"\") print f, s, v }' \"$1\"\n}\nread -r ice_file ice_sum ice_version < <(pkg \"$tmp/xiph\" icecast2) || fail \"Xiph's repository has no Icecast for this CPU right now.\"\nversion=${ice_version%-*}\nwant=\"${VERSION:-latest}\"\n[ \"$want\" = latest ] || [ \"$want\" = \"$version\" ] || fail \"Icecast $want can't be downloaded: Xiph's repository has only the newest release. Set Version to latest, or to $version.\"\n\nread -r igloo_file igloo_sum _ < <(pkg \"$tmp/xiph\" libigloo0) || fail \"Xiph's repository has no libigloo for this CPU right now.\"\ncurl -fsSL --retry 3 -o \"$tmp/debian.xz\" \"$debian/dists/trixie/main/binary-$arch/Packages.xz\" || fail \"Debian's download site can't be reached right now. Reinstall to try again.\"\nxz -dc \"$tmp/debian.xz\" > \"$tmp/debian\"\nrm -f \"$tmp/debian.xz\"\nwant_list=\"xiph $ice_file $ice_sum\nxiph $igloo_file $igloo_sum\"\nfor p in $libs; do\n    line=$(pkg \"$tmp/debian\" \"$p\")\n    [ -n \"$line\" ] || fail \"Debian 13 has no $p for this CPU, which Icecast needs.\"\n    want_list+=$'\\n'\"debian ${line% *}\"\ndone\nstamp=$(sha256sum <<<\"$want_list\" | cut -d' ' -f1)\n\nif [ -x icecast/bin/icecast2 ] && [ \"$(cat .raptor-icecast 2>/dev/null)\" = \"$stamp\" ]; then\n    echo \"Icecast $version is already installed.\"\nelse\n    echo \"Downloading Icecast $version and its libraries\"\n    mkdir -p \"$tmp/debs\" \"$tmp/root\"\n    while read -r from file sum; do\n        base=$xiph; [ \"$from\" = xiph ] || base=$debian\n        curl -fsSL --retry 3 -o \"$tmp/debs/p.deb\" \"$base/$file\" || fail \"The download of ${file##*/} failed. Reinstall to try again.\"\n        [ \"$(sha256sum \"$tmp/debs/p.deb\" | cut -d' ' -f1)\" = \"$sum\" ] || fail \"The download of ${file##*/} didn't match its checksum. Reinstall to try again.\"\n        dpkg-deb -x \"$tmp/debs/p.deb\" \"$tmp/root\"\n    done <<<\"$want_list\"\n    new=\"$tmp/icecast\"\n    mkdir -p \"$new/bin\" \"$new/lib\" \"$new/share\"\n    mv \"$tmp/root/usr/bin/icecast2\" \"$new/bin/\"\n    mv \"$tmp/root\"/usr/lib/*-linux-gnu/* \"$new/lib/\"\n    mv \"$tmp/root/usr/share/icecast2\" \"$new/share/\"\n    # The package links some web and admin pages to /etc/icecast2: put the\n    # files themselves there instead.\n    find \"$new/share\" -type l | while read -r l; do\n        t=$(readlink \"$l\")\n        case \"$t\" in /etc/icecast2/*) rm -f \"$l\"; cp -r \"$tmp/root$t\" \"$l\" ;; esac\n    done\n    cp \"$tmp/root/etc/icecast2/icecast.xml\" \"$new/share/icecast.xml.default\"\n    [ ! -e icecast ] || mv icecast .raptor-old\n    mv \"$new\" icecast\n    echo \"$stamp\" > .raptor-icecast\nfi\nmkdir -p logs\n\n# The shipped config's passwords are all hackme. On the first install,\n# write icecast.xml with random ones, Icecast's files in icecast/, the logs\n# in logs/ and the error log on the console.\nif [ ! -f icecast.xml ]; then\n    gen() { head -c 15 /dev/urandom | base64 | tr -d '/+='; }\n    source_pw=$(gen) relay_pw=$(gen) admin_pw=$(gen)\n    share=/home/container/icecast/share/icecast2\n    sed -e \"s|<source-password>[^<]*</source-password>|<source-password>$source_pw</source-password>|\" \\\n        -e \"s|<relay-password>[^<]*</relay-password>|<relay-password>$relay_pw</relay-password>|\" \\\n        -e \"s|<admin-password>[^<]*</admin-password>|<admin-password>$admin_pw</admin-password>|\" \\\n        -e \"s|<basedir>[^<]*</basedir>|<basedir>$share</basedir>|\" \\\n        -e \"s|<logdir>[^<]*</logdir>|<logdir>/home/container/logs</logdir>|\" \\\n        -e \"s|<webroot>[^<]*</webroot>|<webroot>$share/web</webroot>|\" \\\n        -e \"s|<adminroot>[^<]*</adminroot>|<adminroot>$share/admin</adminroot>|\" \\\n        -e \"s|<reportxmldb>[^<]*</reportxmldb>|<reportxmldb>$share/report-db.xml</reportxmldb>|\" \\\n        -e \"s|<errorlog>[^<]*</errorlog>|<errorlog>-</errorlog>|\" \\\n        icecast/share/icecast.xml.default > \"$tmp/icecast.xml\"\n    grep -q \"<source-password>$source_pw<\" \"$tmp/icecast.xml\" && grep -q \"<admin-password>$admin_pw<\" \"$tmp/icecast.xml\" ||\n        fail \"Icecast's default config has changed, so the install can't set its passwords. Reinstall to try again later.\"\n    chmod 600 \"$tmp/icecast.xml\"\n    mv -f \"$tmp/icecast.xml\" icecast.xml\n    echo \"Sources connect with the password $source_pw; the admin page's user is admin, with the password $admin_pw. Change them in icecast.xml.\"\nfi\necho \"Installed Icecast $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Icecast version to install: latest, or the newest release by its number, such as 2.5.0.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        }
+    ]
+}
