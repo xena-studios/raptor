@@ -1,0 +1,51 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from GoatCounter's documentation; no upstream egg.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "GoatCounter",
+    "author": "support@raptorpanel.net",
+    "description": "GoatCounter is simple, privacy-friendly web analytics without tracking cookies. The egg runs it with SQLite: open its address once to create your site and the admin account.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "exec ./goatcounter serve -listen :{{SERVER_PORT}} -tls http -automigrate -db sqlite+goatcounter-data/db.sqlite3 {{EXTRA_FLAGS}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"GoatCounter ready\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# GoatCounter: downloads GoatCounter from its GitHub releases, checked\n# against GitHub's SHA-256. The database (goatcounter-data) is never\n# touched, and the binary is only replaced once the new one is complete.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"GoatCounter has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag arp242/goatcounter \"$version\") || exit 1\n\nif [ -x goatcounter ] && [ \"$(cat .goatcounter-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"GoatCounter $tag is already installed.\"\nelse\n    echo \"Downloading GoatCounter $tag\"\n    gh-release download arp242/goatcounter \"$tag\" \"goatcounter-$tag-linux-$arch.gz\" \"$work/goatcounter.gz\"\n    gzip -dc \"$work/goatcounter.gz\" > \"$work/goatcounter\"\n    install -m 0755 \"$work/goatcounter\" goatcounter.new\n    mv -f goatcounter.new goatcounter\n    echo \"$tag\" > .goatcounter-version\nfi\nmkdir -p goatcounter-data\necho \"Installed GoatCounter $tag. Open the server's address to create your site and account.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The GoatCounter version to install, a 2.x release such as 2.7.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?2\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Extra flags",
+            "description": "More flags for goatcounter serve, such as -smtp smtp://user:pass@host:587 to send emails.",
+            "env_variable": "EXTRA_FLAGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:500",
+            "field_type": "text"
+        }
+    ]
+}

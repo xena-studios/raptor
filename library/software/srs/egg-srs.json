@@ -1,0 +1,101 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from SRS's documentation; no upstream egg.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "SRS",
+    "author": "support@raptorpanel.net",
+    "description": "SRS is a simple, high-performance live streaming server: publish over RTMP or WebRTC, and watch over HLS, HTTP-FLV or WebRTC. Only the addresses you list may publish, and the HTTP API and console are on only with a password.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "{ echo 'security {'; echo '    enabled on;'; echo '    allow play all;'; echo '    allow publish 127.0.0.1;'; for a in $(echo \"{{PUBLISH_FROM}}\" | tr ',' ' '); do echo \"    allow publish $a;\"; done; echo '}'; } > .raptor-security.conf; [ -n \"{{PUBLISH_FROM}}\" ] || echo \"Publishing is only allowed from the server itself: list your address in Publish from.\"; export SRS_LISTEN={{SERVER_PORT}} SRS_HTTP_SERVER_LISTEN={{HTTP_PORT}} SRS_RTC_SERVER_LISTEN={{WEBRTC_PORT}} SRS_HTTP_API_LISTEN={{API_PORT}} SRS_QUERY_LATEST_VERSION=off; c=\"{{PUBLIC_IP}}\"; c=${c:-$SERVER_IP}; [ -z \"$c\" ] || [ \"$c\" = 0.0.0.0 ] || export SRS_RTC_SERVER_CANDIDATE=$c; if [ -n \"{{API_PASSWORD}}\" ]; then export SRS_HTTP_API_ENABLED=on SRS_HTTP_API_AUTH_ENABLED=on SRS_HTTP_API_AUTH_USERNAME=admin SRS_HTTP_API_AUTH_PASSWORD=\"{{API_PASSWORD}}\"; else export SRS_HTTP_API_ENABLED=off; fi; exec ./objs/srs -c srs.conf",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"RTMP listen at tcp://\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# SRS: SRS publishes Linux builds only as its container image, so this\n# takes the server and its web pages (console, players) out of the\n# official image on Docker Hub, every layer checked against its SHA-256.\n# srs.conf and recordings are never touched once there.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\nua=\"raptor-installer (+https://raptorpanel.net)\"\nget() { curl -fsS --retry 3 -A \"$ua\" \"$@\"; }\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"SRS has no build for this CPU ($(uname -m)).\" ;;\nesac\n\n# The release, from GitHub (gh-release says why when it doesn't exist);\n# the image has the same tag.\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\ntag=$(gh-release tag ossrs/srs \"$version\") || exit 1\n\nif [ -x objs/srs ] && [ -d objs/nginx/html ] && [ \"$(cat .srs-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"SRS $tag is already installed.\"\nelse\n    echo \"Downloading SRS $tag\"\n    repo=ossrs/srs\n    reg=https://registry-1.docker.io/v2/$repo\n    token=$(get \"https://auth.docker.io/token?service=registry.docker.io&scope=repository:$repo:pull\" | jq -r .token) ||\n        fail \"Docker Hub can't be reached right now. Reinstall to try again.\"\n    auth=\"Authorization: Bearer $token\"\n    index=$(get -H \"$auth\" -H \"Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json\" \"$reg/manifests/$tag\") ||\n        fail \"SRS's image for $tag isn't on Docker Hub. Set Version to latest, or to another release, then reinstall.\"\n    digest=$(jq -r --arg a \"$arch\" 'first(.manifests[] | select(.platform.os == \"linux\" and .platform.architecture == $a) | .digest) // empty' <<<\"$index\")\n    [ -n \"$digest\" ] || fail \"SRS $tag has no image for this CPU ($arch).\"\n    layers=$(get -H \"$auth\" -H \"Accept: application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json\" \"$reg/manifests/$digest\" | jq -r '.layers[].digest') ||\n        fail \"Docker Hub can't be reached right now. Reinstall to try again.\"\n    mkdir -p \"$work/root\"\n    for layer in $layers; do\n        get -L -H \"$auth\" -o \"$work/layer\" \"$reg/blobs/$layer\" || fail \"The download failed. Reinstall to try again.\"\n        [ \"sha256:$(sha256sum \"$work/layer\" | cut -d' ' -f1)\" = \"$layer\" ] || fail \"The download didn't match its checksum. Reinstall to try again.\"\n        # Only SRS's own folder: the rest is the image's operating system.\n        tar -xf \"$work/layer\" -C \"$work/root\" --no-same-owner --wildcards 'usr/local/srs/*' 2>/dev/null || true\n        rm -f \"$work/layer\"\n    done\n    new=\"$work/root/usr/local/srs/objs\"\n    [ -x \"$new/srs\" ] && [ -f \"$new/nginx/html/index.html\" ] || fail \"SRS's image didn't have the files it should. Reinstall to try again.\"\n    mkdir -p objs\n    install -m 0755 \"$new/srs\" objs/srs.new\n    rm -rf objs/nginx.old\n    [ ! -d objs/nginx ] || mv objs/nginx objs/nginx.old\n    mv \"$new/nginx\" objs/nginx\n    mv -f objs/srs.new objs/srs\n    rm -rf objs/nginx.old\n    echo \"$tag\" > .srs-version\nfi\n\n# A first configuration. Ports, the HTTP API's login and WebRTC's address\n# come from the server's settings at every start (SRS_* environment\n# variables win over this file); who may publish is written to\n# .raptor-security.conf at every start.\nif [ ! -f srs.conf ]; then\n    cat > srs.conf <<'CONF'\n# SRS's settings: https://ossrs.net/lts/en-us/docs/v6/doc/getting-started\n# Restart the server after changing this file.\nlisten              1935;\nmax_connections     1000;\nsrs_log_tank        console;\ndaemon              off;\nquery_latest_version off;\n\nhttp_api {\n    enabled         off;\n    listen          1985;\n}\nhttp_server {\n    enabled         on;\n    listen          8080;\n    dir             ./objs/nginx/html;\n}\nrtc_server {\n    enabled         on;\n    listen          8000;\n}\nvhost __defaultVhost__ {\n    include ./.raptor-security.conf;\n    hls {\n        enabled         on;\n        hls_path        ./objs/nginx/html;\n    }\n    http_remux {\n        enabled     on;\n        mount       [vhost]/[app]/[stream].flv;\n    }\n    rtc {\n        enabled     on;\n        rtmp_to_rtc on;\n        rtc_to_rtmp on;\n    }\n}\nCONF\n    echo \"Wrote a first configuration to srs.conf.\"\nfi\necho \"Installed SRS $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The SRS release to install, such as 6.0-r3, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+-[a-z0-9]+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Publish from",
+            "description": "The IP addresses or ranges (such as 203.0.113.7 or 10.0.0.0/8) allowed to publish streams, separated by spaces, or all for anyone. Empty allows only the server itself.",
+            "env_variable": "PUBLISH_FROM",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:500|regex:/^(all|[0-9a-fA-F.:\\/]+)([ ,]+[0-9a-fA-F.:\\/]+)*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "HTTP port",
+            "description": "The web port that serves HLS and HTTP-FLV streams, the players and the console. Add it to the server's ports first.",
+            "env_variable": "HTTP_PORT",
+            "default_value": "8080",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "WebRTC port",
+            "description": "The UDP port WebRTC sends media over. Add it to the server's ports first.",
+            "env_variable": "WEBRTC_PORT",
+            "default_value": "8000",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Public IP",
+            "description": "The IP address WebRTC viewers connect to. Empty uses the server's IP address.",
+            "env_variable": "PUBLIC_IP",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100|regex:/^[0-9a-fA-F.:]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "API port",
+            "description": "The port of SRS's HTTP API, which the console uses, when it's on. Add it to the server's ports first.",
+            "env_variable": "API_PORT",
+            "default_value": "1985",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "API password",
+            "description": "Turns on the HTTP API and the console, with the username admin and this password. Empty keeps them off.",
+            "env_variable": "API_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        }
+    ]
+}

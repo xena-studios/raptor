@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/shiori/egg-shiori.json
+license: MIT
+credits:
+  - "Written for Raptor from Shiori's documentation, https://github.com/go-shiori/shiori (MIT); no upstream egg"
+  - "Icon: the Shiori logo, from https://github.com/go-shiori"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 3m
+  variables:
+    OWNER_PASSWORD: "raptor-test-password"

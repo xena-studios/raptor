@@ -1,0 +1,73 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from Synapse's documentation; no upstream egg.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Synapse",
+    "author": "support@raptorpanel.net",
+    "description": "Synapse is the reference Matrix homeserver, for chat that federates with the rest of Matrix. The egg runs it with SQLite for small servers, with sign-ups off and an admin account from its settings.",
+    "features": [],
+    "docker_images": {
+        "Python 3.13": "ghcr.io/xena-studios/yolks:python_3.13@sha256:72e9beb9618e5ebecf1d3211271308dc506ada537fa458911b866a23c787e617",
+        "Python 3.12": "ghcr.io/xena-studios/yolks:python_3.12@sha256:7cebda1186da0e0830d7947537d488e8d0f039249a70391c907ceac92fb0ce76",
+        "Python 3.11": "ghcr.io/xena-studios/yolks:python_3.11@sha256:a199c5f18a7ef25e50f59300d8c2ddb302697e63c085b54e4200af5b9b6ee2ab"
+    },
+    "file_denylist": [],
+    "startup": "v=$(cat .synapse-version); want=\"$v $(python3 --version)\"; if [ \"$want\" != \"$(cat venv/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing Synapse $v\"; rm -rf venv; python3 -m venv venv && venv/bin/pip install -q --no-cache-dir --disable-pip-version-check \"matrix-synapse==$v\" && echo \"$want\" > venv/.raptor-installed || { echo \"Synapse $v couldn't be installed. Restart to try again.\"; exit 1; }; fi; printf 'listeners:\\n  - port: %s\\n    bind_addresses: [\"0.0.0.0\"]\\n    type: http\\n    tls: false\\n    x_forwarded: true\\n    resources:\\n      - names: [client, federation]\\n        compress: false\\n' {{SERVER_PORT}} > .raptor-listeners.yaml; c=\"-c homeserver.yaml -c .raptor-listeners.yaml\"; [ -f data/signing.key ] || venv/bin/python -m synapse.app.homeserver $c --generate-keys || exit 1; if [ -n \"{{ADMIN_USER}}\" ] && [ -n \"{{ADMIN_PASSWORD}}\" ] && [ ! -f \"data/.raptor-admin-{{ADMIN_USER}}\" ]; then ( for i in $(seq 150); do sleep 2; curl -sf -o /dev/null http://127.0.0.1:{{SERVER_PORT}}/health && break; done; r=$(venv/bin/register_new_matrix_user -c homeserver.yaml -u \"{{ADMIN_USER}}\" -p \"{{ADMIN_PASSWORD}}\" --admin http://127.0.0.1:{{SERVER_PORT}} 2>&1); case \"$r\" in *Success*|*\"already taken\"*) touch \"data/.raptor-admin-{{ADMIN_USER}}\"; echo \"The admin account {{ADMIN_USER}} is ready.\" ;; *) echo \"The admin account couldn't be made: $r\" ;; esac ) & fi; exec venv/bin/python -m synapse.app.homeserver $c",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Synapse now listening on TCP port\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Synapse: checks the release exists and writes a first configuration\n# (SQLite, sign-ups off, no usage stats). Synapse itself is installed from\n# PyPI into the server's venv folder on the next start, by the server's\n# Python. The database, media, signing key and homeserver.yaml are never\n# touched once there.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag element-hq/synapse \"$version\") || exit 1\necho \"${tag#v}\" > .synapse-version\n\nmkdir -p data/media_store\nif [ ! -f homeserver.yaml ]; then\n    name=\"${SYNAPSE_SERVER_NAME:-}\"\n    [ -n \"$name\" ] || fail \"Set Server name (such as example.com), then reinstall: it's part of every user's ID and can't change later.\"\n    secret() { openssl rand -hex 32; }\n    cat > homeserver.yaml <<YAML\n# Synapse's settings: https://element-hq.github.io/synapse/latest/usage/configuration/config_documentation.html\n# Restart the server after changing this file. The listener (port and\n# address) is written to .raptor-listeners.yaml at every start, from the\n# server's settings: don't add listeners here.\nserver_name: \"$name\"\npid_file: /home/container/data/homeserver.pid\ndatabase:\n  name: sqlite3\n  args:\n    database: /home/container/data/homeserver.db\nmedia_store_path: /home/container/data/media_store\nsigning_key_path: /home/container/data/signing.key\n# Sign-ups are off: the admin account comes from the server's settings,\n# and more users can be made by an admin.\nenable_registration: false\n# No anonymous usage statistics sent to the Matrix developers.\nreport_stats: false\nregistration_shared_secret: \"$(secret)\"\nmacaroon_secret_key: \"$(secret)\"\nform_secret: \"$(secret)\"\ntrusted_key_servers:\n  - server_name: \"matrix.org\"\nsuppress_key_server_warning: true\nYAML\n    chmod 600 homeserver.yaml\n    echo \"Wrote a first configuration for $name.\"\nfi\necho \"Installed Synapse ${tag#v}; it's downloaded on the first start.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Synapse version to install, such as 1.165.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The domain in your users' Matrix IDs, such as example.com for @alex:example.com. Set it before the first install: it can't change later.",
+            "env_variable": "SYNAPSE_SERVER_NAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^[A-Za-z0-9.-]+(:\\d+)?$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin username",
+            "description": "The admin account made on the first start, without the @ or the domain.",
+            "env_variable": "ADMIN_USER",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:50|regex:/^[a-z0-9._=\\/-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The admin account's password, used when the account is made. Change it in your Matrix client afterwards.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from Shiori's documentation; no upstream egg.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Shiori",
+    "author": "support@raptorpanel.net",
+    "description": "Shiori is a simple bookmark manager that keeps a readable copy of every page you save. The egg runs it with SQLite and gives the owner account the username and password you set, instead of Shiori's well-known default login.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "export SHIORI_DIR=/home/container/data SHIORI_HTTP_SECRET_KEY=\"$(cat data/.secret-key)\"; if [ ! -f data/.raptor-owner ]; then [ -n \"{{OWNER_PASSWORD}}\" ] || { echo \"Set Owner password first: until it is set, anyone could sign in to Shiori's default account.\"; exit 1; }; ./shiori server -a 127.0.0.1 -p {{SERVER_PORT}} --access-log=false >/dev/null 2>&1 & p=$!; t=; for i in $(seq 60); do sleep 1; r=$(curl -s -X POST -H 'Content-Type: application/json' -d '{\"username\":\"shiori\",\"password\":\"gopher\"}' http://127.0.0.1:{{SERVER_PORT}}/api/v1/auth/login) && { t=$(echo \"$r\" | jq -r '.message.token // empty'); break; }; done; if [ -n \"$t\" ]; then jq -n --arg u \"{{OWNER_USERNAME}}\" --arg p \"{{OWNER_PASSWORD}}\" '{username: $u, old_password: \"gopher\", new_password: $p}' | curl -sf -o /dev/null -X PATCH -H 'Content-Type: application/json' -H \"Authorization: Bearer $t\" --data-binary @- http://127.0.0.1:{{SERVER_PORT}}/api/v1/auth/account || { kill $p; echo \"Shiori didn't accept the owner account's new name or password.\"; exit 1; }; echo \"Set up the owner account {{OWNER_USERNAME}}.\"; fi; kill $p; wait $p; touch data/.raptor-owner; fi; exec ./shiori server -p {{SERVER_PORT}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"starting http server\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Shiori: downloads Shiori from its GitHub releases, checked against\n# GitHub's SHA-256, and makes the key that signs logins. The bookmarks\n# (the data folder) are never touched, and the binary is only replaced\n# once the new one is complete.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=x86_64 ;;\n    aarch64) arch=aarch64 ;;\n    *) fail \"Shiori has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag go-shiori/shiori \"$version\") || exit 1\n\nif [ -x shiori ] && [ \"$(cat .shiori-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Shiori $tag is already installed.\"\nelse\n    echo \"Downloading Shiori $tag\"\n    gh-release download go-shiori/shiori \"$tag\" \"shiori_Linux_${arch}_${tag#v}.tar.gz\" \"$work/shiori.tar.gz\"\n    tar -xzf \"$work/shiori.tar.gz\" -C \"$work\" shiori\n    install -m 0755 \"$work/shiori\" shiori.new\n    mv -f shiori.new shiori\n    echo \"$tag\" > .shiori-version\nfi\n\nmkdir -p data\n# The key that signs logins, made once: a new one would sign everyone out.\nif [ ! -s data/.secret-key ]; then\n    (umask 077; openssl rand -hex 32 > data/.secret-key)\nfi\necho \"Installed Shiori $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Shiori version to install, such as 1.8.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Owner username",
+            "description": "The owner account's username, set on the first start. Change it in Shiori's settings afterwards.",
+            "env_variable": "OWNER_USERNAME",
+            "default_value": "owner",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:50|regex:/^[A-Za-z0-9_.-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Owner password",
+            "description": "The owner account's password, set on the first start. Change it in Shiori's settings afterwards.",
+            "env_variable": "OWNER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        }
+    ]
+}

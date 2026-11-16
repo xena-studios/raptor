@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/strapi/egg-strapi.json
+license: MIT
+credits:
+  - "Written for Raptor from Strapi's documentation, https://docs.strapi.io (MIT); no upstream egg"
+  - "Icon: the Strapi logo, from https://github.com/strapi"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  # Building the admin panel peaks at about 2.4 GB.
+  memory_mib: 3072
+  # The first start makes a project, installs its packages and builds the
+  # admin panel.
+  done_timeout: 15m

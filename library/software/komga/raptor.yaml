@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/komga/egg-komga.json
+license: MIT
+credits:
+  - "Written for Raptor from Komga's documentation, https://komga.org (MIT); no upstream egg"
+  - "Icon: Komga's app icon, from the Komga jar (public/android-chrome-512x512.png)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 4m
