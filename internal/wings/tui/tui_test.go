@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	localv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/wings/local/v1"
 )
@@ -95,16 +95,16 @@ func drive(t *testing.T, m Model, cmd tea.Cmd) Model {
 }
 
 func key(m Model, k string) (Model, tea.Cmd) {
-	var msg tea.KeyMsg
+	var msg tea.KeyPressMsg
 	switch k {
 	case "enter":
-		msg = tea.KeyMsg{Type: tea.KeyEnter}
+		msg = tea.KeyPressMsg{Code: tea.KeyEnter}
 	case "esc":
-		msg = tea.KeyMsg{Type: tea.KeyEsc}
+		msg = tea.KeyPressMsg{Code: tea.KeyEsc}
 	case "down":
-		msg = tea.KeyMsg{Type: tea.KeyDown}
+		msg = tea.KeyPressMsg{Code: tea.KeyDown}
 	default:
-		msg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)}
+		msg = tea.KeyPressMsg{Code: []rune(k)[0], Text: k}
 	}
 	next, cmd := m.Update(msg)
 	return next.(Model), cmd
@@ -124,7 +124,10 @@ func newTest(t *testing.T, root bool) (Model, *fakeBackend) {
 
 func TestList(t *testing.T) {
 	m, f := newTest(t, true)
-	v := m.View()
+	if !m.View().AltScreen {
+		t.Error("not on the alternate screen")
+	}
+	v := m.View().Content
 	for _, want := range []string{"survival", "aaaaaaaa", "42%", "1.0 GiB", "0.0.0.0:25565", "creative"} {
 		if !strings.Contains(v, want) {
 			t.Errorf("list doesn't show %q:\n%s", want, v)
@@ -143,7 +146,7 @@ func TestDetail(t *testing.T) {
 	f.console <- "[Server thread/INFO]: Done (3.2s)!"
 	m, cmd := key(m, "enter")
 	m = drive(t, m, cmd)
-	v := m.View()
+	v := m.View().Content
 	for _, want := range []string{"survival", "Done (3.2s)!", "Players 3", "1.0 GiB / 2.0 GiB", "█"} {
 		if !strings.Contains(v, want) {
 			t.Errorf("detail doesn't show %q:\n%s", want, v)
@@ -161,8 +164,8 @@ func TestDetail(t *testing.T) {
 	m, _ = key(m, "esc") // leave the command line
 	// Kill asks first.
 	m, _ = key(m, "K")
-	if !strings.Contains(m.View(), "kill survival?") {
-		t.Fatalf("no kill prompt:\n%s", m.View())
+	if !strings.Contains(m.View().Content, "kill survival?") {
+		t.Fatalf("no kill prompt:\n%s", m.View().Content)
 	}
 	m, _ = key(m, "n")
 	m, _ = key(m, "K")
@@ -187,14 +190,14 @@ func TestNotRoot(t *testing.T) {
 		var cmd tea.Cmd
 		m, cmd = key(m, k)
 		m = drive(t, m, cmd)
-		if !strings.Contains(m.View(), "needs root") {
-			t.Errorf("%s as non-root:\n%s", k, m.View())
+		if !strings.Contains(m.View().Content, "needs root") {
+			t.Errorf("%s as non-root:\n%s", k, m.View().Content)
 		}
 	}
 	m, cmd := key(m, "enter")
 	m = drive(t, m, cmd)
 	m, _ = key(m, ":")
-	if m.typing || !strings.Contains(m.View(), "needs root") {
+	if m.typing || !strings.Contains(m.View().Content, "needs root") {
 		t.Error("typed a command as non-root")
 	}
 	if len(f.calls) != 0 {
