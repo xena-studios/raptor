@@ -5,8 +5,8 @@ import { can } from "@/lib/org-data";
 import type { ServerConfig } from "@/lib/servers";
 
 // useGameTab says whether a server gets the Game tab (#436): its game's
-// own settings, for games Raptor has a form for (Minecraft Java, for now),
-// to those who can read its files.
+// own settings and version, for games Raptor has them for (Minecraft Java
+// and its proxies, for now), to those who can read its files.
 export function useGameTab(
   orgId: string,
   nodeId: string,
@@ -20,8 +20,13 @@ export function useGameTab(
   );
   if (!can(server, "files.read") || !details.data?.configJson) return false;
   const cfg = JSON.parse(details.data.configJson) as ServerConfig;
-  // Proxies answer Minecraft's ping too, but have no server.properties.
-  const loaders = Object.values(cfg.egg?.addons ?? {}).flatMap((a) => a.loaders);
-  const proxy = ["velocity", "bungeecord", "waterfall"].includes(loaders[0] ?? "");
-  return cfg.egg?.players === "minecraft" && !proxy;
+  // Minecraft Java servers and proxies (the proxies for their version).
+  return cfg.egg?.players === "minecraft";
+}
+
+// isProxy: Velocity, Waterfall, BungeeCord answer Minecraft's ping but
+// have no server.properties.
+export function isProxy(cfg: ServerConfig | undefined): boolean {
+  const loaders = Object.values(cfg?.egg?.addons ?? {}).flatMap((a) => a.loaders);
+  return ["velocity", "bungeecord", "waterfall"].includes(loaders[0] ?? "");
 }

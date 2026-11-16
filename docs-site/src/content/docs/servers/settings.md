@@ -40,7 +40,9 @@ On **Startup**:
 - **Game settings:** versions, jar names, world names, passwords, and the like, each with what it does. Some are fixed by the game's recipe and shown greyed out; members only see the ones they're allowed to.
 - **Modpack** (Modrinth modpack servers): **Choose another modpack** picks a pack and version from Modrinth and fills in its settings. Save, then [reinstall](#reinstall) to install it. Back up first: the pack's mods and configs are replaced.
 
-Minecraft Java servers get a **Game** tab, next to Overview:
+Minecraft Java servers, and Velocity and Waterfall proxies, get a **Game** tab, next to Overview:
+
+- **Version:** the Minecraft (or proxy) version it runs, picked from the software's own list: Paper, Purpur, Folia, Velocity, Waterfall, vanilla, Fabric, or Quilt. **The newest** keeps it on the newest release at every reinstall. **Change to …** backs up the server's files, then reinstalls it with that version; the world, plugins or mods, and settings stay. Stop the server first. Going back to an older version warns you: a world opened in a newer version may not load in an older one, and the backup is how you'd undo it. It needs the **Startup** permission, and **Reinstall** to install straight away.
 
 - **Game settings:** Minecraft's own settings (server.properties) as a form: difficulty, game mode, PvP, the whitelist, max players, view distance, the world's seed and type, and the rest, each saying what it does. The form shows the settings your Minecraft version has, so it follows the version you run. **↺** puts one back to its default. The port is set on Network; settings the form doesn't know are listed and left alone, and **Edit as text** opens the file. Restart the server to use changes. Saving needs the **Change files** permission.
 - **In the server list:** the icon and message (MOTD) players see before they join, with a preview. Upload any image for the icon (it's cropped square and made 64×64, saved as `server-icon.png`), and use the colour and style buttons for the message instead of typing § codes. Restart the server to show it.

@@ -45,6 +45,13 @@ service AddonService {
   rpc ResolveAddonDependencies(ResolveAddonDependenciesRequest) returns (ResolveAddonDependenciesResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // ListGameVersions lists the versions a game's server software has,
+  // newest first, for the version switcher (#420): "paper", "folia",
+  // "velocity", "waterfall", "purpur", "vanilla", "fabric", or "quilt".
+  rpc ListGameVersions(ListGameVersionsRequest) returns (ListGameVersionsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
 }
 
 message AddonProject {
@@ -222,4 +229,20 @@ message ResolveAddonDependenciesResponse {
   // Required dependencies with no version for these loaders and game
   // version, or outside Modrinth (a file name only: project.title).
   repeated AddonProject unavailable = 4;
+}
+
+message ListGameVersionsRequest {
+  string org_id = 1;
+  string source = 2;
+}
+
+message GameVersion {
+  string id = 1;
+  // A release, not a snapshot, pre-release, or release candidate.
+  bool stable = 2;
+}
+
+message ListGameVersionsResponse {
+  // Newest first.
+  repeated GameVersion versions = 1;
 }

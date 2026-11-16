@@ -48,6 +48,9 @@ const (
 	// AddonServiceResolveAddonDependenciesProcedure is the fully-qualified name of the AddonService's
 	// ResolveAddonDependencies RPC.
 	AddonServiceResolveAddonDependenciesProcedure = "/raptor.panel.v1.AddonService/ResolveAddonDependencies"
+	// AddonServiceListGameVersionsProcedure is the fully-qualified name of the AddonService's
+	// ListGameVersions RPC.
+	AddonServiceListGameVersionsProcedure = "/raptor.panel.v1.AddonService/ListGameVersions"
 )
 
 // AddonServiceClient is a client for the raptor.panel.v1.AddonService service.
@@ -72,6 +75,10 @@ type AddonServiceClient interface {
 	// ones, leaving out projects already installed. It also names installed
 	// projects it can't run beside.
 	ResolveAddonDependencies(context.Context, *v1.ResolveAddonDependenciesRequest) (*v1.ResolveAddonDependenciesResponse, error)
+	// ListGameVersions lists the versions a game's server software has,
+	// newest first, for the version switcher (#420): "paper", "folia",
+	// "velocity", "waterfall", "purpur", "vanilla", "fabric", or "quilt".
+	ListGameVersions(context.Context, *v1.ListGameVersionsRequest) (*v1.ListGameVersionsResponse, error)
 }
 
 // NewAddonServiceClient constructs a client for the raptor.panel.v1.AddonService service. By
@@ -120,6 +127,13 @@ func NewAddonServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		listGameVersions: connect.NewClient[v1.ListGameVersionsRequest, v1.ListGameVersionsResponse](
+			httpClient,
+			baseURL+AddonServiceListGameVersionsProcedure,
+			connect.WithSchema(addonServiceMethods.ByName("ListGameVersions")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -130,6 +144,7 @@ type addonServiceClient struct {
 	identifyAddons           *connect.Client[v1.IdentifyAddonsRequest, v1.IdentifyAddonsResponse]
 	lookupWorkshopItems      *connect.Client[v1.LookupWorkshopItemsRequest, v1.LookupWorkshopItemsResponse]
 	resolveAddonDependencies *connect.Client[v1.ResolveAddonDependenciesRequest, v1.ResolveAddonDependenciesResponse]
+	listGameVersions         *connect.Client[v1.ListGameVersionsRequest, v1.ListGameVersionsResponse]
 }
 
 // SearchAddons calls raptor.panel.v1.AddonService.SearchAddons.
@@ -177,6 +192,15 @@ func (c *addonServiceClient) ResolveAddonDependencies(ctx context.Context, req *
 	return nil, err
 }
 
+// ListGameVersions calls raptor.panel.v1.AddonService.ListGameVersions.
+func (c *addonServiceClient) ListGameVersions(ctx context.Context, req *v1.ListGameVersionsRequest) (*v1.ListGameVersionsResponse, error) {
+	response, err := c.listGameVersions.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // AddonServiceHandler is an implementation of the raptor.panel.v1.AddonService service.
 type AddonServiceHandler interface {
 	// SearchAddons searches a source for a kind's projects that run on the
@@ -199,6 +223,10 @@ type AddonServiceHandler interface {
 	// ones, leaving out projects already installed. It also names installed
 	// projects it can't run beside.
 	ResolveAddonDependencies(context.Context, *v1.ResolveAddonDependenciesRequest) (*v1.ResolveAddonDependenciesResponse, error)
+	// ListGameVersions lists the versions a game's server software has,
+	// newest first, for the version switcher (#420): "paper", "folia",
+	// "velocity", "waterfall", "purpur", "vanilla", "fabric", or "quilt".
+	ListGameVersions(context.Context, *v1.ListGameVersionsRequest) (*v1.ListGameVersionsResponse, error)
 }
 
 // NewAddonServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -243,6 +271,13 @@ func NewAddonServiceHandler(svc AddonServiceHandler, opts ...connect.HandlerOpti
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	addonServiceListGameVersionsHandler := connect.NewUnaryHandlerSimple(
+		AddonServiceListGameVersionsProcedure,
+		svc.ListGameVersions,
+		connect.WithSchema(addonServiceMethods.ByName("ListGameVersions")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.panel.v1.AddonService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AddonServiceSearchAddonsProcedure:
@@ -255,6 +290,8 @@ func NewAddonServiceHandler(svc AddonServiceHandler, opts ...connect.HandlerOpti
 			addonServiceLookupWorkshopItemsHandler.ServeHTTP(w, r)
 		case AddonServiceResolveAddonDependenciesProcedure:
 			addonServiceResolveAddonDependenciesHandler.ServeHTTP(w, r)
+		case AddonServiceListGameVersionsProcedure:
+			addonServiceListGameVersionsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -282,4 +319,8 @@ func (UnimplementedAddonServiceHandler) LookupWorkshopItems(context.Context, *v1
 
 func (UnimplementedAddonServiceHandler) ResolveAddonDependencies(context.Context, *v1.ResolveAddonDependenciesRequest) (*v1.ResolveAddonDependenciesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AddonService.ResolveAddonDependencies is not implemented"))
+}
+
+func (UnimplementedAddonServiceHandler) ListGameVersions(context.Context, *v1.ListGameVersionsRequest) (*v1.ListGameVersionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AddonService.ListGameVersions is not implemented"))
 }

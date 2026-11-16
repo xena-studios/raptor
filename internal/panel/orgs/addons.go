@@ -20,6 +20,7 @@ import (
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
 	"github.com/xena-studios/raptor/internal/panel/auth"
 	"github.com/xena-studios/raptor/internal/panel/factorio"
+	"github.com/xena-studios/raptor/internal/panel/gameversions"
 	"github.com/xena-studios/raptor/internal/panel/hangar"
 	"github.com/xena-studios/raptor/internal/panel/modrinth"
 	"github.com/xena-studios/raptor/internal/panel/steam"
@@ -36,6 +37,7 @@ type Addons struct {
 	Steam    *steam.Client
 	UMod     *umod.Client
 	Factorio *factorio.Client
+	Versions *gameversions.Client
 }
 
 // kindModpacks is the pack picker's kind (#413): Modrinth's modpacks,
@@ -118,6 +120,8 @@ func modrinthError(err error) error {
 		return connect.NewError(connect.CodeUnavailable, hangar.ErrUnavailable)
 	case errors.Is(err, steam.ErrUnavailable):
 		return connect.NewError(connect.CodeUnavailable, steam.ErrUnavailable)
+	case errors.Is(err, gameversions.ErrUnavailable):
+		return connect.NewError(connect.CodeUnavailable, gameversions.ErrUnavailable)
 	case errors.Is(err, umod.ErrNotFound):
 		return connect.NewError(connect.CodeNotFound, err)
 	case errors.Is(err, umod.ErrUnavailable):
@@ -639,4 +643,26 @@ func (s *Addons) identifyOnFactorio(ctx context.Context, req *panelv1.IdentifyAd
 		out.Addons = append(out.Addons, a)
 	}
 	return nil
+}
+
+// ListGameVersions implements AddonService (#420).
+func (s *Addons) ListGameVersions(ctx context.Context, req *panelv1.ListGameVersionsRequest) (*panelv1.ListGameVersionsResponse, error) {
+	if err := s.allow(ctx, req.GetOrgId()); err != nil {
+		return nil, err
+	}
+	if !slices.Contains(gameversions.Sources, req.GetSource()) {
+		return nil, invalid(errors.New("unknown game software"))
+	}
+	list, err := s.Versions.List(ctx, req.GetSource())
+	if err != nil {
+		return nil, modrinthError(err)
+	}
+	out := &panelv1.ListGameVersionsResponse{}
+	for _, v := range list {
+		if len(out.Versions) == 500 {
+			break
+		}
+		out.Versions = append(out.Versions, &panelv1.GameVersion{Id: v.ID, Stable: v.Stable})
+	}
+	return out, nil
 }
