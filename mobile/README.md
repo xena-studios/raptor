@@ -10,6 +10,7 @@ Expo (SDK 58) and React Native, with Expo Router. Bundle ID and Android package:
 - **The API** is the web app's Connect API with the access token as a bearer (`src/lib/transport.ts`), from the same protobufs (`src/gen`, made by `task gen`).
 - **Push** (`src/lib/push.ts`): after signing in the app asks for notifications, takes the device's own push token from Apple or Google (not an Expo push token), and registers it (`RegisterPushDevice`), which makes the phone one of the person's alert channels. The Panel sends straight to APNs and FCM. Android has two channels, `alerts` and `urgent`. Tapping an alert opens its server.
 - **App lock** (`src/lib/lock.ts`): optional, in Settings. Face ID (Touch ID, a fingerprint, or the passcode) when the app opens and when it comes back after a minute away; the app switcher sees only the logo while it's in the background. Turning it on checks Face ID works first; signing out turns it off.
+- **Approving sign-ins** (`src/lib/approvals.ts`, `src/app/approve.tsx`): on accounts with an authenticator app, the phone can stand in for its codes. Turned on right after signing in (the inbox offers it) or in Settings; a 32-byte secret behind Face ID; a request (pushed, or shown on the inbox) asks for the number the browser shows. See [docs/PANEL.md](../docs/PANEL.md#phone-approvals).
 - **Design:** The Console ([docs/DESIGN.md](../docs/DESIGN.md)): `src/lib/theme.ts` has the web app's colours in hex, Hanken Grotesk and JetBrains Mono. The icons are the claw R on Signal Red.
 
 ## Running it

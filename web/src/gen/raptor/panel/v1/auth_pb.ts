@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/auth.proto.
  */
 export const file_raptor_panel_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChpyYXB0b3IvcGFuZWwvdjEvYXV0aC5wcm90bxIPcmFwdG9yLnBhbmVsLnYxIkEKF1N0YXJ0RW1haWxTaWduSW5SZXF1ZXN0Eg0KBWVtYWlsGAEgASgJEhcKD3R1cm5zdGlsZV90b2tlbhgCIAEoCSIaChhTdGFydEVtYWlsU2lnbkluUmVzcG9uc2UiZQoYRmluaXNoRW1haWxTaWduSW5SZXF1ZXN0EioKBGNvZGUYASABKAsyGi5yYXB0b3IucGFuZWwudjEuRW1haWxDb2RlSAASFAoKbGlua190b2tlbhgCIAEoCUgAQgcKBXByb29mIigKCUVtYWlsQ29kZRINCgVlbWFpbBgBIAEoCRIMCgRjb2RlGAIgASgJInUKGUZpbmlzaEVtYWlsU2lnbkluUmVzcG9uc2USIwoEdXNlchgBIAEoCzIVLnJhcHRvci5wYW5lbC52MS5Vc2VyEhMKC25ld19hY2NvdW50GAIgASgIEh4KFnNlY29uZF9mYWN0b3JfcmVxdWlyZWQYAyABKAgivgEKBFVzZXISCgoCaWQYASABKAkSDQoFZW1haWwYAiABKAkSDAoEbmFtZRgDIAEoCRIUCgx0b3RwX2VuYWJsZWQYBCABKAgSLgoKY3JlYXRlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFdGhlbWUYByABKAkSEwoLdGhlbWVfc3R5bGUYCCABKAkSDgoGYXZhdGFyGAkgASgJSgQIBRAGUg1zZnRwX3VzZXJuYW1lIhMKEUdldFNlc3Npb25SZXF1ZXN0IoEBChJHZXRTZXNzaW9uUmVzcG9uc2USIwoEdXNlchgBIAEoCzIVLnJhcHRvci5wYW5lbC52MS5Vc2VyEikKB3Nlc3Npb24YAiABKAsyGC5yYXB0b3IucGFuZWwudjEuU2Vzc2lvbhIbChNyZWNvdmVyeV9jb2Rlc19sZWZ0GAMgASgFIv8BCgdTZXNzaW9uEgoKAmlkGAEgASgJEi4KCmNyZWF0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGxhc3Rfc2Vlbl9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASCgoCaXAYBCABKAkSEgoKdXNlcl9hZ2VudBgFIAEoCRIPCgdjdXJyZW50GAYgASgIEjAKDHJlYXV0aF91bnRpbBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGY2xpZW50GAggASgJEhMKC2RldmljZV9uYW1lGAkgASgJIhAKDlNpZ25PdXRSZXF1ZXN0IhEKD1NpZ25PdXRSZXNwb25zZSIVChNMaXN0U2Vzc2lvbnNSZXF1ZXN0IkIKFExpc3RTZXNzaW9uc1Jlc3BvbnNlEioKCHNlc3Npb25zGAEgAygLMhgucmFwdG9yLnBhbmVsLnYxLlNlc3Npb24iRAoUUmV2b2tlU2Vzc2lvblJlcXVlc3QSDAoCaWQYASABKAlIABIUCgphbGxfb3RoZXJzGAIgASgISABCCAoGdGFyZ2V0IhcKFVJldm9rZVNlc3Npb25SZXNwb25zZSI9ChBQYXNza2V5Q2hhbGxlbmdlEhMKC2NlcmVtb255X2lkGAEgASgJEhQKDG9wdGlvbnNfanNvbhgCIAEoCSI9Cg1QYXNza2V5QW5zd2VyEhMKC2NlcmVtb255X2lkGAEgASgJEhcKD2NyZWRlbnRpYWxfanNvbhgCIAEoCSIbChlCZWdpblBhc3NrZXlTaWduSW5SZXF1ZXN0IlIKGkJlZ2luUGFzc2tleVNpZ25JblJlc3BvbnNlEjQKCWNoYWxsZW5nZRgBIAEoCzIhLnJhcHRvci5wYW5lbC52MS5QYXNza2V5Q2hhbGxlbmdlIkwKGkZpbmlzaFBhc3NrZXlTaWduSW5SZXF1ZXN0Ei4KBmFuc3dlchgBIAEoCzIeLnJhcHRvci5wYW5lbC52MS5QYXNza2V5QW5zd2VyIkIKG0ZpbmlzaFBhc3NrZXlTaWduSW5SZXNwb25zZRIjCgR1c2VyGAEgASgLMhUucmFwdG9yLnBhbmVsLnYxLlVzZXIiIQofQmVnaW5QYXNza2V5UmVnaXN0cmF0aW9uUmVxdWVzdCJYCiBCZWdpblBhc3NrZXlSZWdpc3RyYXRpb25SZXNwb25zZRI0CgljaGFsbGVuZ2UYASABKAsyIS5yYXB0b3IucGFuZWwudjEuUGFzc2tleUNoYWxsZW5nZSJgCiBGaW5pc2hQYXNza2V5UmVnaXN0cmF0aW9uUmVxdWVzdBIuCgZhbnN3ZXIYASABKAsyHi5yYXB0b3IucGFuZWwudjEuUGFzc2tleUFuc3dlchIMCgRuYW1lGAIgASgJIk4KIUZpbmlzaFBhc3NrZXlSZWdpc3RyYXRpb25SZXNwb25zZRIpCgdwYXNza2V5GAEgASgLMhgucmFwdG9yLnBhbmVsLnYxLlBhc3NrZXkiwAEKB1Bhc3NrZXkSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIuCgpjcmVhdGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxsYXN0X3VzZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg4KBnN5bmNlZBgFIAEoCBIVCg1jcmVkZW50aWFsX2lkGAYgASgMEhIKCnB1YmxpY19rZXkYByABKAwiFQoTTGlzdFBhc3NrZXlzUmVxdWVzdCJCChRMaXN0UGFzc2tleXNSZXNwb25zZRIqCghwYXNza2V5cxgBIAMoCzIYLnJhcHRvci5wYW5lbC52MS5QYXNza2V5IjAKFFJlbmFtZVBhc3NrZXlSZXF1ZXN0EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkiFwoVUmVuYW1lUGFzc2tleVJlc3BvbnNlIiIKFERlbGV0ZVBhc3NrZXlSZXF1ZXN0EgoKAmlkGAEgASgJIhcKFURlbGV0ZVBhc3NrZXlSZXNwb25zZSIUChJCZWdpblJlYXV0aFJlcXVlc3QigQEKE0JlZ2luUmVhdXRoUmVzcG9uc2USNAoHcGFzc2tleRgBIAEoCzIhLnJhcHRvci5wYW5lbC52MS5QYXNza2V5Q2hhbGxlbmdlSAASFAoKZW1haWxfc2VudBgCIAEoCEgAEhQKDHRvdHBfYWxsb3dlZBgDIAEoCEIICgZtZXRob2QifAoTRmluaXNoUmVhdXRoUmVxdWVzdBIxCgdwYXNza2V5GAEgASgLMh4ucmFwdG9yLnBhbmVsLnYxLlBhc3NrZXlBbnN3ZXJIABIUCgplbWFpbF9jb2RlGAIgASgJSAASEwoJdG90cF9jb2RlGAMgASgJSABCBwoFcHJvb2YiSAoURmluaXNoUmVhdXRoUmVzcG9uc2USMAoMcmVhdXRoX3VudGlsGAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJSChlGaW5pc2hTZWNvbmRGYWN0b3JSZXF1ZXN0EhMKCXRvdHBfY29kZRgBIAEoCUgAEhcKDXJlY292ZXJ5X2NvZGUYAiABKAlIAEIHCgVwcm9vZiJeChpGaW5pc2hTZWNvbmRGYWN0b3JSZXNwb25zZRIjCgR1c2VyGAEgASgLMhUucmFwdG9yLnBhbmVsLnYxLlVzZXISGwoTcmVjb3ZlcnlfY29kZXNfbGVmdBgCIAEoBSIXChVCZWdpblRPVFBTZXR1cFJlcXVlc3QiNQoWQmVnaW5UT1RQU2V0dXBSZXNwb25zZRIOCgZzZWNyZXQYASABKAkSCwoDdXJsGAIgASgJIiYKFkZpbmlzaFRPVFBTZXR1cFJlcXVlc3QSDAoEY29kZRgBIAEoCSIxChdGaW5pc2hUT1RQU2V0dXBSZXNwb25zZRIWCg5yZWNvdmVyeV9jb2RlcxgBIAMoCSIUChJEaXNhYmxlVE9UUFJlcXVlc3QiFQoTRGlzYWJsZVRPVFBSZXNwb25zZSIgCh5SZWdlbmVyYXRlUmVjb3ZlcnlDb2Rlc1JlcXVlc3QiOQofUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXNwb25zZRIWCg5yZWNvdmVyeV9jb2RlcxgBIAMoCSIZChdHZXRTaWduSW5NZXRob2RzUmVxdWVzdCJUChhHZXRTaWduSW5NZXRob2RzUmVzcG9uc2USDQoFZW1haWwYASABKAgSEAoIcGFzc2tleXMYAiABKAgSFwoPb2F1dGhfcHJvdmlkZXJzGAMgAygJIjMKEUJlZ2luT0F1dGhSZXF1ZXN0EhAKCHByb3ZpZGVyGAEgASgJEgwKBGxpbmsYAiABKAgiIQoSQmVnaW5PQXV0aFJlc3BvbnNlEgsKA3VybBgBIAEoCSKdAQoMT0F1dGhBY2NvdW50EgoKAmlkGAEgASgJEhAKCHByb3ZpZGVyGAIgASgJEg0KBWVtYWlsGAMgASgJEi4KCmNyZWF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGxhc3RfdXNlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiGgoYTGlzdE9BdXRoQWNjb3VudHNSZXF1ZXN0IkwKGUxpc3RPQXV0aEFjY291bnRzUmVzcG9uc2USLwoIYWNjb3VudHMYASADKAsyHS5yYXB0b3IucGFuZWwudjEuT0F1dGhBY2NvdW50IicKGVVubGlua09BdXRoQWNjb3VudFJlcXVlc3QSCgoCaWQYASABKAkiHAoaVW5saW5rT0F1dGhBY2NvdW50UmVzcG9uc2UiWgoTTGlzdEFjdGl2aXR5UmVxdWVzdBISCgpwYWdlX3Rva2VuGAEgASgJEi8KBmZpbHRlchgCIAEoCzIfLnJhcHRvci5wYW5lbC52MS5BY3Rpdml0eUZpbHRlciJcChRMaXN0QWN0aXZpdHlSZXNwb25zZRIrCgZldmVudHMYASADKAsyGy5yYXB0b3IucGFuZWwudjEuQXVkaXRFdmVudBIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiegoUVXBkYXRlUHJvZmlsZVJlcXVlc3QSEQoEbmFtZRgBIAEoCUgAiAEBEhIKBXRoZW1lGAIgASgJSAGIAQESGAoLdGhlbWVfc3R5bGUYAyABKAlIAogBAUIHCgVfbmFtZUIICgZfdGhlbWVCDgoMX3RoZW1lX3N0eWxlIjwKFVVwZGF0ZVByb2ZpbGVSZXNwb25zZRIjCgR1c2VyGAEgASgLMhUucmFwdG9yLnBhbmVsLnYxLlVzZXIiIQoQU2V0QXZhdGFyUmVxdWVzdBINCgVpbWFnZRgBIAEoDCI4ChFTZXRBdmF0YXJSZXNwb25zZRIjCgR1c2VyGAEgASgLMhUucmFwdG9yLnBhbmVsLnYxLlVzZXIiLAoXU3RhcnRFbWFpbENoYW5nZVJlcXVlc3QSEQoJbmV3X2VtYWlsGAEgASgJIhoKGFN0YXJ0RW1haWxDaGFuZ2VSZXNwb25zZSI7ChhGaW5pc2hFbWFpbENoYW5nZVJlcXVlc3QSEQoJbmV3X2VtYWlsGAEgASgJEgwKBGNvZGUYAiABKAkiQAoZRmluaXNoRW1haWxDaGFuZ2VSZXNwb25zZRIjCgR1c2VyGAEgASgLMhUucmFwdG9yLnBhbmVsLnYxLlVzZXIiFgoURGVsZXRlQWNjb3VudFJlcXVlc3QiFwoVRGVsZXRlQWNjb3VudFJlc3BvbnNlImkKEUFwcHJvdmVBcHBSZXF1ZXN0EhEKCWNsaWVudF9pZBgBIAEoCRIUCgxyZWRpcmVjdF91cmkYAiABKAkSFgoOY29kZV9jaGFsbGVuZ2UYAyABKAkSEwoLZGV2aWNlX25hbWUYBCABKAkiIgoSQXBwcm92ZUFwcFJlc3BvbnNlEgwKBGNvZGUYASABKAkymBkKC0F1dGhTZXJ2aWNlEmkKEFN0YXJ0RW1haWxTaWduSW4SKC5yYXB0b3IucGFuZWwudjEuU3RhcnRFbWFpbFNpZ25JblJlcXVlc3QaKS5yYXB0b3IucGFuZWwudjEuU3RhcnRFbWFpbFNpZ25JblJlc3BvbnNlIgASbAoRRmluaXNoRW1haWxTaWduSW4SKS5yYXB0b3IucGFuZWwudjEuRmluaXNoRW1haWxTaWduSW5SZXF1ZXN0GioucmFwdG9yLnBhbmVsLnYxLkZpbmlzaEVtYWlsU2lnbkluUmVzcG9uc2UiABJaCgpHZXRTZXNzaW9uEiIucmFwdG9yLnBhbmVsLnYxLkdldFNlc3Npb25SZXF1ZXN0GiMucmFwdG9yLnBhbmVsLnYxLkdldFNlc3Npb25SZXNwb25zZSIDkAIBEk4KB1NpZ25PdXQSHy5yYXB0b3IucGFuZWwudjEuU2lnbk91dFJlcXVlc3QaIC5yYXB0b3IucGFuZWwudjEuU2lnbk91dFJlc3BvbnNlIgASYAoMTGlzdFNlc3Npb25zEiQucmFwdG9yLnBhbmVsLnYxLkxpc3RTZXNzaW9uc1JlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuTGlzdFNlc3Npb25zUmVzcG9uc2UiA5ACARJgCg1SZXZva2VTZXNzaW9uEiUucmFwdG9yLnBhbmVsLnYxLlJldm9rZVNlc3Npb25SZXF1ZXN0GiYucmFwdG9yLnBhbmVsLnYxLlJldm9rZVNlc3Npb25SZXNwb25zZSIAEm8KEkJlZ2luUGFzc2tleVNpZ25JbhIqLnJhcHRvci5wYW5lbC52MS5CZWdpblBhc3NrZXlTaWduSW5SZXF1ZXN0GisucmFwdG9yLnBhbmVsLnYxLkJlZ2luUGFzc2tleVNpZ25JblJlc3BvbnNlIgAScgoTRmluaXNoUGFzc2tleVNpZ25JbhIrLnJhcHRvci5wYW5lbC52MS5GaW5pc2hQYXNza2V5U2lnbkluUmVxdWVzdBosLnJhcHRvci5wYW5lbC52MS5GaW5pc2hQYXNza2V5U2lnbkluUmVzcG9uc2UiABKBAQoYQmVnaW5QYXNza2V5UmVnaXN0cmF0aW9uEjAucmFwdG9yLnBhbmVsLnYxLkJlZ2luUGFzc2tleVJlZ2lzdHJhdGlvblJlcXVlc3QaMS5yYXB0b3IucGFuZWwudjEuQmVnaW5QYXNza2V5UmVnaXN0cmF0aW9uUmVzcG9uc2UiABKEAQoZRmluaXNoUGFzc2tleVJlZ2lzdHJhdGlvbhIxLnJhcHRvci5wYW5lbC52MS5GaW5pc2hQYXNza2V5UmVnaXN0cmF0aW9uUmVxdWVzdBoyLnJhcHRvci5wYW5lbC52MS5GaW5pc2hQYXNza2V5UmVnaXN0cmF0aW9uUmVzcG9uc2UiABJgCgxMaXN0UGFzc2tleXMSJC5yYXB0b3IucGFuZWwudjEuTGlzdFBhc3NrZXlzUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5MaXN0UGFzc2tleXNSZXNwb25zZSIDkAIBEmAKDVJlbmFtZVBhc3NrZXkSJS5yYXB0b3IucGFuZWwudjEuUmVuYW1lUGFzc2tleVJlcXVlc3QaJi5yYXB0b3IucGFuZWwudjEuUmVuYW1lUGFzc2tleVJlc3BvbnNlIgASYAoNRGVsZXRlUGFzc2tleRIlLnJhcHRvci5wYW5lbC52MS5EZWxldGVQYXNza2V5UmVxdWVzdBomLnJhcHRvci5wYW5lbC52MS5EZWxldGVQYXNza2V5UmVzcG9uc2UiABJaCgtCZWdpblJlYXV0aBIjLnJhcHRvci5wYW5lbC52MS5CZWdpblJlYXV0aFJlcXVlc3QaJC5yYXB0b3IucGFuZWwudjEuQmVnaW5SZWF1dGhSZXNwb25zZSIAEl0KDEZpbmlzaFJlYXV0aBIkLnJhcHRvci5wYW5lbC52MS5GaW5pc2hSZWF1dGhSZXF1ZXN0GiUucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFJlYXV0aFJlc3BvbnNlIgASbwoSRmluaXNoU2Vjb25kRmFjdG9yEioucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFNlY29uZEZhY3RvclJlcXVlc3QaKy5yYXB0b3IucGFuZWwudjEuRmluaXNoU2Vjb25kRmFjdG9yUmVzcG9uc2UiABJjCg5CZWdpblRPVFBTZXR1cBImLnJhcHRvci5wYW5lbC52MS5CZWdpblRPVFBTZXR1cFJlcXVlc3QaJy5yYXB0b3IucGFuZWwudjEuQmVnaW5UT1RQU2V0dXBSZXNwb25zZSIAEmYKD0ZpbmlzaFRPVFBTZXR1cBInLnJhcHRvci5wYW5lbC52MS5GaW5pc2hUT1RQU2V0dXBSZXF1ZXN0GigucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFRPVFBTZXR1cFJlc3BvbnNlIgASWgoLRGlzYWJsZVRPVFASIy5yYXB0b3IucGFuZWwudjEuRGlzYWJsZVRPVFBSZXF1ZXN0GiQucmFwdG9yLnBhbmVsLnYxLkRpc2FibGVUT1RQUmVzcG9uc2UiABJ+ChdSZWdlbmVyYXRlUmVjb3ZlcnlDb2RlcxIvLnJhcHRvci5wYW5lbC52MS5SZWdlbmVyYXRlUmVjb3ZlcnlDb2Rlc1JlcXVlc3QaMC5yYXB0b3IucGFuZWwudjEuUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXNwb25zZSIAEmwKEEdldFNpZ25Jbk1ldGhvZHMSKC5yYXB0b3IucGFuZWwudjEuR2V0U2lnbkluTWV0aG9kc1JlcXVlc3QaKS5yYXB0b3IucGFuZWwudjEuR2V0U2lnbkluTWV0aG9kc1Jlc3BvbnNlIgOQAgESVwoKQmVnaW5PQXV0aBIiLnJhcHRvci5wYW5lbC52MS5CZWdpbk9BdXRoUmVxdWVzdBojLnJhcHRvci5wYW5lbC52MS5CZWdpbk9BdXRoUmVzcG9uc2UiABJvChFMaXN0T0F1dGhBY2NvdW50cxIpLnJhcHRvci5wYW5lbC52MS5MaXN0T0F1dGhBY2NvdW50c1JlcXVlc3QaKi5yYXB0b3IucGFuZWwudjEuTGlzdE9BdXRoQWNjb3VudHNSZXNwb25zZSIDkAIBEm8KElVubGlua09BdXRoQWNjb3VudBIqLnJhcHRvci5wYW5lbC52MS5VbmxpbmtPQXV0aEFjY291bnRSZXF1ZXN0GisucmFwdG9yLnBhbmVsLnYxLlVubGlua09BdXRoQWNjb3VudFJlc3BvbnNlIgASYAoMTGlzdEFjdGl2aXR5EiQucmFwdG9yLnBhbmVsLnYxLkxpc3RBY3Rpdml0eVJlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuTGlzdEFjdGl2aXR5UmVzcG9uc2UiA5ACARJgCg1VcGRhdGVQcm9maWxlEiUucmFwdG9yLnBhbmVsLnYxLlVwZGF0ZVByb2ZpbGVSZXF1ZXN0GiYucmFwdG9yLnBhbmVsLnYxLlVwZGF0ZVByb2ZpbGVSZXNwb25zZSIAElQKCVNldEF2YXRhchIhLnJhcHRvci5wYW5lbC52MS5TZXRBdmF0YXJSZXF1ZXN0GiIucmFwdG9yLnBhbmVsLnYxLlNldEF2YXRhclJlc3BvbnNlIgASaQoQU3RhcnRFbWFpbENoYW5nZRIoLnJhcHRvci5wYW5lbC52MS5TdGFydEVtYWlsQ2hhbmdlUmVxdWVzdBopLnJhcHRvci5wYW5lbC52MS5TdGFydEVtYWlsQ2hhbmdlUmVzcG9uc2UiABJsChFGaW5pc2hFbWFpbENoYW5nZRIpLnJhcHRvci5wYW5lbC52MS5GaW5pc2hFbWFpbENoYW5nZVJlcXVlc3QaKi5yYXB0b3IucGFuZWwudjEuRmluaXNoRW1haWxDaGFuZ2VSZXNwb25zZSIAEmAKDURlbGV0ZUFjY291bnQSJS5yYXB0b3IucGFuZWwudjEuRGVsZXRlQWNjb3VudFJlcXVlc3QaJi5yYXB0b3IucGFuZWwudjEuRGVsZXRlQWNjb3VudFJlc3BvbnNlIgASVwoKQXBwcm92ZUFwcBIiLnJhcHRvci5wYW5lbC52MS5BcHByb3ZlQXBwUmVxdWVzdBojLnJhcHRvci5wYW5lbC52MS5BcHByb3ZlQXBwUmVzcG9uc2UiAELJAQoTY29tLnJhcHRvci5wYW5lbC52MUIJQXV0aFByb3RvUAFaSWdpdGh1Yi5jb20veGVuYS1zdHVkaW9zL3JhcHRvci9pbnRlcm5hbC9nZW4vcHJvdG8vcmFwdG9yL3BhbmVsL3YxO3BhbmVsdjGiAgNSUFiqAg9SYXB0b3IuUGFuZWwuVjHKAg9SYXB0b3JcUGFuZWxcVjHiAhtSYXB0b3JcUGFuZWxcVjFcR1BCTWV0YWRhdGHqAhFSYXB0b3I6OlBhbmVsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp, file_raptor_panel_v1_audit]);
+  fileDesc("ChpyYXB0b3IvcGFuZWwvdjEvYXV0aC5wcm90bxIPcmFwdG9yLnBhbmVsLnYxIkEKF1N0YXJ0RW1haWxTaWduSW5SZXF1ZXN0Eg0KBWVtYWlsGAEgASgJEhcKD3R1cm5zdGlsZV90b2tlbhgCIAEoCSIaChhTdGFydEVtYWlsU2lnbkluUmVzcG9uc2UiZQoYRmluaXNoRW1haWxTaWduSW5SZXF1ZXN0EioKBGNvZGUYASABKAsyGi5yYXB0b3IucGFuZWwudjEuRW1haWxDb2RlSAASFAoKbGlua190b2tlbhgCIAEoCUgAQgcKBXByb29mIigKCUVtYWlsQ29kZRINCgVlbWFpbBgBIAEoCRIMCgRjb2RlGAIgASgJInUKGUZpbmlzaEVtYWlsU2lnbkluUmVzcG9uc2USIwoEdXNlchgBIAEoCzIVLnJhcHRvci5wYW5lbC52MS5Vc2VyEhMKC25ld19hY2NvdW50GAIgASgIEh4KFnNlY29uZF9mYWN0b3JfcmVxdWlyZWQYAyABKAgivgEKBFVzZXISCgoCaWQYASABKAkSDQoFZW1haWwYAiABKAkSDAoEbmFtZRgDIAEoCRIUCgx0b3RwX2VuYWJsZWQYBCABKAgSLgoKY3JlYXRlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFdGhlbWUYByABKAkSEwoLdGhlbWVfc3R5bGUYCCABKAkSDgoGYXZhdGFyGAkgASgJSgQIBRAGUg1zZnRwX3VzZXJuYW1lIhMKEUdldFNlc3Npb25SZXF1ZXN0IoEBChJHZXRTZXNzaW9uUmVzcG9uc2USIwoEdXNlchgBIAEoCzIVLnJhcHRvci5wYW5lbC52MS5Vc2VyEikKB3Nlc3Npb24YAiABKAsyGC5yYXB0b3IucGFuZWwudjEuU2Vzc2lvbhIbChNyZWNvdmVyeV9jb2Rlc19sZWZ0GAMgASgFIv8BCgdTZXNzaW9uEgoKAmlkGAEgASgJEi4KCmNyZWF0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGxhc3Rfc2Vlbl9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASCgoCaXAYBCABKAkSEgoKdXNlcl9hZ2VudBgFIAEoCRIPCgdjdXJyZW50GAYgASgIEjAKDHJlYXV0aF91bnRpbBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGY2xpZW50GAggASgJEhMKC2RldmljZV9uYW1lGAkgASgJIhAKDlNpZ25PdXRSZXF1ZXN0IhEKD1NpZ25PdXRSZXNwb25zZSIVChNMaXN0U2Vzc2lvbnNSZXF1ZXN0IkIKFExpc3RTZXNzaW9uc1Jlc3BvbnNlEioKCHNlc3Npb25zGAEgAygLMhgucmFwdG9yLnBhbmVsLnYxLlNlc3Npb24iRAoUUmV2b2tlU2Vzc2lvblJlcXVlc3QSDAoCaWQYASABKAlIABIUCgphbGxfb3RoZXJzGAIgASgISABCCAoGdGFyZ2V0IhcKFVJldm9rZVNlc3Npb25SZXNwb25zZSI9ChBQYXNza2V5Q2hhbGxlbmdlEhMKC2NlcmVtb255X2lkGAEgASgJEhQKDG9wdGlvbnNfanNvbhgCIAEoCSI9Cg1QYXNza2V5QW5zd2VyEhMKC2NlcmVtb255X2lkGAEgASgJEhcKD2NyZWRlbnRpYWxfanNvbhgCIAEoCSIbChlCZWdpblBhc3NrZXlTaWduSW5SZXF1ZXN0IlIKGkJlZ2luUGFzc2tleVNpZ25JblJlc3BvbnNlEjQKCWNoYWxsZW5nZRgBIAEoCzIhLnJhcHRvci5wYW5lbC52MS5QYXNza2V5Q2hhbGxlbmdlIkwKGkZpbmlzaFBhc3NrZXlTaWduSW5SZXF1ZXN0Ei4KBmFuc3dlchgBIAEoCzIeLnJhcHRvci5wYW5lbC52MS5QYXNza2V5QW5zd2VyIkIKG0ZpbmlzaFBhc3NrZXlTaWduSW5SZXNwb25zZRIjCgR1c2VyGAEgASgLMhUucmFwdG9yLnBhbmVsLnYxLlVzZXIiIQofQmVnaW5QYXNza2V5UmVnaXN0cmF0aW9uUmVxdWVzdCJYCiBCZWdpblBhc3NrZXlSZWdpc3RyYXRpb25SZXNwb25zZRI0CgljaGFsbGVuZ2UYASABKAsyIS5yYXB0b3IucGFuZWwudjEuUGFzc2tleUNoYWxsZW5nZSJgCiBGaW5pc2hQYXNza2V5UmVnaXN0cmF0aW9uUmVxdWVzdBIuCgZhbnN3ZXIYASABKAsyHi5yYXB0b3IucGFuZWwudjEuUGFzc2tleUFuc3dlchIMCgRuYW1lGAIgASgJIk4KIUZpbmlzaFBhc3NrZXlSZWdpc3RyYXRpb25SZXNwb25zZRIpCgdwYXNza2V5GAEgASgLMhgucmFwdG9yLnBhbmVsLnYxLlBhc3NrZXkiwAEKB1Bhc3NrZXkSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIuCgpjcmVhdGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxsYXN0X3VzZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg4KBnN5bmNlZBgFIAEoCBIVCg1jcmVkZW50aWFsX2lkGAYgASgMEhIKCnB1YmxpY19rZXkYByABKAwiFQoTTGlzdFBhc3NrZXlzUmVxdWVzdCJCChRMaXN0UGFzc2tleXNSZXNwb25zZRIqCghwYXNza2V5cxgBIAMoCzIYLnJhcHRvci5wYW5lbC52MS5QYXNza2V5IjAKFFJlbmFtZVBhc3NrZXlSZXF1ZXN0EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkiFwoVUmVuYW1lUGFzc2tleVJlc3BvbnNlIiIKFERlbGV0ZVBhc3NrZXlSZXF1ZXN0EgoKAmlkGAEgASgJIhcKFURlbGV0ZVBhc3NrZXlSZXNwb25zZSIUChJCZWdpblJlYXV0aFJlcXVlc3QimAEKE0JlZ2luUmVhdXRoUmVzcG9uc2USNAoHcGFzc2tleRgBIAEoCzIhLnJhcHRvci5wYW5lbC52MS5QYXNza2V5Q2hhbGxlbmdlSAASFAoKZW1haWxfc2VudBgCIAEoCEgAEhQKDHRvdHBfYWxsb3dlZBgDIAEoCBIVCg1waG9uZV9hbGxvd2VkGAQgASgIQggKBm1ldGhvZCKZAQoTRmluaXNoUmVhdXRoUmVxdWVzdBIxCgdwYXNza2V5GAEgASgLMh4ucmFwdG9yLnBhbmVsLnYxLlBhc3NrZXlBbnN3ZXJIABIUCgplbWFpbF9jb2RlGAIgASgJSAASEwoJdG90cF9jb2RlGAMgASgJSAASGwoRcGhvbmVfYXBwcm92YWxfaWQYBCABKAlIAEIHCgVwcm9vZiJIChRGaW5pc2hSZWF1dGhSZXNwb25zZRIwCgxyZWF1dGhfdW50aWwYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIm8KGUZpbmlzaFNlY29uZEZhY3RvclJlcXVlc3QSEwoJdG90cF9jb2RlGAEgASgJSAASFwoNcmVjb3ZlcnlfY29kZRgCIAEoCUgAEhsKEXBob25lX2FwcHJvdmFsX2lkGAMgASgJSABCBwoFcHJvb2YiXgoaRmluaXNoU2Vjb25kRmFjdG9yUmVzcG9uc2USIwoEdXNlchgBIAEoCzIVLnJhcHRvci5wYW5lbC52MS5Vc2VyEhsKE3JlY292ZXJ5X2NvZGVzX2xlZnQYAiABKAUiFwoVQmVnaW5UT1RQU2V0dXBSZXF1ZXN0IjUKFkJlZ2luVE9UUFNldHVwUmVzcG9uc2USDgoGc2VjcmV0GAEgASgJEgsKA3VybBgCIAEoCSImChZGaW5pc2hUT1RQU2V0dXBSZXF1ZXN0EgwKBGNvZGUYASABKAkiMQoXRmluaXNoVE9UUFNldHVwUmVzcG9uc2USFgoOcmVjb3ZlcnlfY29kZXMYASADKAkiFAoSRGlzYWJsZVRPVFBSZXF1ZXN0IhUKE0Rpc2FibGVUT1RQUmVzcG9uc2UiIAoeUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXF1ZXN0IjkKH1JlZ2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVzcG9uc2USFgoOcmVjb3ZlcnlfY29kZXMYASADKAkiGQoXR2V0U2lnbkluTWV0aG9kc1JlcXVlc3QiVAoYR2V0U2lnbkluTWV0aG9kc1Jlc3BvbnNlEg0KBWVtYWlsGAEgASgIEhAKCHBhc3NrZXlzGAIgASgIEhcKD29hdXRoX3Byb3ZpZGVycxgDIAMoCSIzChFCZWdpbk9BdXRoUmVxdWVzdBIQCghwcm92aWRlchgBIAEoCRIMCgRsaW5rGAIgASgIIiEKEkJlZ2luT0F1dGhSZXNwb25zZRILCgN1cmwYASABKAkinQEKDE9BdXRoQWNjb3VudBIKCgJpZBgBIAEoCRIQCghwcm92aWRlchgCIAEoCRINCgVlbWFpbBgDIAEoCRIuCgpjcmVhdGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxsYXN0X3VzZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIhoKGExpc3RPQXV0aEFjY291bnRzUmVxdWVzdCJMChlMaXN0T0F1dGhBY2NvdW50c1Jlc3BvbnNlEi8KCGFjY291bnRzGAEgAygLMh0ucmFwdG9yLnBhbmVsLnYxLk9BdXRoQWNjb3VudCInChlVbmxpbmtPQXV0aEFjY291bnRSZXF1ZXN0EgoKAmlkGAEgASgJIhwKGlVubGlua09BdXRoQWNjb3VudFJlc3BvbnNlIloKE0xpc3RBY3Rpdml0eVJlcXVlc3QSEgoKcGFnZV90b2tlbhgBIAEoCRIvCgZmaWx0ZXIYAiABKAsyHy5yYXB0b3IucGFuZWwudjEuQWN0aXZpdHlGaWx0ZXIiXAoUTGlzdEFjdGl2aXR5UmVzcG9uc2USKwoGZXZlbnRzGAEgAygLMhsucmFwdG9yLnBhbmVsLnYxLkF1ZGl0RXZlbnQSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJInoKFFVwZGF0ZVByb2ZpbGVSZXF1ZXN0EhEKBG5hbWUYASABKAlIAIgBARISCgV0aGVtZRgCIAEoCUgBiAEBEhgKC3RoZW1lX3N0eWxlGAMgASgJSAKIAQFCBwoFX25hbWVCCAoGX3RoZW1lQg4KDF90aGVtZV9zdHlsZSI8ChVVcGRhdGVQcm9maWxlUmVzcG9uc2USIwoEdXNlchgBIAEoCzIVLnJhcHRvci5wYW5lbC52MS5Vc2VyIiEKEFNldEF2YXRhclJlcXVlc3QSDQoFaW1hZ2UYASABKAwiOAoRU2V0QXZhdGFyUmVzcG9uc2USIwoEdXNlchgBIAEoCzIVLnJhcHRvci5wYW5lbC52MS5Vc2VyIiwKF1N0YXJ0RW1haWxDaGFuZ2VSZXF1ZXN0EhEKCW5ld19lbWFpbBgBIAEoCSIaChhTdGFydEVtYWlsQ2hhbmdlUmVzcG9uc2UiOwoYRmluaXNoRW1haWxDaGFuZ2VSZXF1ZXN0EhEKCW5ld19lbWFpbBgBIAEoCRIMCgRjb2RlGAIgASgJIkAKGUZpbmlzaEVtYWlsQ2hhbmdlUmVzcG9uc2USIwoEdXNlchgBIAEoCzIVLnJhcHRvci5wYW5lbC52MS5Vc2VyIhYKFERlbGV0ZUFjY291bnRSZXF1ZXN0IhcKFURlbGV0ZUFjY291bnRSZXNwb25zZSJpChFBcHByb3ZlQXBwUmVxdWVzdBIRCgljbGllbnRfaWQYASABKAkSFAoMcmVkaXJlY3RfdXJpGAIgASgJEhYKDmNvZGVfY2hhbGxlbmdlGAMgASgJEhMKC2RldmljZV9uYW1lGAQgASgJIiIKEkFwcHJvdmVBcHBSZXNwb25zZRIMCgRjb2RlGAEgASgJIhkKF0dldFBob25lQXBwcm92ZXJSZXF1ZXN0IlAKGEdldFBob25lQXBwcm92ZXJSZXNwb25zZRIQCghlbnJvbGxlZBgBIAEoCBISCgpjYW5fZW5yb2xsGAIgASgIEg4KBnJlYXNvbhgDIAEoCSIsChpFbnJvbGxQaG9uZUFwcHJvdmVyUmVxdWVzdBIOCgZzZWNyZXQYASABKAwiHQobRW5yb2xsUGhvbmVBcHByb3ZlclJlc3BvbnNlIhwKGlJlbW92ZVBob25lQXBwcm92ZXJSZXF1ZXN0Ih0KG1JlbW92ZVBob25lQXBwcm92ZXJSZXNwb25zZSIsChlTdGFydFBob25lQXBwcm92YWxSZXF1ZXN0Eg8KB3B1cnBvc2UYASABKAkigwEKGlN0YXJ0UGhvbmVBcHByb3ZhbFJlc3BvbnNlEhMKC2FwcHJvdmFsX2lkGAEgASgJEg4KBm51bWJlchgCIAEoBRIuCgpleHBpcmVzX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIQCghub3RpZmllZBgEIAEoBSIwChlDaGVja1Bob25lQXBwcm92YWxSZXF1ZXN0EhMKC2FwcHJvdmFsX2lkGAEgASgJIiwKGkNoZWNrUGhvbmVBcHByb3ZhbFJlc3BvbnNlEg4KBnN0YXR1cxgBIAEoCSIbChlMaXN0UGhvbmVBcHByb3ZhbHNSZXF1ZXN0ItABCg1QaG9uZUFwcHJvdmFsEgoKAmlkGAEgASgJEg8KB3B1cnBvc2UYAiABKAkSDwoHY2hvaWNlcxgDIAMoBRIRCgljaGFsbGVuZ2UYBCABKAwSCgoCaXAYBSABKAkSEgoKdXNlcl9hZ2VudBgGIAEoCRIuCgpjcmVhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpleHBpcmVzX2F0GAggASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJPChpMaXN0UGhvbmVBcHByb3ZhbHNSZXNwb25zZRIxCglhcHByb3ZhbHMYASADKAsyHi5yYXB0b3IucGFuZWwudjEuUGhvbmVBcHByb3ZhbCJfChpEZWNpZGVQaG9uZUFwcHJvdmFsUmVxdWVzdBITCgthcHByb3ZhbF9pZBgBIAEoCRIPCgdhcHByb3ZlGAIgASgIEg4KBm51bWJlchgDIAEoBRILCgNtYWMYBCABKAwiLQobRGVjaWRlUGhvbmVBcHByb3ZhbFJlc3BvbnNlEg4KBnN0YXR1cxgBIAEoCTK7HwoLQXV0aFNlcnZpY2USaQoQU3RhcnRFbWFpbFNpZ25JbhIoLnJhcHRvci5wYW5lbC52MS5TdGFydEVtYWlsU2lnbkluUmVxdWVzdBopLnJhcHRvci5wYW5lbC52MS5TdGFydEVtYWlsU2lnbkluUmVzcG9uc2UiABJsChFGaW5pc2hFbWFpbFNpZ25JbhIpLnJhcHRvci5wYW5lbC52MS5GaW5pc2hFbWFpbFNpZ25JblJlcXVlc3QaKi5yYXB0b3IucGFuZWwudjEuRmluaXNoRW1haWxTaWduSW5SZXNwb25zZSIAEloKCkdldFNlc3Npb24SIi5yYXB0b3IucGFuZWwudjEuR2V0U2Vzc2lvblJlcXVlc3QaIy5yYXB0b3IucGFuZWwudjEuR2V0U2Vzc2lvblJlc3BvbnNlIgOQAgESTgoHU2lnbk91dBIfLnJhcHRvci5wYW5lbC52MS5TaWduT3V0UmVxdWVzdBogLnJhcHRvci5wYW5lbC52MS5TaWduT3V0UmVzcG9uc2UiABJgCgxMaXN0U2Vzc2lvbnMSJC5yYXB0b3IucGFuZWwudjEuTGlzdFNlc3Npb25zUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5MaXN0U2Vzc2lvbnNSZXNwb25zZSIDkAIBEmAKDVJldm9rZVNlc3Npb24SJS5yYXB0b3IucGFuZWwudjEuUmV2b2tlU2Vzc2lvblJlcXVlc3QaJi5yYXB0b3IucGFuZWwudjEuUmV2b2tlU2Vzc2lvblJlc3BvbnNlIgASbwoSQmVnaW5QYXNza2V5U2lnbkluEioucmFwdG9yLnBhbmVsLnYxLkJlZ2luUGFzc2tleVNpZ25JblJlcXVlc3QaKy5yYXB0b3IucGFuZWwudjEuQmVnaW5QYXNza2V5U2lnbkluUmVzcG9uc2UiABJyChNGaW5pc2hQYXNza2V5U2lnbkluEisucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFBhc3NrZXlTaWduSW5SZXF1ZXN0GiwucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFBhc3NrZXlTaWduSW5SZXNwb25zZSIAEoEBChhCZWdpblBhc3NrZXlSZWdpc3RyYXRpb24SMC5yYXB0b3IucGFuZWwudjEuQmVnaW5QYXNza2V5UmVnaXN0cmF0aW9uUmVxdWVzdBoxLnJhcHRvci5wYW5lbC52MS5CZWdpblBhc3NrZXlSZWdpc3RyYXRpb25SZXNwb25zZSIAEoQBChlGaW5pc2hQYXNza2V5UmVnaXN0cmF0aW9uEjEucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFBhc3NrZXlSZWdpc3RyYXRpb25SZXF1ZXN0GjIucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFBhc3NrZXlSZWdpc3RyYXRpb25SZXNwb25zZSIAEmAKDExpc3RQYXNza2V5cxIkLnJhcHRvci5wYW5lbC52MS5MaXN0UGFzc2tleXNSZXF1ZXN0GiUucmFwdG9yLnBhbmVsLnYxLkxpc3RQYXNza2V5c1Jlc3BvbnNlIgOQAgESYAoNUmVuYW1lUGFzc2tleRIlLnJhcHRvci5wYW5lbC52MS5SZW5hbWVQYXNza2V5UmVxdWVzdBomLnJhcHRvci5wYW5lbC52MS5SZW5hbWVQYXNza2V5UmVzcG9uc2UiABJgCg1EZWxldGVQYXNza2V5EiUucmFwdG9yLnBhbmVsLnYxLkRlbGV0ZVBhc3NrZXlSZXF1ZXN0GiYucmFwdG9yLnBhbmVsLnYxLkRlbGV0ZVBhc3NrZXlSZXNwb25zZSIAEloKC0JlZ2luUmVhdXRoEiMucmFwdG9yLnBhbmVsLnYxLkJlZ2luUmVhdXRoUmVxdWVzdBokLnJhcHRvci5wYW5lbC52MS5CZWdpblJlYXV0aFJlc3BvbnNlIgASXQoMRmluaXNoUmVhdXRoEiQucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFJlYXV0aFJlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuRmluaXNoUmVhdXRoUmVzcG9uc2UiABJvChJGaW5pc2hTZWNvbmRGYWN0b3ISKi5yYXB0b3IucGFuZWwudjEuRmluaXNoU2Vjb25kRmFjdG9yUmVxdWVzdBorLnJhcHRvci5wYW5lbC52MS5GaW5pc2hTZWNvbmRGYWN0b3JSZXNwb25zZSIAEmMKDkJlZ2luVE9UUFNldHVwEiYucmFwdG9yLnBhbmVsLnYxLkJlZ2luVE9UUFNldHVwUmVxdWVzdBonLnJhcHRvci5wYW5lbC52MS5CZWdpblRPVFBTZXR1cFJlc3BvbnNlIgASZgoPRmluaXNoVE9UUFNldHVwEicucmFwdG9yLnBhbmVsLnYxLkZpbmlzaFRPVFBTZXR1cFJlcXVlc3QaKC5yYXB0b3IucGFuZWwudjEuRmluaXNoVE9UUFNldHVwUmVzcG9uc2UiABJaCgtEaXNhYmxlVE9UUBIjLnJhcHRvci5wYW5lbC52MS5EaXNhYmxlVE9UUFJlcXVlc3QaJC5yYXB0b3IucGFuZWwudjEuRGlzYWJsZVRPVFBSZXNwb25zZSIAEn4KF1JlZ2VuZXJhdGVSZWNvdmVyeUNvZGVzEi8ucmFwdG9yLnBhbmVsLnYxLlJlZ2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVxdWVzdBowLnJhcHRvci5wYW5lbC52MS5SZWdlbmVyYXRlUmVjb3ZlcnlDb2Rlc1Jlc3BvbnNlIgASbAoQR2V0U2lnbkluTWV0aG9kcxIoLnJhcHRvci5wYW5lbC52MS5HZXRTaWduSW5NZXRob2RzUmVxdWVzdBopLnJhcHRvci5wYW5lbC52MS5HZXRTaWduSW5NZXRob2RzUmVzcG9uc2UiA5ACARJXCgpCZWdpbk9BdXRoEiIucmFwdG9yLnBhbmVsLnYxLkJlZ2luT0F1dGhSZXF1ZXN0GiMucmFwdG9yLnBhbmVsLnYxLkJlZ2luT0F1dGhSZXNwb25zZSIAEm8KEUxpc3RPQXV0aEFjY291bnRzEikucmFwdG9yLnBhbmVsLnYxLkxpc3RPQXV0aEFjY291bnRzUmVxdWVzdBoqLnJhcHRvci5wYW5lbC52MS5MaXN0T0F1dGhBY2NvdW50c1Jlc3BvbnNlIgOQAgESbwoSVW5saW5rT0F1dGhBY2NvdW50EioucmFwdG9yLnBhbmVsLnYxLlVubGlua09BdXRoQWNjb3VudFJlcXVlc3QaKy5yYXB0b3IucGFuZWwudjEuVW5saW5rT0F1dGhBY2NvdW50UmVzcG9uc2UiABJgCgxMaXN0QWN0aXZpdHkSJC5yYXB0b3IucGFuZWwudjEuTGlzdEFjdGl2aXR5UmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5MaXN0QWN0aXZpdHlSZXNwb25zZSIDkAIBEmAKDVVwZGF0ZVByb2ZpbGUSJS5yYXB0b3IucGFuZWwudjEuVXBkYXRlUHJvZmlsZVJlcXVlc3QaJi5yYXB0b3IucGFuZWwudjEuVXBkYXRlUHJvZmlsZVJlc3BvbnNlIgASVAoJU2V0QXZhdGFyEiEucmFwdG9yLnBhbmVsLnYxLlNldEF2YXRhclJlcXVlc3QaIi5yYXB0b3IucGFuZWwudjEuU2V0QXZhdGFyUmVzcG9uc2UiABJpChBTdGFydEVtYWlsQ2hhbmdlEigucmFwdG9yLnBhbmVsLnYxLlN0YXJ0RW1haWxDaGFuZ2VSZXF1ZXN0GikucmFwdG9yLnBhbmVsLnYxLlN0YXJ0RW1haWxDaGFuZ2VSZXNwb25zZSIAEmwKEUZpbmlzaEVtYWlsQ2hhbmdlEikucmFwdG9yLnBhbmVsLnYxLkZpbmlzaEVtYWlsQ2hhbmdlUmVxdWVzdBoqLnJhcHRvci5wYW5lbC52MS5GaW5pc2hFbWFpbENoYW5nZVJlc3BvbnNlIgASYAoNRGVsZXRlQWNjb3VudBIlLnJhcHRvci5wYW5lbC52MS5EZWxldGVBY2NvdW50UmVxdWVzdBomLnJhcHRvci5wYW5lbC52MS5EZWxldGVBY2NvdW50UmVzcG9uc2UiABJXCgpBcHByb3ZlQXBwEiIucmFwdG9yLnBhbmVsLnYxLkFwcHJvdmVBcHBSZXF1ZXN0GiMucmFwdG9yLnBhbmVsLnYxLkFwcHJvdmVBcHBSZXNwb25zZSIAEmwKEEdldFBob25lQXBwcm92ZXISKC5yYXB0b3IucGFuZWwudjEuR2V0UGhvbmVBcHByb3ZlclJlcXVlc3QaKS5yYXB0b3IucGFuZWwudjEuR2V0UGhvbmVBcHByb3ZlclJlc3BvbnNlIgOQAgEScgoTRW5yb2xsUGhvbmVBcHByb3ZlchIrLnJhcHRvci5wYW5lbC52MS5FbnJvbGxQaG9uZUFwcHJvdmVyUmVxdWVzdBosLnJhcHRvci5wYW5lbC52MS5FbnJvbGxQaG9uZUFwcHJvdmVyUmVzcG9uc2UiABJyChNSZW1vdmVQaG9uZUFwcHJvdmVyEisucmFwdG9yLnBhbmVsLnYxLlJlbW92ZVBob25lQXBwcm92ZXJSZXF1ZXN0GiwucmFwdG9yLnBhbmVsLnYxLlJlbW92ZVBob25lQXBwcm92ZXJSZXNwb25zZSIAEm8KElN0YXJ0UGhvbmVBcHByb3ZhbBIqLnJhcHRvci5wYW5lbC52MS5TdGFydFBob25lQXBwcm92YWxSZXF1ZXN0GisucmFwdG9yLnBhbmVsLnYxLlN0YXJ0UGhvbmVBcHByb3ZhbFJlc3BvbnNlIgAScgoSQ2hlY2tQaG9uZUFwcHJvdmFsEioucmFwdG9yLnBhbmVsLnYxLkNoZWNrUGhvbmVBcHByb3ZhbFJlcXVlc3QaKy5yYXB0b3IucGFuZWwudjEuQ2hlY2tQaG9uZUFwcHJvdmFsUmVzcG9uc2UiA5ACARJyChJMaXN0UGhvbmVBcHByb3ZhbHMSKi5yYXB0b3IucGFuZWwudjEuTGlzdFBob25lQXBwcm92YWxzUmVxdWVzdBorLnJhcHRvci5wYW5lbC52MS5MaXN0UGhvbmVBcHByb3ZhbHNSZXNwb25zZSIDkAIBEnIKE0RlY2lkZVBob25lQXBwcm92YWwSKy5yYXB0b3IucGFuZWwudjEuRGVjaWRlUGhvbmVBcHByb3ZhbFJlcXVlc3QaLC5yYXB0b3IucGFuZWwudjEuRGVjaWRlUGhvbmVBcHByb3ZhbFJlc3BvbnNlIgBCyQEKE2NvbS5yYXB0b3IucGFuZWwudjFCCUF1dGhQcm90b1ABWklnaXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci9wYW5lbC92MTtwYW5lbHYxogIDUlBYqgIPUmFwdG9yLlBhbmVsLlYxygIPUmFwdG9yXFBhbmVsXFYx4gIbUmFwdG9yXFBhbmVsXFYxXEdQQk1ldGFkYXRh6gIRUmFwdG9yOjpQYW5lbDo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp, file_raptor_panel_v1_audit]);
 
 /**
  * @generated from message raptor.panel.v1.StartEmailSignInRequest
@@ -784,6 +784,13 @@ export type BeginReauthResponse = Message<"raptor.panel.v1.BeginReauthResponse">
    * @generated from field: bool totp_allowed = 3;
    */
   totpAllowed: boolean;
+
+  /**
+   * The account has a phone that approves (StartPhoneApproval).
+   *
+   * @generated from field: bool phone_allowed = 4;
+   */
+  phoneAllowed: boolean;
 };
 
 /**
@@ -818,6 +825,14 @@ export type FinishReauthRequest = Message<"raptor.panel.v1.FinishReauthRequest">
      */
     value: string;
     case: "totpCode";
+  } | {
+    /**
+     * An approval the phone approved (StartPhoneApproval, purpose reauth).
+     *
+     * @generated from field: string phone_approval_id = 4;
+     */
+    value: string;
+    case: "phoneApprovalId";
   } | { case: undefined; value?: undefined };
 };
 
@@ -864,6 +879,14 @@ export type FinishSecondFactorRequest = Message<"raptor.panel.v1.FinishSecondFac
      */
     value: string;
     case: "recoveryCode";
+  } | {
+    /**
+     * An approval the phone approved (StartPhoneApproval, purpose signin).
+     *
+     * @generated from field: string phone_approval_id = 3;
+     */
+    value: string;
+    case: "phoneApprovalId";
   } | { case: undefined; value?: undefined };
 };
 
@@ -1491,6 +1514,348 @@ export const ApproveAppResponseSchema: GenMessage<ApproveAppResponse> = /*@__PUR
   messageDesc(file_raptor_panel_v1_auth, 68);
 
 /**
+ * @generated from message raptor.panel.v1.GetPhoneApproverRequest
+ */
+export type GetPhoneApproverRequest = Message<"raptor.panel.v1.GetPhoneApproverRequest"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.GetPhoneApproverRequest.
+ * Use `create(GetPhoneApproverRequestSchema)` to create a new message.
+ */
+export const GetPhoneApproverRequestSchema: GenMessage<GetPhoneApproverRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 69);
+
+/**
+ * @generated from message raptor.panel.v1.GetPhoneApproverResponse
+ */
+export type GetPhoneApproverResponse = Message<"raptor.panel.v1.GetPhoneApproverResponse"> & {
+  /**
+   * @generated from field: bool enrolled = 1;
+   */
+  enrolled: boolean;
+
+  /**
+   * It isn't, and could be now.
+   *
+   * @generated from field: bool can_enroll = 2;
+   */
+  canEnroll: boolean;
+
+  /**
+   * Why it can't, in words, when it isn't and can't.
+   *
+   * @generated from field: string reason = 3;
+   */
+  reason: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.GetPhoneApproverResponse.
+ * Use `create(GetPhoneApproverResponseSchema)` to create a new message.
+ */
+export const GetPhoneApproverResponseSchema: GenMessage<GetPhoneApproverResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 70);
+
+/**
+ * @generated from message raptor.panel.v1.EnrollPhoneApproverRequest
+ */
+export type EnrollPhoneApproverRequest = Message<"raptor.panel.v1.EnrollPhoneApproverRequest"> & {
+  /**
+   * 32 random bytes the app made and keeps behind Face ID.
+   *
+   * @generated from field: bytes secret = 1;
+   */
+  secret: Uint8Array;
+};
+
+/**
+ * Describes the message raptor.panel.v1.EnrollPhoneApproverRequest.
+ * Use `create(EnrollPhoneApproverRequestSchema)` to create a new message.
+ */
+export const EnrollPhoneApproverRequestSchema: GenMessage<EnrollPhoneApproverRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 71);
+
+/**
+ * @generated from message raptor.panel.v1.EnrollPhoneApproverResponse
+ */
+export type EnrollPhoneApproverResponse = Message<"raptor.panel.v1.EnrollPhoneApproverResponse"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.EnrollPhoneApproverResponse.
+ * Use `create(EnrollPhoneApproverResponseSchema)` to create a new message.
+ */
+export const EnrollPhoneApproverResponseSchema: GenMessage<EnrollPhoneApproverResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 72);
+
+/**
+ * @generated from message raptor.panel.v1.RemovePhoneApproverRequest
+ */
+export type RemovePhoneApproverRequest = Message<"raptor.panel.v1.RemovePhoneApproverRequest"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.RemovePhoneApproverRequest.
+ * Use `create(RemovePhoneApproverRequestSchema)` to create a new message.
+ */
+export const RemovePhoneApproverRequestSchema: GenMessage<RemovePhoneApproverRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 73);
+
+/**
+ * @generated from message raptor.panel.v1.RemovePhoneApproverResponse
+ */
+export type RemovePhoneApproverResponse = Message<"raptor.panel.v1.RemovePhoneApproverResponse"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.RemovePhoneApproverResponse.
+ * Use `create(RemovePhoneApproverResponseSchema)` to create a new message.
+ */
+export const RemovePhoneApproverResponseSchema: GenMessage<RemovePhoneApproverResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 74);
+
+/**
+ * @generated from message raptor.panel.v1.StartPhoneApprovalRequest
+ */
+export type StartPhoneApprovalRequest = Message<"raptor.panel.v1.StartPhoneApprovalRequest"> & {
+  /**
+   * "signin" (with the pending sign-in's cookie) or "reauth" (a browser
+   * session).
+   *
+   * @generated from field: string purpose = 1;
+   */
+  purpose: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.StartPhoneApprovalRequest.
+ * Use `create(StartPhoneApprovalRequestSchema)` to create a new message.
+ */
+export const StartPhoneApprovalRequestSchema: GenMessage<StartPhoneApprovalRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 75);
+
+/**
+ * @generated from message raptor.panel.v1.StartPhoneApprovalResponse
+ */
+export type StartPhoneApprovalResponse = Message<"raptor.panel.v1.StartPhoneApprovalResponse"> & {
+  /**
+   * @generated from field: string approval_id = 1;
+   */
+  approvalId: string;
+
+  /**
+   * What to pick on the phone.
+   *
+   * @generated from field: int32 number = 2;
+   */
+  number: number;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp expires_at = 3;
+   */
+  expiresAt?: Timestamp | undefined;
+
+  /**
+   * How many phones were sent a notification (0: none have push on; the
+   * request still shows when the app is opened).
+   *
+   * @generated from field: int32 notified = 4;
+   */
+  notified: number;
+};
+
+/**
+ * Describes the message raptor.panel.v1.StartPhoneApprovalResponse.
+ * Use `create(StartPhoneApprovalResponseSchema)` to create a new message.
+ */
+export const StartPhoneApprovalResponseSchema: GenMessage<StartPhoneApprovalResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 76);
+
+/**
+ * @generated from message raptor.panel.v1.CheckPhoneApprovalRequest
+ */
+export type CheckPhoneApprovalRequest = Message<"raptor.panel.v1.CheckPhoneApprovalRequest"> & {
+  /**
+   * @generated from field: string approval_id = 1;
+   */
+  approvalId: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.CheckPhoneApprovalRequest.
+ * Use `create(CheckPhoneApprovalRequestSchema)` to create a new message.
+ */
+export const CheckPhoneApprovalRequestSchema: GenMessage<CheckPhoneApprovalRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 77);
+
+/**
+ * @generated from message raptor.panel.v1.CheckPhoneApprovalResponse
+ */
+export type CheckPhoneApprovalResponse = Message<"raptor.panel.v1.CheckPhoneApprovalResponse"> & {
+  /**
+   * pending, approved, denied, or expired.
+   *
+   * @generated from field: string status = 1;
+   */
+  status: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.CheckPhoneApprovalResponse.
+ * Use `create(CheckPhoneApprovalResponseSchema)` to create a new message.
+ */
+export const CheckPhoneApprovalResponseSchema: GenMessage<CheckPhoneApprovalResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 78);
+
+/**
+ * @generated from message raptor.panel.v1.ListPhoneApprovalsRequest
+ */
+export type ListPhoneApprovalsRequest = Message<"raptor.panel.v1.ListPhoneApprovalsRequest"> & {
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListPhoneApprovalsRequest.
+ * Use `create(ListPhoneApprovalsRequestSchema)` to create a new message.
+ */
+export const ListPhoneApprovalsRequestSchema: GenMessage<ListPhoneApprovalsRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 79);
+
+/**
+ * @generated from message raptor.panel.v1.PhoneApproval
+ */
+export type PhoneApproval = Message<"raptor.panel.v1.PhoneApproval"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * signin or reauth.
+   *
+   * @generated from field: string purpose = 2;
+   */
+  purpose: string;
+
+  /**
+   * The numbers to offer, one of them the browser's.
+   *
+   * @generated from field: repeated int32 choices = 3;
+   */
+  choices: number[];
+
+  /**
+   * What the answer's MAC covers (see DecidePhoneApprovalRequest).
+   *
+   * @generated from field: bytes challenge = 4;
+   */
+  challenge: Uint8Array;
+
+  /**
+   * Where it's from.
+   *
+   * @generated from field: string ip = 5;
+   */
+  ip: string;
+
+  /**
+   * @generated from field: string user_agent = 6;
+   */
+  userAgent: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 7;
+   */
+  createdAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp expires_at = 8;
+   */
+  expiresAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message raptor.panel.v1.PhoneApproval.
+ * Use `create(PhoneApprovalSchema)` to create a new message.
+ */
+export const PhoneApprovalSchema: GenMessage<PhoneApproval> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 80);
+
+/**
+ * @generated from message raptor.panel.v1.ListPhoneApprovalsResponse
+ */
+export type ListPhoneApprovalsResponse = Message<"raptor.panel.v1.ListPhoneApprovalsResponse"> & {
+  /**
+   * @generated from field: repeated raptor.panel.v1.PhoneApproval approvals = 1;
+   */
+  approvals: PhoneApproval[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.ListPhoneApprovalsResponse.
+ * Use `create(ListPhoneApprovalsResponseSchema)` to create a new message.
+ */
+export const ListPhoneApprovalsResponseSchema: GenMessage<ListPhoneApprovalsResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 81);
+
+/**
+ * @generated from message raptor.panel.v1.DecidePhoneApprovalRequest
+ */
+export type DecidePhoneApprovalRequest = Message<"raptor.panel.v1.DecidePhoneApprovalRequest"> & {
+  /**
+   * @generated from field: string approval_id = 1;
+   */
+  approvalId: string;
+
+  /**
+   * @generated from field: bool approve = 2;
+   */
+  approve: boolean;
+
+  /**
+   * The number picked (approving only; 0 when denying).
+   *
+   * @generated from field: int32 number = 3;
+   */
+  number: number;
+
+  /**
+   * HMAC-SHA256 with the approver's secret over the lines
+   * "raptor approval v1", the approval ID, base64url(challenge),
+   * "approve" or "deny", and the number, joined by newlines.
+   *
+   * @generated from field: bytes mac = 4;
+   */
+  mac: Uint8Array;
+};
+
+/**
+ * Describes the message raptor.panel.v1.DecidePhoneApprovalRequest.
+ * Use `create(DecidePhoneApprovalRequestSchema)` to create a new message.
+ */
+export const DecidePhoneApprovalRequestSchema: GenMessage<DecidePhoneApprovalRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 82);
+
+/**
+ * @generated from message raptor.panel.v1.DecidePhoneApprovalResponse
+ */
+export type DecidePhoneApprovalResponse = Message<"raptor.panel.v1.DecidePhoneApprovalResponse"> & {
+  /**
+   * approved or denied.
+   *
+   * @generated from field: string status = 1;
+   */
+  status: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.DecidePhoneApprovalResponse.
+ * Use `create(DecidePhoneApprovalResponseSchema)` to create a new message.
+ */
+export const DecidePhoneApprovalResponseSchema: GenMessage<DecidePhoneApprovalResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_auth, 83);
+
+/**
  * AuthService signs people in and out of the Panel (docs/PANEL.md#auth).
  * The session is a host-only __Host- cookie the Panel sets; nothing here
  * returns a token to scripts. Raptor's phone app gets its tokens from
@@ -1843,6 +2208,86 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof ApproveAppRequestSchema;
     output: typeof ApproveAppResponseSchema;
+  },
+  /**
+   * GetPhoneApprover says whether this app session approves, and whether
+   * it can start to. The phone app only.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.GetPhoneApprover
+   */
+  getPhoneApprover: {
+    methodKind: "unary";
+    input: typeof GetPhoneApproverRequestSchema;
+    output: typeof GetPhoneApproverResponseSchema;
+  },
+  /**
+   * EnrollPhoneApprover makes this app session an approver, with a secret
+   * the app keeps behind Face ID. Only within 15 minutes of the app
+   * signing in (which needed a recent confirmation in the browser), and
+   * only with TOTP on. The account is emailed.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.EnrollPhoneApprover
+   */
+  enrollPhoneApprover: {
+    methodKind: "unary";
+    input: typeof EnrollPhoneApproverRequestSchema;
+    output: typeof EnrollPhoneApproverResponseSchema;
+  },
+  /**
+   * RemovePhoneApprover stops this app session approving.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.RemovePhoneApprover
+   */
+  removePhoneApprover: {
+    methodKind: "unary";
+    input: typeof RemovePhoneApproverRequestSchema;
+    output: typeof RemovePhoneApproverResponseSchema;
+  },
+  /**
+   * StartPhoneApproval asks the account's phones to approve: the browser
+   * waiting for a second factor (its pending sign-in), or a browser session
+   * confirming it's the person. It shows the number to pick on the phone.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.StartPhoneApproval
+   */
+  startPhoneApproval: {
+    methodKind: "unary";
+    input: typeof StartPhoneApprovalRequestSchema;
+    output: typeof StartPhoneApprovalResponseSchema;
+  },
+  /**
+   * CheckPhoneApproval is whether the phone has answered (the browser that
+   * asked only).
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.CheckPhoneApproval
+   */
+  checkPhoneApproval: {
+    methodKind: "unary";
+    input: typeof CheckPhoneApprovalRequestSchema;
+    output: typeof CheckPhoneApprovalResponseSchema;
+  },
+  /**
+   * ListPhoneApprovals lists requests waiting for an answer. The phone app
+   * only.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.ListPhoneApprovals
+   */
+  listPhoneApprovals: {
+    methodKind: "unary";
+    input: typeof ListPhoneApprovalsRequestSchema;
+    output: typeof ListPhoneApprovalsResponseSchema;
+  },
+  /**
+   * DecidePhoneApproval approves (with the number picked) or denies a
+   * request, proven with the approver's secret. A wrong number denies it.
+   * Denials are emailed.
+   *
+   * @generated from rpc raptor.panel.v1.AuthService.DecidePhoneApproval
+   */
+  decidePhoneApproval: {
+    methodKind: "unary";
+    input: typeof DecidePhoneApprovalRequestSchema;
+    output: typeof DecidePhoneApprovalResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_raptor_panel_v1_auth, 0);

@@ -512,6 +512,31 @@ type PendingSignin struct {
 	CreatedAt pgtype.Timestamptz
 }
 
+type PhoneApproval struct {
+	ID              pgtype.UUID
+	UserID          pgtype.UUID
+	Purpose         string
+	PendingSigninID pgtype.UUID
+	SessionID       pgtype.UUID
+	Number          int32
+	Choices         []int32
+	Challenge       []byte
+	Ip              *netip.Addr
+	UserAgent       string
+	Status          string
+	ExpiresAt       pgtype.Timestamptz
+	DecidedAt       pgtype.Timestamptz
+	CreatedAt       pgtype.Timestamptz
+}
+
+type PhoneApprover struct {
+	SessionID  pgtype.UUID
+	UserID     pgtype.UUID
+	Secret     []byte
+	CreatedAt  pgtype.Timestamptz
+	LastUsedAt pgtype.Timestamptz
+}
+
 type PlatformStat struct {
 	At             pgtype.Timestamptz
 	Users          int32

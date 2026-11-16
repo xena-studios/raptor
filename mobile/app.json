@@ -42,11 +42,16 @@
           "defaultChannel": "alerts"
         }
       ],
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Raptor uses Face ID to unlock the app and to approve sign-ins, when you turn them on."
+        }
+      ],
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Raptor uses Face ID to unlock the app when you turn on its lock."
+          "faceIDPermission": "Raptor uses Face ID to unlock the app and to approve sign-ins, when you turn them on."
         }
       ]
     ],

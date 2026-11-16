@@ -149,6 +149,48 @@ service AuthService {
   // the phone, which trades it at POST /oauth/token with its PKCE verifier.
   // Browser sessions only, with a recent re-authentication.
   rpc ApproveApp(ApproveAppRequest) returns (ApproveAppResponse) {}
+
+  // Phone approvals (docs/PANEL.md#phone-approvals): approving a sign-in
+  // or a re-authentication from Raptor's phone app instead of typing an
+  // authenticator app's code. Only for accounts with TOTP on, which stays
+  // the fallback.
+
+  // GetPhoneApprover says whether this app session approves, and whether
+  // it can start to. The phone app only.
+  rpc GetPhoneApprover(GetPhoneApproverRequest) returns (GetPhoneApproverResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // EnrollPhoneApprover makes this app session an approver, with a secret
+  // the app keeps behind Face ID. Only within 15 minutes of the app
+  // signing in (which needed a recent confirmation in the browser), and
+  // only with TOTP on. The account is emailed.
+  rpc EnrollPhoneApprover(EnrollPhoneApproverRequest) returns (EnrollPhoneApproverResponse) {}
+
+  // RemovePhoneApprover stops this app session approving.
+  rpc RemovePhoneApprover(RemovePhoneApproverRequest) returns (RemovePhoneApproverResponse) {}
+
+  // StartPhoneApproval asks the account's phones to approve: the browser
+  // waiting for a second factor (its pending sign-in), or a browser session
+  // confirming it's the person. It shows the number to pick on the phone.
+  rpc StartPhoneApproval(StartPhoneApprovalRequest) returns (StartPhoneApprovalResponse) {}
+
+  // CheckPhoneApproval is whether the phone has answered (the browser that
+  // asked only).
+  rpc CheckPhoneApproval(CheckPhoneApprovalRequest) returns (CheckPhoneApprovalResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // ListPhoneApprovals lists requests waiting for an answer. The phone app
+  // only.
+  rpc ListPhoneApprovals(ListPhoneApprovalsRequest) returns (ListPhoneApprovalsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // DecidePhoneApproval approves (with the number picked) or denies a
+  // request, proven with the approver's secret. A wrong number denies it.
+  // Denials are emailed.
+  rpc DecidePhoneApproval(DecidePhoneApprovalRequest) returns (DecidePhoneApprovalResponse) {}
 }
 
 message StartEmailSignInRequest {
@@ -335,6 +377,8 @@ message BeginReauthResponse {
   // The account has TOTP, so a code from the authenticator app works too
   // (or alone, if method is unset).
   bool totp_allowed = 3;
+  // The account has a phone that approves (StartPhoneApproval).
+  bool phone_allowed = 4;
 }
 
 message FinishReauthRequest {
@@ -342,6 +386,8 @@ message FinishReauthRequest {
     PasskeyAnswer passkey = 1;
     string email_code = 2;
     string totp_code = 3;
+    // An approval the phone approved (StartPhoneApproval, purpose reauth).
+    string phone_approval_id = 4;
   }
 }
 
@@ -353,6 +399,8 @@ message FinishSecondFactorRequest {
   oneof proof {
     string totp_code = 1;
     string recovery_code = 2;
+    // An approval the phone approved (StartPhoneApproval, purpose signin).
+    string phone_approval_id = 3;
   }
 }
 
@@ -501,4 +549,87 @@ message ApproveAppRequest {
 message ApproveAppResponse {
   // Single use, for 2 minutes.
   string code = 1;
+}
+
+message GetPhoneApproverRequest {}
+
+message GetPhoneApproverResponse {
+  bool enrolled = 1;
+  // It isn't, and could be now.
+  bool can_enroll = 2;
+  // Why it can't, in words, when it isn't and can't.
+  string reason = 3;
+}
+
+message EnrollPhoneApproverRequest {
+  // 32 random bytes the app made and keeps behind Face ID.
+  bytes secret = 1;
+}
+
+message EnrollPhoneApproverResponse {}
+
+message RemovePhoneApproverRequest {}
+
+message RemovePhoneApproverResponse {}
+
+message StartPhoneApprovalRequest {
+  // "signin" (with the pending sign-in's cookie) or "reauth" (a browser
+  // session).
+  string purpose = 1;
+}
+
+message StartPhoneApprovalResponse {
+  string approval_id = 1;
+  // What to pick on the phone.
+  int32 number = 2;
+  google.protobuf.Timestamp expires_at = 3;
+  // How many phones were sent a notification (0: none have push on; the
+  // request still shows when the app is opened).
+  int32 notified = 4;
+}
+
+message CheckPhoneApprovalRequest {
+  string approval_id = 1;
+}
+
+message CheckPhoneApprovalResponse {
+  // pending, approved, denied, or expired.
+  string status = 1;
+}
+
+message ListPhoneApprovalsRequest {}
+
+message PhoneApproval {
+  string id = 1;
+  // signin or reauth.
+  string purpose = 2;
+  // The numbers to offer, one of them the browser's.
+  repeated int32 choices = 3;
+  // What the answer's MAC covers (see DecidePhoneApprovalRequest).
+  bytes challenge = 4;
+  // Where it's from.
+  string ip = 5;
+  string user_agent = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp expires_at = 8;
+}
+
+message ListPhoneApprovalsResponse {
+  repeated PhoneApproval approvals = 1;
+}
+
+message DecidePhoneApprovalRequest {
+  string approval_id = 1;
+  bool approve = 2;
+  // The number picked (approving only; 0 when denying).
+  int32 number = 3;
+  // HMAC-SHA256 with the approver's secret over the lines
+  // "raptor approval v1", the approval ID, base64url(challenge),
+  // "approve" or "deny", and the number, joined by newlines.
+  bytes mac = 4;
+}
+
+message DecidePhoneApprovalResponse {
+  // approved or denied.
+  string status = 1;
 }

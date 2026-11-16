@@ -6,8 +6,10 @@ import { useCallback, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { Page, PageHeader } from "@/components/screen";
-import { Card, Dot, Empty, Notice, Row, Skeleton, Text } from "@/components/ui";
+import { Button, Card, CardBody, Dot, Empty, Notice, Row, Skeleton, Text } from "@/components/ui";
 import { AlertService, type Notification } from "@/gen/raptor/panel/v1/alert_pb";
+import { AuthService } from "@/gen/raptor/panel/v1/auth_pb";
+import { canHoldSecret, enroll } from "@/lib/approvals";
 import { ago } from "@/lib/format";
 import { type Colors, useColors } from "@/lib/theme";
 import { alertClient, message } from "@/lib/transport";
@@ -19,6 +21,74 @@ import { alertClient, message } from "@/lib/transport";
 function levelColor(c: Colors, n: Notification): string {
   if (n.resolved) return c.ok;
   return { critical: c.destructive, warning: c.warn }[n.level] ?? c.mutedForeground;
+}
+
+// Approvals is what's waiting on this phone above the alerts: a sign-in to
+// approve, or, right after signing in, the offer to approve sign-ins from
+// here (it can only be turned on then).
+function Approvals() {
+  const c = useColors();
+  const waiting = useQuery(AuthService.method.listPhoneApprovals, {}, { refetchInterval: 10_000 });
+  const approver = useQuery(AuthService.method.getPhoneApprover, {});
+  const [dismissed, setDismissed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const n = waiting.data?.approvals.length ?? 0;
+
+  if (n > 0) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push("/approve")}
+        style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+      >
+        <Card style={{ backgroundColor: c.brandWash }}>
+          <Row first chevron>
+            <Text weight="medium">A sign-in is waiting for you</Text>
+            <Text variant="meta" ink="muted">
+              Tap to approve or deny it.
+            </Text>
+          </Row>
+        </Card>
+      </Pressable>
+    );
+  }
+  if (!approver.data?.canEnroll || dismissed || !canHoldSecret()) return null;
+  return (
+    <Card
+      title="Approve sign-ins from this phone?"
+      description="Instead of typing your authenticator app's code, pick a number here. It can only be turned on now, right after signing in."
+    >
+      <CardBody>
+        <Notice text={error} />
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <Button
+            label="Turn on"
+            style={{ flex: 1 }}
+            busy={busy}
+            onPress={async () => {
+              setBusy(true);
+              setError("");
+              try {
+                await enroll();
+                await approver.refetch();
+              } catch (err) {
+                if (!/cancel/i.test(String(err))) setError(message(err));
+              } finally {
+                setBusy(false);
+              }
+            }}
+          />
+          <Button
+            label="Not now"
+            variant="ghost"
+            style={{ flex: 1 }}
+            onPress={() => setDismissed(true)}
+          />
+        </View>
+      </CardBody>
+    </Card>
+  );
 }
 
 export default function Inbox() {
@@ -94,6 +164,7 @@ export default function Inbox() {
       }
     >
       <Notice text={error || (list.error ? message(list.error) : "")} />
+      <Approvals />
       {list.isPending ? (
         <Card>
           {[0, 1, 2].map((i) => (

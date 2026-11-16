@@ -172,6 +172,16 @@ Raptor's app for iOS and Android ([#450](https://github.com/xena-studios/raptor/
 
 **What the app can't do.** An app session can't re-authenticate (`BeginReauth` and `FinishReauth` refuse it), so anything that needs a recent confirmation answers PERMISSION_DENIED, "only in the web app": sensitive account changes, billing changes, adding a node, approving another app. Staff tools and support access refuse it outright (`GetStaffMe` reports no role), and `CommandService` refuses passkey-signed commands from it: the app never signs anything, and its tokens never authorize a signed action. Rate limits: 20 approvals an hour per account, 600 token requests an hour per IP.
 
+### Phone approvals
+
+Instead of typing an authenticator app's code, the person can approve on their phone (`internal/panel/auth/approvals.go`, `web/src/components/phone-approval.tsx`, `mobile/src/app/approve.tsx`; DECISIONS #366). Only for accounts with TOTP on: approving stands in for its codes, so the authenticator app and recovery codes stay the fallback, and turning TOTP off removes every approver.
+
+- **Becoming an approver** (`EnrollPhoneApprover`, the phone app only): the app makes 32 random bytes and keeps them in the Keychain or Keystore behind Face ID (`requireAuthentication`: readable only after Face ID, and gone if the phone's Face ID or fingerprints change); the Panel keeps a copy sealed with `PANEL_DATA_KEY`, bound to the user. Only within **15 minutes of the app signing in**, which needed a fresh confirmation in the browser, so tokens copied off the phone later can't enroll a secret of their own. One per app session (`phone_approvers`), and signing the phone out or revoking it ends it (the trigger that drops its alert channel). The account is emailed.
+- **Asking** (`StartPhoneApproval`): from the second-factor page (the pending sign-in's cookie) or the "confirm it's you" dialog (a browser session; `BeginReauth` says `phone_allowed`). The Panel picks a number from 10 to 99, and two other numbers to offer with it, and a random challenge; the request lasts 2 minutes, a new one replaces the last for the same sign-in or session, and an account can ask 10 times an hour. Every approving phone gets an urgent push ("Is this you signing in?", the browser and address) sent straight to it (`alerts.PushToSession`, even with its alerts turned off); the request also shows when the app is opened (`ListPhoneApprovals`).
+- **Answering** (`DecidePhoneApproval`, an approver only): the person picks the number the browser shows; Face ID unlocks the secret, and the app sends an HMAC-SHA256 over `raptor approval v1`, the request's ID, its challenge, the decision, and the number. A wrong number or Deny ends the request and emails the account; a MAC that doesn't match (the app's tokens without its secret) is refused and recorded as such.
+- **Finishing:** the browser checks every 2 seconds (`CheckPhoneApproval`, only the browser that asked), then sends the approval as its proof: `FinishSecondFactor` (method `phone`) or `FinishReauth`. An approval works once, only for the sign-in or session that asked.
+- Passkey-signed actions, staff tools, and support access are unchanged: they still need a passkey.
+
 ## Permissions
 
 - Org roles (`internal/panel/orgs`, `OrgService`):

@@ -10,6 +10,7 @@
     "@expo-google-fonts/hanken-grotesk": "^0.4.3",
     "@expo-google-fonts/jetbrains-mono": "^0.4.1",
     "@expo/ui": "~58.0.28",
+    "@noble/hashes": "^2.4.0",
     "@tanstack/react-query": "^5.107.1",
     "expo": "~58.0.25",
     "expo-application": "~58.1.2",

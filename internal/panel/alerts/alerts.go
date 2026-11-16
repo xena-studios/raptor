@@ -863,6 +863,31 @@ func (s *Service) RegisterPhone(ctx context.Context, in PhoneInput) (pgtype.UUID
 	})
 }
 
+// PushToSession sends one notification to the phone app signed in as
+// session, outside the alert queue: an approval request (auth.ApprovalPusher).
+// It's urgent (time-sensitive on iOS) and isn't retried; the request also
+// shows when the app is opened.
+func (s *Service) PushToSession(ctx context.Context, session pgtype.UUID, title, body string, data map[string]string) error {
+	s.init()
+	ch, err := store.New(s.DB).PhoneChannelBySession(ctx, session)
+	if err != nil {
+		return err
+	}
+	t, err := s.target(ctx, channelOwner(ch.OrgID, ch.UserID), ch.Type, ch.Config, ch.Secret)
+	if err != nil {
+		return err
+	}
+	sctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	err = s.send.push.send(sctx, t.Config.Platform, t.Secret.Token, t.Config.Sandbox, pushMessage{
+		Title: title, Body: body, Urgent: true, Group: "approval", Data: data,
+	})
+	if errors.As(err, new(gone)) {
+		_ = store.New(s.DB).DropPhoneChannel(ctx, ch.ID)
+	}
+	return err
+}
+
 // UnregisterPhone removes an app session's phone channel.
 func (s *Service) UnregisterPhone(ctx context.Context, session pgtype.UUID) error {
 	return store.New(s.DB).DeletePhoneChannel(ctx, session)

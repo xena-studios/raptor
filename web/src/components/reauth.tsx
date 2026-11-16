@@ -1,3 +1,4 @@
+import { Smartphone } from "lucide-react";
 import {
   createContext,
   type FormEvent,
@@ -8,6 +9,7 @@ import {
   useState,
 } from "react";
 
+import { PhoneApproval } from "@/components/phone-approval";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +46,8 @@ export function ReauthProvider({ children }: { children: ReactNode }) {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // Waiting for the phone to approve.
+  const [asking, setAsking] = useState(false);
   const pending = useRef<Pending | null>(null);
 
   const confirm = useCallback(async () => {
@@ -51,6 +55,7 @@ export function ReauthProvider({ children }: { children: ReactNode }) {
     setBegin(b);
     setCode("");
     setError("");
+    setAsking(false);
     await new Promise<void>((resolve, reject) => {
       pending.current = { resolve, reject };
     });
@@ -112,6 +117,16 @@ export function ReauthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function withPhone(approvalId: string) {
+    try {
+      await authClient.finishReauth({ proof: { case: "phoneApprovalId", value: approvalId } });
+      close();
+    } catch (err) {
+      setError(message(err));
+      setAsking(false);
+    }
+  }
+
   const hasPasskey = begin?.method.case === "passkey";
   const emailed = begin?.method.case === "emailSent";
   const codeLabel = emailed ? "The code we emailed you" : "The code from your authenticator app";
@@ -141,6 +156,22 @@ export function ReauthProvider({ children }: { children: ReactNode }) {
               Confirm with a passkey
             </Button>
           )}
+          {begin?.phoneAllowed &&
+            (asking ? (
+              <PhoneApproval
+                purpose="reauth"
+                onApproved={withPhone}
+                onUnavailable={() => setAsking(false)}
+              />
+            ) : (
+              <Button
+                variant={hasPasskey ? "outline" : "default"}
+                onClick={() => setAsking(true)}
+                disabled={busy}
+              >
+                <Smartphone /> Approve on my phone
+              </Button>
+            ))}
           {(emailed || begin?.totpAllowed) && (
             <form onSubmit={withCode} className="flex flex-col gap-2">
               <Label htmlFor="reauth-code">{codeLabel}</Label>

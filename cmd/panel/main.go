@@ -411,6 +411,8 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 			return err
 		}
 		go alertSvc.Run(ctx, 3*time.Second)
+		// Phone approval requests go to the phones the alerts service knows.
+		cfg.Auth.ApprovalPush = alertSvc.PushToSession
 		// A node that connects gets its threshold rules.
 		alertsConnected = alertSvc.RulesChanged
 		mirror.Alerts = alertSvc.Ingest

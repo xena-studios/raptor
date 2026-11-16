@@ -10,6 +10,7 @@ import { Page, PageHeader } from "@/components/screen";
 import { Button, Card, CardBody, Notice, Row, Skeleton, SwitchRow, Text } from "@/components/ui";
 import { AlertService } from "@/gen/raptor/panel/v1/alert_pb";
 import { AuthService } from "@/gen/raptor/panel/v1/auth_pb";
+import { canHoldSecret, enroll, unenroll } from "@/lib/approvals";
 import { signOut } from "@/lib/auth";
 import { appURL } from "@/lib/config";
 import { available, method, setEnabled, useLock } from "@/lib/lock";
@@ -34,6 +35,29 @@ export default function Settings() {
     available().then(setCanLock);
     method().then(setHow);
   }, []);
+
+  // Approving sign-ins from this phone instead of typing codes.
+  const approver = useQuery(AuthService.method.getPhoneApprover, {});
+  const [approving, setApproving] = useState(false);
+  async function toggleApprover(on: boolean) {
+    setApproving(true);
+    setError("");
+    try {
+      if (on) await enroll();
+      else await unenroll();
+      await approver.refetch();
+    } catch (err) {
+      if (!/cancel/i.test(String(err))) setError(message(err));
+    } finally {
+      setApproving(false);
+    }
+  }
+  const approverNote = approver.data?.enrolled
+    ? "Sign-ins and confirming it's you ask this phone, instead of a code."
+    : approver.data?.reason ||
+      (canHoldSecret()
+        ? `Approve with ${how} instead of typing your authenticator app's code.`
+        : `Set up ${how} on this phone first.`);
 
   async function toggleLock(on: boolean) {
     setLocking(true);
@@ -133,6 +157,18 @@ export default function Settings() {
             value={lock.enabled}
             disabled={locking}
             onChange={toggleLock}
+          />
+        ) : null}
+        {approver.data ? (
+          <SwitchRow
+            title="Approve sign-ins"
+            note={approverNote}
+            value={approver.data.enrolled}
+            disabled={
+              approving ||
+              (!approver.data.enrolled && (!approver.data.canEnroll || !canHoldSecret()))
+            }
+            onChange={toggleApprover}
           />
         ) : null}
       </Card>
