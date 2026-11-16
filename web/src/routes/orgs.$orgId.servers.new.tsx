@@ -5,6 +5,7 @@ import { cn } from "cn";
 import { BadgeCheck, Plus, Search, Server } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
 import { EggIcon } from "@/components/eggs/library";
+import { ModpackButton } from "@/components/modpack-picker";
 import { EmptyState, PageHeader } from "@/components/page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -389,6 +390,29 @@ function Settings({
               <p className="text-xs text-muted-foreground">
                 The image the server runs in, such as its Java version. The first is the egg's
                 choice.
+              </p>
+            </div>
+          )}
+          {egg.modpack && (
+            <div className="flex flex-col gap-1.5">
+              <Label>Modpack</Label>
+              <ModpackButton
+                orgId={orgId}
+                current={values[egg.modpack.project]}
+                onPick={(p) => {
+                  const m = egg.modpack;
+                  if (!m) return;
+                  setValues({
+                    ...values,
+                    [m.project]: p.project,
+                    [m.version]: p.version,
+                    ...(m.gameVersion ? { [m.gameVersion]: p.gameVersion } : {}),
+                  });
+                  if (name === egg.name) setName(p.title);
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Pick one to fill in the fields below, or type its ID yourself.
               </p>
             </div>
           )}

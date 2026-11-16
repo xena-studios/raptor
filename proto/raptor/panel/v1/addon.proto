@@ -98,7 +98,8 @@ message AddonVersion {
 
 message SearchAddonsRequest {
   string org_id = 1;
-  // "plugins", "mods", or "datapacks".
+  // "plugins", "mods", or "datapacks"; or "modpacks", for the pack picker
+  // (Modrinth, loaders optional).
   string kind = 2;
   repeated string loaders = 3;
   // Empty: any.
@@ -124,6 +125,9 @@ message ListAddonVersionsRequest {
   string game_version = 4;
   // The project's source: "modrinth" (the default) or "hangar".
   string source = 5;
+  // "modpacks" for a modpack's versions (no loaders needed); empty for
+  // add-ons.
+  string kind = 6;
 }
 
 message ListAddonVersionsResponse {

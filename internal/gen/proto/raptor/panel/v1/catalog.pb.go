@@ -79,7 +79,9 @@ type CatalogEgg struct {
 	// one in the egg's file; empty for none.
 	Icon string `protobuf:"bytes,26,opt,name=icon,proto3" json:"icon,omitempty"`
 	// The icon was uploaded, so removing it can bring back the file's.
-	IconUploaded  bool `protobuf:"varint,27,opt,name=icon_uploaded,json=iconUploaded,proto3" json:"icon_uploaded,omitempty"`
+	IconUploaded bool `protobuf:"varint,27,opt,name=icon_uploaded,json=iconUploaded,proto3" json:"icon_uploaded,omitempty"`
+	// Which variables pick a modpack, for the pack picker (#413).
+	Modpack       *EggModpack `protobuf:"bytes,28,opt,name=modpack,proto3" json:"modpack,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -303,6 +305,84 @@ func (x *CatalogEgg) GetIconUploaded() bool {
 	return false
 }
 
+func (x *CatalogEgg) GetModpack() *EggModpack {
+	if x != nil {
+		return x.Modpack
+	}
+	return nil
+}
+
+// EggModpack is where a modpack egg takes its pack (x-raptor.modpack).
+type EggModpack struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// "modrinth".
+	Source string `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
+	// The variables holding the pack, its version, and the game version.
+	Project       string `protobuf:"bytes,2,opt,name=project,proto3" json:"project,omitempty"`
+	Version       string `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	GameVersion   string `protobuf:"bytes,4,opt,name=game_version,json=gameVersion,proto3" json:"game_version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EggModpack) Reset() {
+	*x = EggModpack{}
+	mi := &file_raptor_panel_v1_catalog_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EggModpack) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EggModpack) ProtoMessage() {}
+
+func (x *EggModpack) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_catalog_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EggModpack.ProtoReflect.Descriptor instead.
+func (*EggModpack) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_catalog_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *EggModpack) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *EggModpack) GetProject() string {
+	if x != nil {
+		return x.Project
+	}
+	return ""
+}
+
+func (x *EggModpack) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *EggModpack) GetGameVersion() string {
+	if x != nil {
+		return x.GameVersion
+	}
+	return ""
+}
+
 type EggImage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -313,7 +393,7 @@ type EggImage struct {
 
 func (x *EggImage) Reset() {
 	*x = EggImage{}
-	mi := &file_raptor_panel_v1_catalog_proto_msgTypes[1]
+	mi := &file_raptor_panel_v1_catalog_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -325,7 +405,7 @@ func (x *EggImage) String() string {
 func (*EggImage) ProtoMessage() {}
 
 func (x *EggImage) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_catalog_proto_msgTypes[1]
+	mi := &file_raptor_panel_v1_catalog_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -338,7 +418,7 @@ func (x *EggImage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EggImage.ProtoReflect.Descriptor instead.
 func (*EggImage) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_catalog_proto_rawDescGZIP(), []int{1}
+	return file_raptor_panel_v1_catalog_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *EggImage) GetName() string {
@@ -371,7 +451,7 @@ type EggVariable struct {
 
 func (x *EggVariable) Reset() {
 	*x = EggVariable{}
-	mi := &file_raptor_panel_v1_catalog_proto_msgTypes[2]
+	mi := &file_raptor_panel_v1_catalog_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -383,7 +463,7 @@ func (x *EggVariable) String() string {
 func (*EggVariable) ProtoMessage() {}
 
 func (x *EggVariable) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_catalog_proto_msgTypes[2]
+	mi := &file_raptor_panel_v1_catalog_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -396,7 +476,7 @@ func (x *EggVariable) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EggVariable.ProtoReflect.Descriptor instead.
 func (*EggVariable) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_catalog_proto_rawDescGZIP(), []int{2}
+	return file_raptor_panel_v1_catalog_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *EggVariable) GetName() string {
@@ -452,7 +532,7 @@ var File_raptor_panel_v1_catalog_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_catalog_proto_rawDesc = "" +
 	"\n" +
-	"\x1draptor/panel/v1/catalog.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdf\x06\n" +
+	"\x1draptor/panel/v1/catalog.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x96\a\n" +
 	"\n" +
 	"CatalogEgg\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
@@ -486,7 +566,14 @@ const file_raptor_panel_v1_catalog_proto_rawDesc = "" +
 	"\aremoved\x18\x18 \x01(\bR\aremoved\x12%\n" +
 	"\x0eremoved_reason\x18\x19 \x01(\tR\rremovedReason\x12\x12\n" +
 	"\x04icon\x18\x1a \x01(\tR\x04icon\x12#\n" +
-	"\ricon_uploaded\x18\x1b \x01(\bR\ficonUploaded\"0\n" +
+	"\ricon_uploaded\x18\x1b \x01(\bR\ficonUploaded\x125\n" +
+	"\amodpack\x18\x1c \x01(\v2\x1b.raptor.panel.v1.EggModpackR\amodpack\"{\n" +
+	"\n" +
+	"EggModpack\x12\x16\n" +
+	"\x06source\x18\x01 \x01(\tR\x06source\x12\x18\n" +
+	"\aproject\x18\x02 \x01(\tR\aproject\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\tR\aversion\x12!\n" +
+	"\fgame_version\x18\x04 \x01(\tR\vgameVersion\"0\n" +
 	"\bEggImage\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n" +
 	"\x03ref\x18\x02 \x01(\tR\x03ref\"\xcf\x01\n" +
@@ -512,23 +599,25 @@ func file_raptor_panel_v1_catalog_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_catalog_proto_rawDescData
 }
 
-var file_raptor_panel_v1_catalog_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_raptor_panel_v1_catalog_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_raptor_panel_v1_catalog_proto_goTypes = []any{
 	(*CatalogEgg)(nil),            // 0: raptor.panel.v1.CatalogEgg
-	(*EggImage)(nil),              // 1: raptor.panel.v1.EggImage
-	(*EggVariable)(nil),           // 2: raptor.panel.v1.EggVariable
-	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
+	(*EggModpack)(nil),            // 1: raptor.panel.v1.EggModpack
+	(*EggImage)(nil),              // 2: raptor.panel.v1.EggImage
+	(*EggVariable)(nil),           // 3: raptor.panel.v1.EggVariable
+	(*timestamppb.Timestamp)(nil), // 4: google.protobuf.Timestamp
 }
 var file_raptor_panel_v1_catalog_proto_depIdxs = []int32{
-	1, // 0: raptor.panel.v1.CatalogEgg.images:type_name -> raptor.panel.v1.EggImage
-	2, // 1: raptor.panel.v1.CatalogEgg.variables:type_name -> raptor.panel.v1.EggVariable
-	3, // 2: raptor.panel.v1.CatalogEgg.updated_at:type_name -> google.protobuf.Timestamp
-	3, // 3: raptor.panel.v1.CatalogEgg.shared_at:type_name -> google.protobuf.Timestamp
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	2, // 0: raptor.panel.v1.CatalogEgg.images:type_name -> raptor.panel.v1.EggImage
+	3, // 1: raptor.panel.v1.CatalogEgg.variables:type_name -> raptor.panel.v1.EggVariable
+	4, // 2: raptor.panel.v1.CatalogEgg.updated_at:type_name -> google.protobuf.Timestamp
+	4, // 3: raptor.panel.v1.CatalogEgg.shared_at:type_name -> google.protobuf.Timestamp
+	1, // 4: raptor.panel.v1.CatalogEgg.modpack:type_name -> raptor.panel.v1.EggModpack
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_catalog_proto_init() }
@@ -542,7 +631,7 @@ func file_raptor_panel_v1_catalog_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_catalog_proto_rawDesc), len(file_raptor_panel_v1_catalog_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -66,6 +66,18 @@ message CatalogEgg {
   string icon = 26;
   // The icon was uploaded, so removing it can bring back the file's.
   bool icon_uploaded = 27;
+  // Which variables pick a modpack, for the pack picker (#413).
+  EggModpack modpack = 28;
+}
+
+// EggModpack is where a modpack egg takes its pack (x-raptor.modpack).
+message EggModpack {
+  // "modrinth".
+  string source = 1;
+  // The variables holding the pack, its version, and the game version.
+  string project = 2;
+  string version = 3;
+  string game_version = 4;
 }
 
 message EggImage {

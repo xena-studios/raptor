@@ -38,6 +38,7 @@ On **Startup**:
 - **Startup command:** what the server runs, built from its game's recipe (its [egg](/eggs/library/)).
 - **Runtime:** for games with more than one, such as Java versions for Minecraft. Changing it is signed with your passkey.
 - **Game settings:** versions, jar names, world names, passwords, and the like, each with what it does. Some are fixed by the game's recipe and shown greyed out; members only see the ones they're allowed to.
+- **Modpack** (Modrinth modpack servers): **Choose another modpack** picks a pack and version from Modrinth and fills in its settings. Save, then [reinstall](#reinstall) to install it. Back up first: the pack's mods and configs are replaced.
 
 Minecraft Java servers also get **In the server list** on Settings: the icon and message (MOTD) players see before they join, with a preview. Upload any image for the icon (it's cropped square and made 64×64, saved as `server-icon.png`), and use the colour and style buttons for the message instead of typing § codes. It saves to `server.properties`; restart the server to show it. It needs the **Change files** permission.
 

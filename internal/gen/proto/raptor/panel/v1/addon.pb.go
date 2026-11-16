@@ -402,7 +402,8 @@ func (x *AddonVersion) GetDependencies() []*AddonDependency {
 type SearchAddonsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
-	// "plugins", "mods", or "datapacks".
+	// "plugins", "mods", or "datapacks"; or "modpacks", for the pack picker
+	// (Modrinth, loaders optional).
 	Kind    string   `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	Loaders []string `protobuf:"bytes,3,rep,name=loaders,proto3" json:"loaders,omitempty"`
 	// Empty: any.
@@ -563,7 +564,10 @@ type ListAddonVersionsRequest struct {
 	Loaders     []string               `protobuf:"bytes,3,rep,name=loaders,proto3" json:"loaders,omitempty"`
 	GameVersion string                 `protobuf:"bytes,4,opt,name=game_version,json=gameVersion,proto3" json:"game_version,omitempty"`
 	// The project's source: "modrinth" (the default) or "hangar".
-	Source        string `protobuf:"bytes,5,opt,name=source,proto3" json:"source,omitempty"`
+	Source string `protobuf:"bytes,5,opt,name=source,proto3" json:"source,omitempty"`
+	// "modpacks" for a modpack's versions (no loaders needed); empty for
+	// add-ons.
+	Kind          string `protobuf:"bytes,6,opt,name=kind,proto3" json:"kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -629,6 +633,13 @@ func (x *ListAddonVersionsRequest) GetGameVersion() string {
 func (x *ListAddonVersionsRequest) GetSource() string {
 	if x != nil {
 		return x.Source
+	}
+	return ""
+}
+
+func (x *ListAddonVersionsRequest) GetKind() string {
+	if x != nil {
+		return x.Kind
 	}
 	return ""
 }
@@ -1340,14 +1351,15 @@ const file_raptor_panel_v1_addon_proto_rawDesc = "" +
 	"\x13include_client_only\x18\b \x01(\bR\x11includeClientOnly\"g\n" +
 	"\x14SearchAddonsResponse\x129\n" +
 	"\bprojects\x18\x01 \x03(\v2\x1d.raptor.panel.v1.AddonProjectR\bprojects\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"\xa5\x01\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"\xb9\x01\n" +
 	"\x18ListAddonVersionsRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x18\n" +
 	"\aloaders\x18\x03 \x03(\tR\aloaders\x12!\n" +
 	"\fgame_version\x18\x04 \x01(\tR\vgameVersion\x12\x16\n" +
-	"\x06source\x18\x05 \x01(\tR\x06source\"V\n" +
+	"\x06source\x18\x05 \x01(\tR\x06source\x12\x12\n" +
+	"\x04kind\x18\x06 \x01(\tR\x04kind\"V\n" +
 	"\x19ListAddonVersionsResponse\x129\n" +
 	"\bversions\x18\x01 \x03(\v2\x1d.raptor.panel.v1.AddonVersionR\bversions\"\x8a\x02\n" +
 	"\x15IdentifyAddonsRequest\x12\x15\n" +

@@ -20,6 +20,12 @@ test:
   done_timeout: 5m
   command: "list"
   expect: "There are 0 of a max of \\d+ players"
+# The app's pack picker fills these (#413).
+modpack:
+  source: modrinth
+  project: PROJECT_ID
+  version: VERSION_ID
+  game_version: MINECRAFT_VERSION
 addons:
   datapacks:
     loaders: [datapack]

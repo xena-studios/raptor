@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useMemo, useState } from "react";
 
 import { useConfirm } from "@/components/confirm";
+import { ModpackButton } from "@/components/modpack-picker";
 import { DetailList } from "@/components/page";
 import { EggVersionDialog, useEggVersions } from "@/components/server-egg-update";
 import { Button } from "@/components/ui/button";
@@ -120,6 +121,7 @@ export function ServerSettings({
       {cfg ? (
         <SettingsForm
           key={res.data.configJson}
+          orgId={orgId}
           section={section}
           name={res.data.server?.name ?? ""}
           cfg={cfg}
@@ -150,6 +152,7 @@ export function ServerSettings({
 }
 
 function SettingsForm({
+  orgId,
   section,
   name: initialName,
   cfg,
@@ -158,6 +161,7 @@ function SettingsForm({
   userId,
   admin,
 }: {
+  orgId: string;
   section: SettingsSection;
   name: string;
   cfg: ServerConfig;
@@ -412,6 +416,32 @@ function SettingsForm({
               </div>
             </div>
           )}
+          {section === "startup" &&
+            cfg.egg?.modpack &&
+            vars.some((v) => v.env === cfg.egg?.modpack?.project && (admin || v.user_editable)) && (
+              <div className="flex flex-col gap-1.5">
+                <Label>Modpack</Label>
+                <ModpackButton
+                  orgId={orgId}
+                  current={values[cfg.egg.modpack.project]}
+                  onPick={(p) => {
+                    const m = cfg.egg?.modpack;
+                    if (!m) return;
+                    setValues({
+                      ...values,
+                      [m.project]: p.project,
+                      [m.version]: p.version,
+                      ...(m.game_version ? { [m.game_version]: p.gameVersion } : {}),
+                    });
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Fills in the pack's settings below. Save, then reinstall the server (on Settings)
+                  to install it: a backup first is a good idea, since its mods and configs are
+                  replaced.
+                </p>
+              </div>
+            )}
           {section === "startup" &&
             vars.map((v) => (
               <div key={v.env} className="flex flex-col gap-1.5">

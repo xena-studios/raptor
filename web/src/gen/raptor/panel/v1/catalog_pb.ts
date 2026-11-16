@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/catalog.proto.
  */
 export const file_raptor_panel_v1_catalog: GenFile = /*@__PURE__*/
-  fileDesc("Ch1yYXB0b3IvcGFuZWwvdjEvY2F0YWxvZy5wcm90bxIPcmFwdG9yLnBhbmVsLnYxIt4ECgpDYXRhbG9nRWdnEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSEAoIY2F0ZWdvcnkYBCABKAkSEQoJY2VydGlmaWVkGAUgASgIEgwKBGFyY2gYBiADKAkSKQoGaW1hZ2VzGAcgAygLMhkucmFwdG9yLnBhbmVsLnYxLkVnZ0ltYWdlEi8KCXZhcmlhYmxlcxgIIAMoCzIcLnJhcHRvci5wYW5lbC52MS5FZ2dWYXJpYWJsZRIQCghmZWF0dXJlcxgJIAMoCRISCgpzb3VyY2VfdXJsGAogASgJEg8KB3N1bW1hcnkYCyABKAkSDQoFc2NvcGUYDCABKAkSDgoGb3JpZ2luGA0gASgJEg4KBnN0YXR1cxgOIAEoCRIPCgd2ZXJzaW9uGA8gASgFEg8KB3NlcnZlcnMYECABKAUSEQoJcGFyZW50X2lkGBEgASgJEhMKC3BhcmVudF9uYW1lGBIgASgJEi4KCnVwZGF0ZWRfYXQYEyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmNyZWF0ZWRfYnkYFCABKAkSEQoJcHVibGlzaGVyGBUgASgJEi0KCXNoYXJlZF9hdBgWIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGY29waWVzGBcgASgFEg8KB3JlbW92ZWQYGCABKAgSFgoOcmVtb3ZlZF9yZWFzb24YGSABKAkSDAoEaWNvbhgaIAEoCRIVCg1pY29uX3VwbG9hZGVkGBsgASgIIiUKCEVnZ0ltYWdlEgwKBG5hbWUYASABKAkSCwoDcmVmGAIgASgJIosBCgtFZ2dWYXJpYWJsZRIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEgsKA2VudhgDIAEoCRIPCgdkZWZhdWx0GAQgASgJEhUKDXVzZXJfdmlld2FibGUYBSABKAgSFQoNdXNlcl9lZGl0YWJsZRgGIAEoCBINCgVydWxlcxgHIAMoCULMAQoTY29tLnJhcHRvci5wYW5lbC52MUIMQ2F0YWxvZ1Byb3RvUAFaSWdpdGh1Yi5jb20veGVuYS1zdHVkaW9zL3JhcHRvci9pbnRlcm5hbC9nZW4vcHJvdG8vcmFwdG9yL3BhbmVsL3YxO3BhbmVsdjGiAgNSUFiqAg9SYXB0b3IuUGFuZWwuVjHKAg9SYXB0b3JcUGFuZWxcVjHiAhtSYXB0b3JcUGFuZWxcVjFcR1BCTWV0YWRhdGHqAhFSYXB0b3I6OlBhbmVsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("Ch1yYXB0b3IvcGFuZWwvdjEvY2F0YWxvZy5wcm90bxIPcmFwdG9yLnBhbmVsLnYxIowFCgpDYXRhbG9nRWdnEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSEAoIY2F0ZWdvcnkYBCABKAkSEQoJY2VydGlmaWVkGAUgASgIEgwKBGFyY2gYBiADKAkSKQoGaW1hZ2VzGAcgAygLMhkucmFwdG9yLnBhbmVsLnYxLkVnZ0ltYWdlEi8KCXZhcmlhYmxlcxgIIAMoCzIcLnJhcHRvci5wYW5lbC52MS5FZ2dWYXJpYWJsZRIQCghmZWF0dXJlcxgJIAMoCRISCgpzb3VyY2VfdXJsGAogASgJEg8KB3N1bW1hcnkYCyABKAkSDQoFc2NvcGUYDCABKAkSDgoGb3JpZ2luGA0gASgJEg4KBnN0YXR1cxgOIAEoCRIPCgd2ZXJzaW9uGA8gASgFEg8KB3NlcnZlcnMYECABKAUSEQoJcGFyZW50X2lkGBEgASgJEhMKC3BhcmVudF9uYW1lGBIgASgJEi4KCnVwZGF0ZWRfYXQYEyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmNyZWF0ZWRfYnkYFCABKAkSEQoJcHVibGlzaGVyGBUgASgJEi0KCXNoYXJlZF9hdBgWIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGY29waWVzGBcgASgFEg8KB3JlbW92ZWQYGCABKAgSFgoOcmVtb3ZlZF9yZWFzb24YGSABKAkSDAoEaWNvbhgaIAEoCRIVCg1pY29uX3VwbG9hZGVkGBsgASgIEiwKB21vZHBhY2sYHCABKAsyGy5yYXB0b3IucGFuZWwudjEuRWdnTW9kcGFjayJUCgpFZ2dNb2RwYWNrEg4KBnNvdXJjZRgBIAEoCRIPCgdwcm9qZWN0GAIgASgJEg8KB3ZlcnNpb24YAyABKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJIiUKCEVnZ0ltYWdlEgwKBG5hbWUYASABKAkSCwoDcmVmGAIgASgJIosBCgtFZ2dWYXJpYWJsZRIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEgsKA2VudhgDIAEoCRIPCgdkZWZhdWx0GAQgASgJEhUKDXVzZXJfdmlld2FibGUYBSABKAgSFQoNdXNlcl9lZGl0YWJsZRgGIAEoCBINCgVydWxlcxgHIAMoCULMAQoTY29tLnJhcHRvci5wYW5lbC52MUIMQ2F0YWxvZ1Byb3RvUAFaSWdpdGh1Yi5jb20veGVuYS1zdHVkaW9zL3JhcHRvci9pbnRlcm5hbC9nZW4vcHJvdG8vcmFwdG9yL3BhbmVsL3YxO3BhbmVsdjGiAgNSUFiqAg9SYXB0b3IuUGFuZWwuVjHKAg9SYXB0b3JcUGFuZWxcVjHiAhtSYXB0b3JcUGFuZWxcVjFcR1BCTWV0YWRhdGHqAhFSYXB0b3I6OlBhbmVsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * CatalogEgg is an egg in the library (EggService, docs/PANEL.md#eggs), as
@@ -200,6 +200,13 @@ export type CatalogEgg = Message<"raptor.panel.v1.CatalogEgg"> & {
    * @generated from field: bool icon_uploaded = 27;
    */
   iconUploaded: boolean;
+
+  /**
+   * Which variables pick a modpack, for the pack picker (#413).
+   *
+   * @generated from field: raptor.panel.v1.EggModpack modpack = 28;
+   */
+  modpack?: EggModpack | undefined;
 };
 
 /**
@@ -208,6 +215,44 @@ export type CatalogEgg = Message<"raptor.panel.v1.CatalogEgg"> & {
  */
 export const CatalogEggSchema: GenMessage<CatalogEgg> = /*@__PURE__*/
   messageDesc(file_raptor_panel_v1_catalog, 0);
+
+/**
+ * EggModpack is where a modpack egg takes its pack (x-raptor.modpack).
+ *
+ * @generated from message raptor.panel.v1.EggModpack
+ */
+export type EggModpack = Message<"raptor.panel.v1.EggModpack"> & {
+  /**
+   * "modrinth".
+   *
+   * @generated from field: string source = 1;
+   */
+  source: string;
+
+  /**
+   * The variables holding the pack, its version, and the game version.
+   *
+   * @generated from field: string project = 2;
+   */
+  project: string;
+
+  /**
+   * @generated from field: string version = 3;
+   */
+  version: string;
+
+  /**
+   * @generated from field: string game_version = 4;
+   */
+  gameVersion: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.EggModpack.
+ * Use `create(EggModpackSchema)` to create a new message.
+ */
+export const EggModpackSchema: GenMessage<EggModpack> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_catalog, 1);
 
 /**
  * @generated from message raptor.panel.v1.EggImage
@@ -229,7 +274,7 @@ export type EggImage = Message<"raptor.panel.v1.EggImage"> & {
  * Use `create(EggImageSchema)` to create a new message.
  */
 export const EggImageSchema: GenMessage<EggImage> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_catalog, 1);
+  messageDesc(file_raptor_panel_v1_catalog, 2);
 
 /**
  * @generated from message raptor.panel.v1.EggVariable
@@ -278,5 +323,5 @@ export type EggVariable = Message<"raptor.panel.v1.EggVariable"> & {
  * Use `create(EggVariableSchema)` to create a new message.
  */
 export const EggVariableSchema: GenMessage<EggVariable> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_catalog, 2);
+  messageDesc(file_raptor_panel_v1_catalog, 3);
 
