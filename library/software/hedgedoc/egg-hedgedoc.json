@@ -1,0 +1,102 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "HedgeDoc",
+    "author": "support@raptorpanel.net",
+    "description": "HedgeDoc is a collaborative Markdown editor: write notes, slides and diagrams together in the browser. The egg keeps notes in SQLite, with sign-in by email and password and sign-ups closed.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:d0378084b323d05e146b21d85cd8243b660ecf9dc17ccf967d09ec0347896307",
+        "Node.js 22": "ghcr.io/xena-studios/yolks:nodejs_22@sha256:78b7b07924320324d3181eb51d83df41d42774d988e1e084b246dcb0e4c58405"
+    },
+    "file_denylist": [],
+    "startup": "h=$( (node --version; cat hedgedoc/yarn.lock) | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat hedgedoc/node_modules/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing HedgeDoc's dependencies\"; (cd hedgedoc && YARN_ENABLE_TELEMETRY=0 YARN_ENABLE_PROGRESS_BARS=0 node .yarn/releases/yarn-*.cjs workspaces focus --production && rm -rf .yarn/cache) && echo \"$h\" > hedgedoc/node_modules/.raptor-installed || exit 1; fi; export NODE_ENV=production CMD_CONFIG_FILE=/home/container/config.json CMD_HOST=0.0.0.0 CMD_PORT={{SERVER_PORT}} CMD_DB_URL=sqlite:///home/container/data/hedgedoc.sqlite CMD_UPLOADS_PATH=/home/container/uploads CMD_SESSION_SECRET=\"$(cat .session-secret)\" CMD_EMAIL=true CMD_ALLOW_ANONYMOUS_EDITS=\"${CMD_ALLOW_ANONYMOUS}\"; [ -n \"${CMD_DOMAIN:-}\" ] || unset CMD_DOMAIN; cd hedgedoc || exit 1; if [ -n \"${ADMIN_PASSWORD:-}\" ]; then node -e 'require(\"./lib/models\").runMigrations().then(() => process.exit(0), (e) => { console.error(e); process.exit(1) })' || exit 1; out=$(node bin/manage_users --add \"${ADMIN_EMAIL}\" --pass \"${ADMIN_PASSWORD}\" 2>&1); rc=$?; if [ $rc = 0 ]; then echo \"Created the account ${ADMIN_EMAIL}.\"; elif [ $rc != 2 ]; then echo \"$out\"; exit 1; fi; fi; exec node app.js",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"HTTP Server listening at\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# HedgeDoc: downloads the release for the chosen version from GitHub\n# (checked against GitHub's checksum) into hedgedoc/, replaced only once the\n# new one is complete. Its dependencies are installed when the server\n# starts, for the Node.js version it runs. Notes and accounts (data/),\n# uploads, config.json and the session secret are never touched.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nrm -rf .raptor-new\nfail() { echo \"$1\"; exit 1; }\n\nwant=\"${VERSION:-latest}\"\nwant=\"${want#v}\"\ntag=$(gh-release tag hedgedoc/hedgedoc \"$want\") || fail \"HedgeDoc has no version $want. Set Version to latest, or to a release such as 1.12.0, then reinstall.\"\nversion=\"$tag\"\n\nif [ -f hedgedoc/package.json ] && [ \"$(jq -r .version hedgedoc/package.json)\" = \"$version\" ]; then\n    echo \"HedgeDoc $version is already installed.\"\nelse\n    echo \"Downloading HedgeDoc $version\"\n    gh-release download hedgedoc/hedgedoc \"$tag\" \"hedgedoc-$version.tar.gz\" \"$work/hedgedoc.tar.gz\"\n    mkdir .raptor-new\n    tar -xzf \"$work/hedgedoc.tar.gz\" -C .raptor-new --strip-components=1\n    [ -f .raptor-new/app.js ] && [ -d .raptor-new/public/build ] || { rm -rf .raptor-new; fail \"HedgeDoc's release didn't have the app where it should. Report this to Raptor.\"; }\n    rm -rf hedgedoc\n    mv .raptor-new hedgedoc\nfi\nmkdir -p data uploads\n# Your own settings go here (HedgeDoc's config.json format); the egg's\n# variables take precedence.\n[ -f config.json ] || echo '{\"production\": {}}' > config.json\n# The secret that signs sign-in cookies: random, made once.\nif [ ! -s .session-secret ]; then\n    (umask 077; head -c 48 /dev/urandom | base64 | tr -d '\\n' > .session-secret)\nfi\necho \"Installed HedgeDoc $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The HedgeDoc version to install, such as 1.12.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin email",
+            "description": "The email address of the account created at the start, when Admin password is set.",
+            "env_variable": "ADMIN_EMAIL",
+            "default_value": "admin@example.com",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100|regex:/^[^@\\s]+@[^@\\s]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The account's password, set when the account is created. Leave it empty to make no account.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Sign-ups",
+            "description": "Set it to true to let anyone create an account with their email address.",
+            "env_variable": "CMD_ALLOW_EMAIL_REGISTER",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Anonymous notes",
+            "description": "Set it to true to let people who aren't signed in create and edit notes.",
+            "env_variable": "CMD_ALLOW_ANONYMOUS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Domain",
+            "description": "The address people use, such as notes.example.com, for links HedgeDoc makes. Leave it empty to use relative links.",
+            "env_variable": "CMD_DOMAIN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:253|regex:/^[A-Za-z0-9.-]+(:\\d+)?$/",
+            "field_type": "text"
+        },
+        {
+            "name": "HTTPS",
+            "description": "Set it to true when people reach HedgeDoc over HTTPS (through a proxy), so its links use https.",
+            "env_variable": "CMD_PROTOCOL_USESSL",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        }
+    ]
+}

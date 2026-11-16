@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/etherpad/egg-etherpad.json
+license: MIT
+credits:
+  - "Written for Raptor from Etherpad's own documentation and packages (https://github.com/ether/etherpad, Apache-2.0)"
+  - "Icon: the Etherpad icon shipped with Etherpad (src/etherpad_icon.svg, Apache-2.0)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 5m
+  variables:
+    ADMIN_PASSWORD: raptor-test-password

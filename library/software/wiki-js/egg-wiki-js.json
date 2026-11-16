@@ -1,0 +1,131 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Wiki.js",
+    "author": "support@raptorpanel.net",
+    "description": "Wiki.js is a wiki with a visual and Markdown editor, search, and fine-grained permissions. The egg runs it on a PostgreSQL database, such as one of Raptor's managed databases.",
+    "features": [],
+    "docker_images": {
+        "Node.js 26": "ghcr.io/xena-studios/yolks:nodejs_26@sha256:887afaa41d8937a5c664a887d55b730b4078f05610137705f918d423f78f90f3"
+    },
+    "file_denylist": [],
+    "startup": "h=$( (node --version; cat wiki/backend/package-lock.json) | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat wiki/backend/node_modules/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing Wiki.js's dependencies\"; (cd wiki/backend && npm ci --omit=dev --no-audit --no-fund --no-update-notifier --no-progress --loglevel=error) && npm cache clean --force --no-update-notifier --loglevel=error && echo \"$h\" > wiki/backend/node_modules/.raptor-installed || exit 1; fi; if [ \"${UPDATE_CHECK}\" = 1 ]; then export WIKI_OFFLINE=false; else export WIKI_OFFLINE=true; fi; export NODE_ENV=production CONFIG_FILE=/home/container/config.yml; cd wiki || exit 1; exec node --no-experimental-webstorage backend",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"HTTP Server: [ RUNNING ]\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Wiki.js: downloads the release for the chosen version from GitHub\n# (checked against GitHub's checksum) into wiki/, replaced only once the new\n# one is complete. Its dependencies are installed when the server starts.\n# The wiki itself lives in its PostgreSQL database; data/ (caches, uploads\n# waiting to be stored) and config.yml are never touched.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nrm -rf .raptor-new\nfail() { echo \"$1\"; exit 1; }\n\nwant=\"${VERSION:-latest}\"\nwant=\"${want#v}\"\ntag=$(gh-release tag requarks/wiki \"$want\") || fail \"Wiki.js has no version $want. Set Version to latest, or to a release such as 3.4.0, then reinstall.\"\nversion=\"${tag#v}\"\ncase \"$version\" in\n    3.*) ;;\n    *) fail \"This egg runs Wiki.js 3 and later (Wiki.js $version needs a different setup). Set Version to latest, or to a release such as 3.4.0.\" ;;\nesac\n\nif [ -f wiki/backend/package.json ] && [ \"$(jq -r .version wiki/backend/package.json)\" = \"$version\" ]; then\n    echo \"Wiki.js $version is already installed.\"\nelse\n    echo \"Downloading Wiki.js $version\"\n    gh-release download requarks/wiki \"$tag\" wiki-js.tar.gz \"$work/wiki.tar.gz\"\n    mkdir .raptor-new\n    tar -xzf \"$work/wiki.tar.gz\" -C .raptor-new\n    [ -f .raptor-new/backend/index.ts ] && [ -f .raptor-new/backend/package-lock.json ] || { rm -rf .raptor-new; fail \"Wiki.js's release didn't have the app where it should. Report this to Raptor.\"; }\n    rm -rf wiki\n    mv .raptor-new wiki\nfi\nmkdir -p data\n\n# A first config.yml: the database from the egg's variables (read when\n# Wiki.js starts), data in data/. Your own settings can go here too.\nif [ ! -f config.yml ]; then\n    cat > config.yml <<'YAML'\n# Wiki.js settings: https://docs.requarks.io\n# $(NAME) is read from the server's variable of that name at every start.\nport: $(SERVER_PORT)\nbindIP: 0.0.0.0\n\ndb:\n  host: $(DB_HOST)\n  port: $(DB_PORT)\n  user: $(DB_USER)\n  pass: $(DB_PASS)\n  db: $(DB_NAME)\n  schema: wiki\n  ssl: $(DB_SSL)\n  sslOptions:\n    auto: true\n\n# true: no update checks or locale downloads (Raptor sets it from Update check).\noffline: $(WIKI_OFFLINE)\n\nlogLevel: info\nlogFormat: default\ndataPath: /home/container/data\nYAML\n    echo \"Wrote a first config.yml (database from the egg's variables).\"\nfi\necho \"Installed Wiki.js $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Wiki.js version to install, such as 3.4.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?3\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Database host",
+            "description": "The PostgreSQL server's address, such as the host of a managed database.",
+            "env_variable": "DB_HOST",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:253",
+            "field_type": "text"
+        },
+        {
+            "name": "Database port",
+            "description": "The PostgreSQL server's port.",
+            "env_variable": "DB_PORT",
+            "default_value": "5432",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Database name",
+            "description": "The database Wiki.js keeps the wiki in.",
+            "env_variable": "DB_NAME",
+            "default_value": "wiki",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:63|regex:/^[A-Za-z0-9_-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Database user",
+            "description": "The user Wiki.js signs in to the database as.",
+            "env_variable": "DB_USER",
+            "default_value": "wiki",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:63|regex:/^[A-Za-z0-9_-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Database password",
+            "description": "The database user's password.",
+            "env_variable": "DB_PASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Database TLS",
+            "description": "Set it to true to connect to the database over TLS.",
+            "env_variable": "DB_SSL",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin email",
+            "description": "The administrator account created when the wiki is first set up.",
+            "env_variable": "ADMIN_EMAIL",
+            "default_value": "admin@example.com",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100|regex:/^[^@\\s]+@[^@\\s]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The administrator's password, used when the wiki is first set up. Change it later in Wiki.js.",
+            "env_variable": "ADMIN_PASS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|min:8|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Update check",
+            "description": "Set it to 1 to let Wiki.js check GitHub for new versions and download translations.",
+            "env_variable": "UPDATE_CHECK",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}

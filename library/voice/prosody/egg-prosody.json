@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Prosody",
+    "author": "support@raptorpanel.net",
+    "description": "Prosody is a lightweight XMPP (Jabber) chat server. The egg serves one domain to clients on the server's port, with accounts made by the admin rather than open sign-ups.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "p=/home/container/pkgs; t=$(uname -m)-linux-gnu; export LD_LIBRARY_PATH=$p/usr/lib/$t LUA_PATH_5_4=\"$p/usr/share/lua/5.4/?.lua;$p/usr/share/lua/5.4/?/init.lua;;\" LUA_CPATH_5_4=\"$p/usr/lib/$t/lua/5.4/?.so;;\"; if [ -n \"${ADMIN_PASSWORD:-}\" ] && [ ! -f \"data/$(printf %s \"${XMPP_DOMAIN}\" | sed 's/\\./%2e/g; s/-/%2d/g')/accounts/${ADMIN_USER}.dat\" ]; then $p/usr/bin/lua5.4 $p/usr/bin/prosodyctl register \"${ADMIN_USER}\" \"${XMPP_DOMAIN}\" \"${ADMIN_PASSWORD}\" && echo \"Created the account ${ADMIN_USER}@${XMPP_DOMAIN}.\" || exit 1; fi; exec $p/usr/bin/lua5.4 $p/usr/bin/prosody -F",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Activated service 'c2s' on\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Prosody: installs Prosody and Lua from Debian 13's packages (with\n# security updates, checked against Debian's signing keys) into pkgs/, and\n# writes a first configuration. Accounts and messages (data/), settings and\n# certificates (config/) and your plugins are never touched; reinstall to\n# update.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\n# Debian 13's packages (with its security updates), fetched and checked by\n# apt against Debian's signing keys, and unpacked into $1 (replaced only\n# once the new one is complete). The runtime image is Debian 13 too.\ndebian_packages() {\n    local dest=$1; shift\n    local a=\"$work/apt\"\n    mkdir -p \"$a/lists/partial\" \"$a/cache/archives/partial\" \"$a/dl\" \"$a/prefs\"\n    cat > \"$a/sources.list\" <<SRC\ndeb http://deb.debian.org/debian trixie main\ndeb http://deb.debian.org/debian trixie-updates main\ndeb http://security.debian.org/debian-security trixie-security main\nSRC\n    local opts=(-q -o Dir::Etc::SourceList=\"$a/sources.list\" -o Dir::Etc::SourceParts=/nonexistent\n        -o Dir::Etc::Preferences=/nonexistent -o Dir::Etc::PreferencesParts=\"$a/prefs\"\n        -o Dir::State::Lists=\"$a/lists\" -o Dir::Cache=\"$a/cache\" -o Dir::State::status=/dev/null\n        -o Debug::NoLocking=1 -o APT::Sandbox::User=root)\n    apt-get \"${opts[@]}\" update > \"$a/update.log\" 2>&1 || { tail -n 5 \"$a/update.log\"; fail \"Debian's package servers can't be reached right now. Reinstall to try again.\"; }\n    (cd \"$a/dl\" && apt-get \"${opts[@]}\" download \"$@\" > \"$a/download.log\" 2>&1) || { tail -n 5 \"$a/download.log\"; fail \"Debian's packages couldn't be downloaded. Reinstall to try again.\"; }\n    rm -rf \"$dest.new\" && mkdir -p \"$dest.new\"\n    local f\n    for f in \"$a\"/dl/*.deb; do dpkg-deb -x \"$f\" \"$dest.new\"; done\n    (cd \"$a/dl\" && ls *.deb) > \"$dest.new/.raptor-packages\"\n    rm -rf \"$dest\" && mv \"$dest.new\" \"$dest\"\n}\n\ncase \"$(uname -m)\" in\n    x86_64) triplet=x86_64-linux-gnu ;;\n    aarch64) triplet=aarch64-linux-gnu ;;\n    *) fail \"Prosody isn't packaged for this CPU ($(uname -m)).\" ;;\nesac\ndomain=\"${XMPP_DOMAIN:-localhost}\"\n\necho \"Downloading Prosody from Debian 13\"\ndebian_packages pkgs prosody lua5.4 liblua5.4-0 libreadline8t64 lua-socket lua-expat lua-filesystem lua-sec lua-bitop lua-unbound libunbound8 libevent-2.1-7t64\nversion=$(sed -n 's/^prosody_\\([^_]*\\)_.*/\\1/p' pkgs/.raptor-packages)\n[ -f pkgs/usr/bin/prosody ] && [ -x pkgs/usr/bin/lua5.4 ] || fail \"Debian's Prosody package didn't have Prosody where it should. Report this to Raptor.\"\n# Prosody's own folders: the server's, instead of the system's.\nfor f in prosody prosodyctl; do\n    sed -i -e \"s|^CFG_SOURCEDIR=.*|CFG_SOURCEDIR='/home/container/pkgs/usr/lib/prosody';|\" \\\n        -e \"s|^CFG_CONFIGDIR=.*|CFG_CONFIGDIR='/home/container/config';|\" \\\n        -e \"s|^CFG_PLUGINDIR=.*|CFG_PLUGINDIR='/home/container/pkgs/usr/lib/prosody/modules/';|\" \\\n        -e \"s|^CFG_DATADIR=.*|CFG_DATADIR='/home/container/data';|\" \"pkgs/usr/bin/$f\"\n    grep -q \"^CFG_CONFIGDIR='/home/container/config';\" \"pkgs/usr/bin/$f\" || fail \"Debian's $f has changed shape. Report this to Raptor.\"\ndone\nmkdir -p config/certs data plugins\n\n# A first prosody.cfg.lua: the domain, port and admin come from the egg's\n# variables at every start (Prosody reads ENV_ names from the environment).\nif [ ! -f config/prosody.cfg.lua ]; then\n    cat > config/prosody.cfg.lua <<'LUA'\n-- Prosody's settings: https://prosody.im/doc/configure\n-- ENV_<NAME> is the server's variable <NAME>, read at every start.\n\nadmins = { ENV_ADMIN_USER .. \"@\" .. ENV_XMPP_DOMAIN }\nplugin_paths = { \"/home/container/plugins\" }\n\nmodules_enabled = {\n\t\"disco\"; \"roster\"; \"saslauth\"; \"tls\"; \"blocklist\"; \"bookmarks\"; \"carbons\";\n\t\"dialback\"; \"limits\"; \"pep\"; \"private\"; \"smacks\"; \"vcard4\"; \"vcard_legacy\";\n\t\"account_activity\"; \"cloud_notify\"; \"csi_simple\"; \"ping\"; \"register\"; \"time\";\n\t\"uptime\"; \"version\"; \"admin_adhoc\"; \"mam\";\n}\n\n-- Accounts are made by the admin (prosodyctl, or ad-hoc commands in an\n-- XMPP client), not by anyone who connects.\nallow_registration = false\n\n-- Clients on the server's port. Federation with other servers needs a\n-- second port in s2s_ports (and DNS records); web services in http_ports.\nc2s_ports = { Lua.tonumber(ENV_SERVER_PORT) }\ns2s_ports = { }\nhttp_ports = { }\nhttps_ports = { }\nc2s_direct_tls_ports = { }\ns2s_direct_tls_ports = { }\n\nc2s_require_encryption = true\ns2s_secure_auth = true\nauthentication = \"internal_hashed\"\nstorage = \"internal\"\narchive_expires_after = \"1w\"\n\nlimits = {\n\tc2s = { rate = \"10kb/s\" };\n\ts2sin = { rate = \"30kb/s\" };\n}\n\npidfile = \"/home/container/data/prosody.pid\"\nlog = { { levels = { min = \"info\" }, to = \"console\" } }\n\n-- A self-signed certificate made at install; put a real one (such as\n-- Let's Encrypt's) in config/certs as <domain>.crt and <domain>.key.\ncertificates = \"certs\"\n\nVirtualHost(ENV_XMPP_DOMAIN)\n\nInclude \"conf.d/*.cfg.lua\"\nLUA\n    mkdir -p config/conf.d\n    echo \"Wrote a first prosody.cfg.lua.\"\nfi\nmkdir -p config/conf.d\nif [ ! -f \"config/certs/$domain.crt\" ] && [ ! -f \"config/certs/$domain.key\" ]; then\n    (umask 077; openssl req -x509 -newkey rsa:3072 -nodes -days 3650 -subj \"/CN=$domain\" \\\n        -addext \"subjectAltName=DNS:$domain,DNS:*.$domain\" \\\n        -keyout \"config/certs/$domain.key\" -out \"config/certs/$domain.crt\" 2>/dev/null) ||\n        fail \"The certificate for $domain couldn't be made.\"\n    echo \"Made a self-signed certificate for $domain.\"\nfi\necho \"Installed Prosody $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Domain",
+            "description": "The XMPP domain accounts belong to (the part after @), such as chat.example.com. The install makes a self-signed certificate for it.",
+            "env_variable": "XMPP_DOMAIN",
+            "default_value": "localhost",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:253|regex:/^[a-z0-9-]+(\\.[a-z0-9-]+)*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin username",
+            "description": "The admin account's name (before the @), which can manage the server from an XMPP client.",
+            "env_variable": "ADMIN_USER",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[a-z0-9._-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The admin account's password, used when the account is created. Leave it empty to make no account.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,72 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Verdaccio",
+    "author": "support@raptorpanel.net",
+    "description": "Verdaccio is a private npm registry: publish your own packages, and cache the public ones. The egg sets it up so everything needs an account, with sign-ups closed.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:d0378084b323d05e146b21d85cd8243b660ecf9dc17ccf967d09ec0347896307",
+        "Node.js 26": "ghcr.io/xena-studios/yolks:nodejs_26@sha256:887afaa41d8937a5c664a887d55b730b4078f05610137705f918d423f78f90f3"
+    },
+    "file_denylist": [],
+    "startup": "h=$( (node --version; cat app/package.json) | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat app/node_modules/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing Verdaccio\"; (cd app && npm install --omit=dev --no-audit --no-fund --no-update-notifier --no-progress --loglevel=error) && npm cache clean --force --no-update-notifier --loglevel=error && echo \"$h\" > app/node_modules/.raptor-installed || exit 1; fi; if [ -n \"${ADMIN_PASSWORD:-}\" ] && ! grep -q \"^${ADMIN_USER}:\" htpasswd 2>/dev/null; then (cd app && node -e 'const b=require(\"bcryptjs\"),u=process.env.ADMIN_USER;require(\"fs\").appendFileSync(\"../htpasswd\",u+\":\"+b.hashSync(process.env.ADMIN_PASSWORD,10)+\":autocreated \"+new Date()+\"\\n\",{mode:0o600});console.log(\"Created the account \"+u+\".\")') || exit 1; fi; exec node app/node_modules/verdaccio/bin/verdaccio --config ./config.yaml --listen 0.0.0.0:{{SERVER_PORT}}",
+    "config": {
+        "files": "{\"config.yaml\": {\"parser\": \"yaml\", \"find\": {\"auth.htpasswd.max_users\": \"{{server.build.env.MAX_USERS}}\"}}}",
+        "startup": "{\"done\": [\"server started\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Verdaccio: picks the version from npm's registry and writes it to\n# app/package.json; the server installs it (and its dependencies, for the\n# Node.js version it runs) when it next starts. Packages, accounts and\n# settings (storage/, htpasswd, config.yaml) are never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\npkg=verdaccio\n\nmeta=$(curl -fsSL --retry 3 -A \"raptor-installer (+https://raptorpanel.net)\" -H \"Accept: application/vnd.npm.install-v1+json\" \"https://registry.npmjs.org/$pkg\") ||\n    fail \"npm's registry can't be reached right now. Reinstall to try again.\"\nlatest=$(jq -r '.\"dist-tags\".latest' <<<\"$meta\")\nwant=\"${VERSION:-latest}\"\nwant=\"${want#v}\"\n[ \"$want\" = latest ] && want=\"$latest\"\njq -e --arg v \"$want\" '.versions[$v]' <<<\"$meta\" >/dev/null ||\n    fail \"Verdaccio has no version $want. Set Version to latest, or to a release such as $latest, then reinstall.\"\n\nmkdir -p app storage plugins\nif [ -f app/package.json ] && [ \"$(jq -r \".dependencies.$pkg\" app/package.json)\" = \"$want\" ]; then\n    echo \"Verdaccio $want is already chosen.\"\nelse\n    jq -n --arg v \"$want\" '{name: \"raptor-verdaccio\", private: true, dependencies: {verdaccio: $v}}' > app/package.json.new\n    mv -f app/package.json.new app/package.json\nfi\n# A first configuration: everything (your packages, and npmjs packages it\n# passes through) needs an account, and sign-ups stay closed (Raptor sets\n# max_users from Max users at every start).\nif [ ! -f config.yaml ]; then\n    cat > config.yaml <<'YAML'\n# Verdaccio's settings: https://verdaccio.org/docs/configuration\nstorage: ./storage\nplugins: ./plugins\n\nweb:\n  title: Verdaccio\n\nauth:\n  htpasswd:\n    file: ./htpasswd\n    # Raptor sets this from Max users at every start: -1 closes sign-ups.\n    max_users: -1\n\nuplinks:\n  npmjs:\n    url: https://registry.npmjs.org/\n\npackages:\n  '@*/*':\n    access: $authenticated\n    publish: $authenticated\n    unpublish: $authenticated\n    proxy: npmjs\n  '**':\n    access: $authenticated\n    publish: $authenticated\n    unpublish: $authenticated\n    proxy: npmjs\n\nserver:\n  keepAliveTimeout: 60\n\nmiddlewares:\n  audit:\n    enabled: true\n\nlog:\n  type: stdout\n  format: pretty\n  level: http\nYAML\n    echo \"Wrote a first config.yaml (an account is needed for everything; sign-ups closed).\"\nfi\necho \"Installed Verdaccio $want; it's set up when the server starts.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Verdaccio version to install, such as 7.1.1, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+(-[a-z0-9.-]+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin username",
+            "description": "The account created at the start, when Admin password is set.",
+            "env_variable": "ADMIN_USER",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32|regex:/^[a-z0-9][a-z0-9._-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The admin account's password. It's set when the account is created; change it later with npm profile set password.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Max users",
+            "description": "How many accounts people may create with npm adduser. -1 closes sign-ups.",
+            "env_variable": "MAX_USERS",
+            "default_value": "-1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:-1,100000",
+            "field_type": "text"
+        }
+    ]
+}

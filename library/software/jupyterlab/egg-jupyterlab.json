@@ -1,0 +1,74 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "JupyterLab",
+    "author": "support@raptorpanel.net",
+    "description": "JupyterLab runs Python notebooks in the browser, with a file browser, terminals and a text editor. Notebooks live in the notebooks folder; sign in with the password, or the link the console shows.",
+    "features": [],
+    "docker_images": {
+        "Python 3.13": "ghcr.io/xena-studios/yolks:python_3.13@sha256:72e9beb9618e5ebecf1d3211271308dc506ada537fa458911b866a23c787e617",
+        "Python 3.14": "ghcr.io/xena-studios/yolks:python_3.14@sha256:fb52a42f00788ae6bf2b1dca5ab499e325a737c20aab9a6f8c9f800c9fced225",
+        "Python 3.12": "ghcr.io/xena-studios/yolks:python_3.12@sha256:7cebda1186da0e0830d7947537d488e8d0f039249a70391c907ceac92fb0ce76",
+        "Python 3.11": "ghcr.io/xena-studios/yolks:python_3.11@sha256:a199c5f18a7ef25e50f59300d8c2ddb302697e63c085b54e4200af5b9b6ee2ab"
+    },
+    "file_denylist": [],
+    "startup": "h=$( (python3 --version; cat .raptor-jupyterlab.txt; echo \"${PY_PACKAGES}\") | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat .venv/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing JupyterLab\"; rm -rf .venv && python3 -m venv .venv && .venv/bin/pip install --no-cache-dir --disable-pip-version-check -q -r .raptor-jupyterlab.txt ${PY_PACKAGES} && echo \"$h\" > .venv/.raptor-installed || exit 1; fi; if [ -n \"${JUPYTER_PASSWORD:-}\" ]; then set -- --IdentityProvider.token= --PasswordIdentityProvider.hashed_password=\"$(.venv/bin/python -c 'import os; from jupyter_server.auth import passwd; print(passwd(os.environ[\"JUPYTER_PASSWORD\"]))')\" || exit 1; fi; [ \"${UPDATE_CHECK}\" = 1 ] || set -- \"$@\" --LabApp.news_url=None --LabApp.check_for_updates_class=jupyterlab.NeverCheckForUpdate; mkdir -p notebooks; exec .venv/bin/jupyter lab --no-browser --ip=0.0.0.0 --port={{SERVER_PORT}} --ServerApp.port_retries=0 --ServerApp.root_dir=/home/container/notebooks \"$@\"",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"is running at:\"]}",
+        "logs": "{}",
+        "stop": "^SIGTERM"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# JupyterLab: checks the chosen version on PyPI and writes it to\n# .raptor-jupyterlab.txt; the server installs it (in .venv, for the Python\n# version it runs) when it next starts. Notebooks and settings are never\n# touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n\nmeta=$(curl -fsSL --retry 3 -A \"raptor-installer (+https://raptorpanel.net)\" https://pypi.org/pypi/jupyterlab/json) ||\n    fail \"PyPI can't be reached right now. Reinstall to try again.\"\nlatest=$(jq -r .info.version <<<\"$meta\")\nwant=\"${VERSION:-latest}\"\n[ \"$want\" = latest ] && want=\"$latest\"\njq -e --arg v \"$want\" '.releases[$v] | length > 0 and all(.yanked | not)' <<<\"$meta\" >/dev/null ||\n    fail \"JupyterLab has no version $want. Set Version to latest, or to a release such as $latest, then reinstall.\"\n\necho \"jupyterlab==$want\" > .raptor-jupyterlab.txt.new\nmv -f .raptor-jupyterlab.txt.new .raptor-jupyterlab.txt\nmkdir -p notebooks\necho \"Installed JupyterLab $want; it's set up when the server starts.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The JupyterLab version to install, such as 4.6.6, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|\\d+\\.\\d+\\.\\d+((a|b|rc)\\d+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password to sign in with. Leave it empty to use a random token instead, shown in the console's link at every start.",
+            "env_variable": "JUPYTER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Extra packages",
+            "description": "More Python packages for your notebooks, separated by spaces, such as numpy pandas matplotlib. They're installed at the next start.",
+            "env_variable": "PY_PACKAGES",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:500|regex:/^[A-Za-z0-9_.\\-\\[\\]=<>!~, ]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Update check",
+            "description": "Set it to 1 to let JupyterLab check for new versions and show Jupyter news.",
+            "env_variable": "UPDATE_CHECK",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}

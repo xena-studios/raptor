@@ -1,0 +1,62 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Etherpad",
+    "author": "support@raptorpanel.net",
+    "description": "Etherpad is a collaborative text editor: everyone on a pad sees the text change as it's typed. The egg keeps pads in SQLite, with the admin pages behind the admin account.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:d0378084b323d05e146b21d85cd8243b660ecf9dc17ccf967d09ec0347896307",
+        "Node.js 26": "ghcr.io/xena-studios/yolks:nodejs_26@sha256:887afaa41d8937a5c664a887d55b730b4078f05610137705f918d423f78f90f3"
+    },
+    "file_denylist": [],
+    "startup": "[ -n \"${ADMIN_PASSWORD:-}\" ] || unset ADMIN_PASSWORD; if [ \"${UPDATE_CHECK}\" = 1 ]; then export UPDATES_TIER=notify PRIVACY_UPDATE_CHECK=true; else export UPDATES_TIER=off PRIVACY_UPDATE_CHECK=false; fi; export NODE_ENV=production ETHERPAD_PRODUCTION=true PORT={{SERVER_PORT}}; exec node --require ./etherpad/src/node_modules/tsx/dist/cjs/index.cjs etherpad/src/node/server.ts --settings /home/container/settings.json --apikey /home/container/APIKEY.txt --credentials /home/container/credentials.json",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"You can access your Etherpad instance at\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Etherpad: downloads the release's Debian package for the chosen version\n# from GitHub (checked against GitHub's checksum) and unpacks the app into\n# etherpad/, which is replaced only once the new one is complete. Pads and\n# plugins (var/: the SQLite database, installed_plugins.json), settings.json\n# and APIKEY.txt are never touched.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nrm -rf .raptor-new\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Etherpad has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nwant=\"${VERSION:-latest}\"\ntag=latest\nif [ \"$want\" != latest ]; then tag=\"v${want#v}\"; fi\ntag=$(gh-release tag ether/etherpad \"$tag\") || fail \"Etherpad has no version $want. Set Version to latest, or to a release such as 3.3.17, then reinstall.\"\nversion=\"${tag#v}\"\n\nif [ -f etherpad/src/package.json ] && [ \"$(jq -r .version etherpad/src/package.json)\" = \"$version\" ]; then\n    echo \"Etherpad $version is already installed.\"\nelse\n    deb=$(gh-release assets ether/etherpad \"$tag\" | awk -v re=\"^etherpad_${version//./[.]}-[0-9]+_${arch}[.]deb$\" '$1 ~ re { print $1; exit }')\n    [ -n \"$deb\" ] || fail \"Etherpad $version has no package for this CPU ($arch). Choose a newer version.\"\n    echo \"Downloading Etherpad $version\"\n    gh-release download ether/etherpad \"$tag\" \"$deb\" \"$work/etherpad.deb\"\n    dpkg-deb -x \"$work/etherpad.deb\" \"$work/pkg\"\n    [ -f \"$work/pkg/opt/etherpad/src/node/server.ts\" ] || fail \"Etherpad's package didn't have the app where it should. Report this to Raptor.\"\n    mv \"$work/pkg/opt/etherpad\" .raptor-new\n    cp -f \"$work/pkg/usr/share/etherpad/settings.json.dist\" settings.json.template\n    # Pads and plugins live in var/, outside the app, so updates keep them.\n    rm -rf .raptor-new/var\n    ln -s ../var .raptor-new/var\n    rm -rf etherpad\n    mv .raptor-new etherpad\nfi\nmkdir -p var\n# The plugin list Etherpad keeps (as its package writes it); without it,\n# Etherpad tries to rebuild it with pnpm, which the server doesn't have.\nif [ ! -f var/installed_plugins.json ]; then\n    jq -n --arg v \"$version\" '{plugins: [{name: \"ep_etherpad-lite\", version: $v}]}' > var/installed_plugins.json\nfi\n\n# A first settings.json from Etherpad's own template: pads in SQLite, the\n# admin pages (/admin) behind the admin account, whose password comes from\n# Admin password, no update checks unless Update check is on. The port is\n# the server's, at every start.\nif [ ! -f settings.json ]; then\n    [ -f settings.json.template ] || fail \"Etherpad's settings template is missing. Reinstall to fetch it again.\"\n    # Etherpad's single sign-on clients get random secrets instead of the\n    # template's placeholders (this egg signs in with a password, but the\n    # placeholders would still be accepted).\n    admin_secret=$(head -c 24 /dev/urandom | base64 | tr -d '/+=')\n    user_secret=$(head -c 24 /dev/urandom | base64 | tr -d '/+=')\n    sed -e 's|^  \"port\": 9001,|  \"port\": \"${PORT:9001}\",|' \\\n        -e 's|^  \"dbType\": \"dirty\",|  \"dbType\": \"sqlite\",|' \\\n        -e 's|^    \"filename\": \"var/dirty.db\"|    \"filename\": \"/home/container/var/etherpad.db\"|' \\\n        -e 's|\"tier\": \"${UPDATES_TIER:notify}\"|\"tier\": \"${UPDATES_TIER:off}\"|' \\\n        -e 's|\"updateCheck\": \"${PRIVACY_UPDATE_CHECK:true}\"|\"updateCheck\": \"${PRIVACY_UPDATE_CHECK:false}\"|' \\\n        -e 's|^  \"authenticationMethod\": \"${AUTHENTICATION_METHOD:sso}\",|  \"authenticationMethod\": \"apikey\",\\n\\n  /* The admin account (Admin password); no password, no account. */\\n  \"users\": {\\n    \"admin\": {\\n      \"password\": \"${ADMIN_PASSWORD:null}\",\\n      \"is_admin\": true\\n    }\\n  },|' \\\n        -e \"s|\\${ADMIN_SECRET:admin}|\\${ADMIN_SECRET:$admin_secret}|\" \\\n        -e \"s|\\${USER_SECRET:user}|\\${USER_SECRET:$user_secret}|\" \\\n        settings.json.template > settings.json.new\n    for want in '\"port\": \"${PORT:9001}\"' '\"dbType\": \"sqlite\"' 'var/etherpad.db' '${UPDATES_TIER:off}' '${PRIVACY_UPDATE_CHECK:false}' '\"authenticationMethod\": \"apikey\"' '${ADMIN_PASSWORD:null}' \"$admin_secret\" \"$user_secret\"; do\n        grep -qF \"$want\" settings.json.new || fail \"Etherpad's settings template has changed shape, so settings.json couldn't be written. Report this to Raptor.\"\n    done\n    mv settings.json.new settings.json\n    echo \"Wrote a first settings.json (SQLite, admin account from Admin password).\"\nfi\necho \"Installed Etherpad $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Etherpad version to install, such as 3.3.17, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The password of the admin account, which signs in to /admin. Leave it empty to have no admin account.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Update check",
+            "description": "Set it to 1 to let Etherpad check GitHub for new versions and show them on the admin pages.",
+            "env_variable": "UPDATE_CHECK",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}

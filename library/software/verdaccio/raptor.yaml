@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/verdaccio/egg-verdaccio.json
+license: MIT
+credits:
+  - "Written for Raptor from Verdaccio's own documentation (https://verdaccio.org, MIT)"
+  - "Icon: the Verdaccio logo, from https://github.com/verdaccio (MIT)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 8m
+  variables:
+    ADMIN_PASSWORD: raptor-test-password
+  config:
+    config.yaml: "max_users: -1"

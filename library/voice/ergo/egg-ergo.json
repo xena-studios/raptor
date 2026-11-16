@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Ergo",
+    "author": "support@raptorpanel.net",
+    "description": "Ergo is a modern IRC server with accounts, history and bouncer features built in. The egg runs plain IRC on the server's port, with the other settings in ircd.yaml.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "export ERGO__NETWORK__NAME=\"${NETWORK_NAME}\" ERGO__SERVER__NAME=\"${SERVER_HOSTNAME}\"; if [ -n \"${OPER_PASSWORD:-}\" ]; then export ERGO__OPERS__ADMIN__PASSWORD=\"$(printf '%s\\n' \"$OPER_PASSWORD\" | ./ergo genpasswd --quiet)\"; fi; exec ./ergo run --conf ircd.yaml",
+    "config": {
+        "files": "{\"ircd.yaml\": {\"parser\": \"file\", \"find\": {\"        \\\":\": \"        \\\":{{server.build.default.port}}\\\": {}\"}}}",
+        "startup": "{\"done\": [\"Server running\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Ergo: downloads the release for the chosen version from GitHub (checked\n# against GitHub's checksum) and writes a first ircd.yaml. The settings\n# (ircd.yaml), the MOTD and the database (ircd.db: accounts, channels) are\n# never touched; the binary is replaced only once the new one has arrived.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\n    x86_64) arch=x86_64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Ergo has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nwant=\"${VERSION:-latest}\"\ntag=latest\nif [ \"$want\" != latest ]; then tag=\"v${want#v}\"; fi\ntag=$(gh-release tag ergochat/ergo \"$tag\") || fail \"Ergo has no version $want. Set Version to latest, or to a release such as 2.19.1, then reinstall.\"\nversion=\"${tag#v}\"\n\nif [ -x ergo ] && [ \"$(./ergo --version 2>/dev/null)\" = \"ergo-$version\" ]; then\n    echo \"Ergo $version is already installed.\"\nelse\n    echo \"Downloading Ergo $version\"\n    gh-release download ergochat/ergo \"$tag\" \"ergo-$version-linux-$arch.tar.gz\" \"$work/ergo.tar.gz\"\n    tar -xzf \"$work/ergo.tar.gz\" -C \"$work\" --strip-components=1\n    rm -rf languages\n    mv \"$work/languages\" languages\n    cp -f \"$work/default.yaml\" default.yaml\n    [ -f ircd.motd ] || cp \"$work/ergo.motd\" ircd.motd\n    mv -f \"$work/ergo\" ergo\nfi\n\n# A first configuration from Ergo's own default: plain IRC on the server's\n# port (Raptor keeps it there), and the admin operator's example password\n# replaced with a random one nobody knows, until Operator password is set.\nif [ ! -f ircd.yaml ]; then\n    [ -f default.yaml ] || ./ergo defaultconfig > default.yaml\n    hash=$(head -c 24 /dev/urandom | base64 | ./ergo genpasswd --quiet)\n    awk -v hash=\"$hash\" '\n        /^    listeners:/ {\n            print\n            print \"        # Raptor sets the next line to the server'\"'\"'s port at every start. Add other\"\n            print \"        # listeners with an address, such as \\\"0.0.0.0:6697\\\" (TLS) or \\\"127.0.0.1:6668\\\".\"\n            print \"        \\\":6667\\\": {}\"\n            skip = 1; next\n        }\n        skip && /^    [a-z#]/ { skip = 0 }\n        skip { next }\n        /^opers:/ { opers = 1 }\n        opers && /^        password: / { print \"        password: \\\"\" hash \"\\\"\"; opers = 0; next }\n        /^motd: |^    motd: / { sub(/ergo\\.motd/, \"ircd.motd\") }\n        { print }\n    ' default.yaml > ircd.yaml.new\n    grep -q '^        \":6667\": {}' ircd.yaml.new && grep -qF \"$hash\" ircd.yaml.new || fail \"Ergo's default configuration has changed shape, so ircd.yaml couldn't be written. Report this to Raptor.\"\n    mv ircd.yaml.new ircd.yaml\n    echo \"Wrote a first ircd.yaml (plain IRC on the server's port).\"\nfi\necho \"Installed Ergo $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Ergo version to install, such as 2.19.1, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Network name",
+            "description": "The network's name, shown to people when they connect.",
+            "env_variable": "NETWORK_NAME",
+            "default_value": "Ergo",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9._-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server hostname",
+            "description": "The server's name on the network, a hostname such as irc.example.com.",
+            "env_variable": "SERVER_HOSTNAME",
+            "default_value": "irc.example.com",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:63|regex:/^[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Operator password",
+            "description": "The password for the admin operator, used with /OPER admin <password>. No spaces; leave it empty to have no usable operator.",
+            "env_variable": "OPER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100|regex:/^\\S+$/",
+            "field_type": "text"
+        }
+    ]
+}
