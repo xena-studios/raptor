@@ -1,0 +1,105 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written from scratch for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Minecraft: Geyser",
+    "author": "support@raptorpanel.net",
+    "description": "Geyser on its own, a proxy that lets Minecraft: Bedrock Edition players join a Java server. Installs any Geyser version and build, checked against GeyserMC's checksums, and points it at the Java server you choose.",
+    "features": [
+        "java_version"
+    ],
+    "docker_images": {
+        "Java 25": "ghcr.io/xena-studios/yolks:java_25@sha256:98fbedc047cc55fcead2cea64cb4dd31e3954e942ff33ed863f4dc5fb01d9406",
+        "Java 21": "ghcr.io/xena-studios/yolks:java_21@sha256:176d985fb81cd3f771a29e4afcd3ef6934e12e8ef747305ce817d6bb32f8f8c7",
+        "Java 17": "ghcr.io/xena-studios/yolks:java_17@sha256:26c280b6d93c559a2d034dedbfe9eccbfafe0b70be9919a299931135c50e8fff"
+    },
+    "file_denylist": [],
+    "startup": "set --; case \"{{JAVA_ADDRESS}}\" in 127.0.0.1 | localhost) read -r _ _ gw _ < <(ip -4 route show default); [ -z \"$gw\" ] || set -- \"--java.address=$gw\" ;; esac; read -r need 2>/dev/null < .raptor-java || need=17; java -version 2>&1 | awk -F'\"' -v need=\"$need\" '/version/ { split($2, v, \".\"); have = (v[1] == \"1\") ? v[2] : v[1]; if (have + 0 < need + 0) { printf \"This Geyser version needs Java %s or newer, and the server runs Java %s. Choose Java %s in Startup, then start the server again.\\n\", need, have, need; exit 1 } exit }' && exec java -Xms128M -XX:MaxRAMPercentage=85.0 -XX:+IgnoreUnrecognizedVMOptions -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -Dterminal.jline=false -Dterminal.ansi=true -jar {{SERVER_JARFILE}} --nogui \"$@\"",
+    "config": {
+        "files": "{\"config.yml\": {\"parser\": \"yaml\", \"find\": {\"bedrock.address\": \"0.0.0.0\", \"bedrock.port\": \"{{server.build.default.port}}\", \"java.address\": \"{{server.build.env.JAVA_ADDRESS}}\", \"java.port\": \"{{server.build.env.JAVA_PORT}}\", \"java.auth-type\": \"{{server.build.env.AUTH_TYPE}}\", \"enable-metrics\": \"{{server.build.env.BSTATS}}\"}}}",
+        "startup": "{\"done\": \"Done (\"}",
+        "logs": "{}",
+        "stop": "geyser stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Minecraft: Geyser. Downloads the standalone Geyser build from GeyserMC\n# and checks it against GeyserMC's checksum. Its settings, extensions and\n# packs are never touched, and the jar is only replaced once the new one\n# checks out.\nset -euo pipefail\ncd /mnt/server\n\napi=https://download.geysermc.org/v2/projects/geyser\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\njar=\"${SERVER_JARFILE:-Geyser.jar}\"\nget() { curl -fsSL --retry 3 -A \"$ua\" \"$1\"; }\nfail() { echo \"$1\"; exit 1; }\n\nversions=$(get \"$api\") || fail \"GeyserMC can't be reached right now. Reinstall to try again.\"\nversion=\"${GEYSER_VERSION:-latest}\"\nbuild=\"${BUILD_NUMBER:-latest}\"\nif [ \"$version\" = latest ]; then\n    version=$(jq -r '.versions[-1]' <<<\"$versions\")\nelse\n    jq -e --arg v \"$version\" 'any(.versions[]; . == $v)' <<<\"$versions\" >/dev/null ||\n        fail \"Geyser has no version $version. Set Version to latest, or to one Geyser has, such as $(jq -r '.versions[-1]' <<<\"$versions\").\"\nfi\ncode=$(curl -sSL --retry 3 -A \"$ua\" -o /tmp/geyser-build.json -w '%{http_code}' \"$api/versions/$version/builds/$build\") ||\n    fail \"GeyserMC can't be reached right now. Reinstall to try again.\"\n[ \"$code\" = 404 ] && fail \"Geyser $version has no build $build. Set Build to latest, or to one of its builds.\"\n[ \"$code\" = 200 ] || fail \"GeyserMC can't be reached right now (HTTP $code). Reinstall to try again.\"\nid=$(jq -r .build /tmp/geyser-build.json)\nsum=$(jq -r '.downloads.standalone.sha256 // empty' /tmp/geyser-build.json)\n[ -n \"$sum\" ] || fail \"Geyser $version build $id has no standalone jar. Choose another build.\"\n\nif [ -f \"$jar\" ] && [ \"$(sha256sum \"$jar\" | cut -d' ' -f1)\" = \"$sum\" ]; then\n    echo \"Geyser $version build $id is already installed.\"\nelse\n    echo \"Downloading Geyser $version build $id\"\n    curl -fsSL --retry 3 -A \"$ua\" -o \"$jar.new\" \"$api/versions/$version/builds/$id/downloads/standalone\" ||\n        { rm -f \"$jar.new\"; fail \"The download from GeyserMC failed. Reinstall to try again.\"; }\n    [ \"$(sha256sum \"$jar.new\" | cut -d' ' -f1)\" = \"$sum\" ] ||\n        { rm -f \"$jar.new\"; fail \"The download didn't match GeyserMC's checksum. Reinstall to try again.\"; }\n    mv -f \"$jar.new\" \"$jar\"\nfi\n\n# The Java the jar needs, from its main class (the manifest wraps long\n# lines): the startup command checks it.\nmain=$(unzip -p \"$jar\" META-INF/MANIFEST.MF | tr -d '\\r' | awk '/^Main-Class:/ { m = $2; c = 1; next } c && /^ / { m = m substr($0, 2); next } { c = 0 } END { print m }')\nmajor=$(unzip -p \"$jar\" \"${main//.//}.class\" 2>/dev/null | od -An -j6 -N2 -tu1 | awk 'NF == 2 { print $1 * 256 + $2 - 44 }') || true\njava=\"${major:-17}\"\necho \"$java\" > .raptor-java\n\n# Geyser fills in the rest of its settings on its first start; the Panel\n# sets the ports and the Java server in it.\n[ -s config.yml ] || printf 'bedrock:\\n  address: 0.0.0.0\\n  port: %s\\njava:\\n  address: 127.0.0.1\\n  port: 25565\\nenable-metrics: false\\n' \"${SERVER_PORT:-19132}\" > config.yml\necho \"Installed Geyser $version build $id. It needs Java $java or newer.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Geyser version, such as 2.12.1, or latest for the newest one. Reinstall the server after changing it.",
+            "env_variable": "GEYSER_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|[0-9]+(\\.[0-9]+){1,2})$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Build",
+            "description": "The Geyser build for that version, or latest for its newest build.",
+            "env_variable": "BUILD_NUMBER",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|[0-9]+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Jar file",
+            "description": "The name of Geyser's jar file.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "Geyser.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Java server address",
+            "description": "The address of the Java server Bedrock players join, such as play.example.com; 127.0.0.1 means a server on this same machine.",
+            "env_variable": "JAVA_ADDRESS",
+            "default_value": "127.0.0.1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "Java server port",
+            "description": "The port of that Java server.",
+            "env_variable": "JAVA_PORT",
+            "default_value": "25565",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Sign-in",
+            "description": "How Bedrock players sign in to the Java server: online (each needs a Java account), offline (the Java server is in offline mode), or floodgate (no Java account, with the Floodgate plugin on the Java server).",
+            "env_variable": "AUTH_TYPE",
+            "default_value": "online",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:online,offline,floodgate",
+            "field_type": "text"
+        },
+        {
+            "name": "Usage statistics",
+            "description": "Send anonymous statistics about the server to bStats.org, where its developers see them (true or false).",
+            "env_variable": "BSTATS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        }
+    ]
+}

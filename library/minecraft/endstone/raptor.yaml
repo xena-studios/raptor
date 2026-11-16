@@ -1,0 +1,19 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/endstone/egg-endstone.json
+license: MIT
+credits:
+  - "Written for Raptor from Endstone's documentation, https://endstone.dev"
+  - "Icon: Endstone's logo, from https://github.com/EndstoneMC"
+certified: true
+# Endstone's runtime and Mojang's server are x86-64 only, and Endstone's
+# Python plugins run inside Mojang's server, so Box64 can't run it on ARM.
+arch: [amd64]
+# Bedrock answers neither Java's status ping nor A2S, and its save commands
+# (save hold / query / resume) need more than backup hooks can express.
+test:
+  tier: fast
+  memory_mib: 2048
+  done_timeout: 10m
+  command: "list"
+  expect: "There are 0/\\d+ players online"
