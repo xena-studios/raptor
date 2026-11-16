@@ -42,3 +42,4 @@ example
 /ios
 /android
 .dev-build/
+.dev-build-sim/

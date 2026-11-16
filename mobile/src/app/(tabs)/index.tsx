@@ -213,7 +213,8 @@ export default function Inbox() {
                   ) : null}
                   {n.text ? (
                     <Text variant="meta" ink="muted" numberOfLines={2} style={{ paddingLeft: 16 }}>
-                      {n.text}
+                      {/* The summary; a crash's console lines are for its page. */}
+                      {n.text.split("\nLast lines:")[0]}
                     </Text>
                   ) : null}
                 </Row>

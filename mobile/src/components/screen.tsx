@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { RefreshControl, ScrollView, View } from "react-native";
+import { Platform, RefreshControl, ScrollView, View } from "react-native";
 import { LayoutAnimationConfig } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -39,8 +39,10 @@ export function PageHeader({
 }
 
 // Page is a tab's scrolling page: its header, then cards a stack apart,
-// with pull to refresh. inset adds the status bar's height (tabs have no
-// navigation bar above them).
+// with pull to refresh. On iOS the system keeps it clear of the status bar
+// and any navigation bar (a native tab's content already starts below the
+// status bar, so adding its height here doubled it). On Android, edge to
+// edge, inset adds the status bar's height (tabs have no bar above them).
 export function Page({
   header,
   children,
@@ -56,14 +58,13 @@ export function Page({
 }) {
   const c = useColors();
   const insets = useSafeAreaInsets();
+  const top = Platform.OS === "android" && inset ? insets.top : 0;
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: c.background }}
-      // The status bar's height is added below (inset), so iOS mustn't add
-      // it again.
-      contentInsetAdjustmentBehavior="never"
+      contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={{
-        paddingTop: (inset ? insets.top : 0) + 16,
+        paddingTop: top + 16,
         paddingHorizontal: space.page,
         paddingBottom: 40,
         gap: space.stack,
