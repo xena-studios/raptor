@@ -81,7 +81,13 @@ type CatalogEgg struct {
 	// The icon was uploaded, so removing it can bring back the file's.
 	IconUploaded bool `protobuf:"varint,27,opt,name=icon_uploaded,json=iconUploaded,proto3" json:"icon_uploaded,omitempty"`
 	// Which variables pick a modpack, for the pack picker (#413).
-	Modpack       *EggModpack `protobuf:"bytes,28,opt,name=modpack,proto3" json:"modpack,omitempty"`
+	Modpack *EggModpack `protobuf:"bytes,28,opt,name=modpack,proto3" json:"modpack,omitempty"`
+	// For Popular (#457), over the same servers as servers: each server
+	// counts 10, one running now 10 more, one made in the last 30 days 10
+	// more. Aggregate only.
+	Popularity int32 `protobuf:"varint,29,opt,name=popularity,proto3" json:"popularity,omitempty"`
+	// Servers made from it in the last 30 days (for "Trending").
+	ServersRecent int32 `protobuf:"varint,30,opt,name=servers_recent,json=serversRecent,proto3" json:"servers_recent,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -312,6 +318,20 @@ func (x *CatalogEgg) GetModpack() *EggModpack {
 	return nil
 }
 
+func (x *CatalogEgg) GetPopularity() int32 {
+	if x != nil {
+		return x.Popularity
+	}
+	return 0
+}
+
+func (x *CatalogEgg) GetServersRecent() int32 {
+	if x != nil {
+		return x.ServersRecent
+	}
+	return 0
+}
+
 // EggModpack is where a modpack egg takes its pack (x-raptor.modpack).
 type EggModpack struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -532,7 +552,7 @@ var File_raptor_panel_v1_catalog_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_catalog_proto_rawDesc = "" +
 	"\n" +
-	"\x1draptor/panel/v1/catalog.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x96\a\n" +
+	"\x1draptor/panel/v1/catalog.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdd\a\n" +
 	"\n" +
 	"CatalogEgg\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
@@ -567,7 +587,11 @@ const file_raptor_panel_v1_catalog_proto_rawDesc = "" +
 	"\x0eremoved_reason\x18\x19 \x01(\tR\rremovedReason\x12\x12\n" +
 	"\x04icon\x18\x1a \x01(\tR\x04icon\x12#\n" +
 	"\ricon_uploaded\x18\x1b \x01(\bR\ficonUploaded\x125\n" +
-	"\amodpack\x18\x1c \x01(\v2\x1b.raptor.panel.v1.EggModpackR\amodpack\"{\n" +
+	"\amodpack\x18\x1c \x01(\v2\x1b.raptor.panel.v1.EggModpackR\amodpack\x12\x1e\n" +
+	"\n" +
+	"popularity\x18\x1d \x01(\x05R\n" +
+	"popularity\x12%\n" +
+	"\x0eservers_recent\x18\x1e \x01(\x05R\rserversRecent\"{\n" +
 	"\n" +
 	"EggModpack\x12\x16\n" +
 	"\x06source\x18\x01 \x01(\tR\x06source\x12\x18\n" +
