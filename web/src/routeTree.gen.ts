@@ -82,6 +82,7 @@ import { Route as OrgsOrgIdServersServerIdSchedulesRouteImport } from './routes/
 import { Route as OrgsOrgIdServersServerIdSettingsRouteImport } from './routes/orgs.$orgId.servers.$serverId.settings'
 import { Route as OrgsOrgIdServersServerIdStartupRouteImport } from './routes/orgs.$orgId.servers.$serverId.startup'
 import { Route as OrgsOrgIdServersServerIdWorkshopRouteImport } from './routes/orgs.$orgId.servers.$serverId.workshop'
+import { Route as OrgsOrgIdServersServerIdWorldsRouteImport } from './routes/orgs.$orgId.servers.$serverId.worlds'
 import { Route as PopoutOrgIdNodesNodeIdStatsRouteImport } from './routes/popout.$orgId.nodes.$nodeId.stats'
 import { Route as PopoutOrgIdServersServerIdConsoleRouteImport } from './routes/popout.$orgId.servers.$serverId.console'
 import { Route as PopoutOrgIdServersServerIdFilesRouteImport } from './routes/popout.$orgId.servers.$serverId.files'
@@ -489,6 +490,12 @@ const OrgsOrgIdServersServerIdWorkshopRoute =
     path: '/workshop',
     getParentRoute: () => OrgsOrgIdServersServerIdRoute,
   } as any)
+const OrgsOrgIdServersServerIdWorldsRoute =
+  OrgsOrgIdServersServerIdWorldsRouteImport.update({
+    id: '/worlds',
+    path: '/worlds',
+    getParentRoute: () => OrgsOrgIdServersServerIdRoute,
+  } as any)
 const PopoutOrgIdNodesNodeIdStatsRoute =
   PopoutOrgIdNodesNodeIdStatsRouteImport.update({
     id: '/stats',
@@ -633,6 +640,7 @@ export interface FileRoutesByFullPath {
   '/orgs/$orgId/servers/$serverId/settings': typeof OrgsOrgIdServersServerIdSettingsRoute
   '/orgs/$orgId/servers/$serverId/startup': typeof OrgsOrgIdServersServerIdStartupRoute
   '/orgs/$orgId/servers/$serverId/workshop': typeof OrgsOrgIdServersServerIdWorkshopRoute
+  '/orgs/$orgId/servers/$serverId/worlds': typeof OrgsOrgIdServersServerIdWorldsRoute
   '/popout/$orgId/nodes/$nodeId/stats': typeof PopoutOrgIdNodesNodeIdStatsRoute
   '/popout/$orgId/servers/$serverId/console': typeof PopoutOrgIdServersServerIdConsoleRoute
   '/popout/$orgId/servers/$serverId/files': typeof PopoutOrgIdServersServerIdFilesRoute
@@ -713,6 +721,7 @@ export interface FileRoutesByTo {
   '/orgs/$orgId/servers/$serverId/settings': typeof OrgsOrgIdServersServerIdSettingsRoute
   '/orgs/$orgId/servers/$serverId/startup': typeof OrgsOrgIdServersServerIdStartupRoute
   '/orgs/$orgId/servers/$serverId/workshop': typeof OrgsOrgIdServersServerIdWorkshopRoute
+  '/orgs/$orgId/servers/$serverId/worlds': typeof OrgsOrgIdServersServerIdWorldsRoute
   '/popout/$orgId/nodes/$nodeId/stats': typeof PopoutOrgIdNodesNodeIdStatsRoute
   '/popout/$orgId/servers/$serverId/console': typeof PopoutOrgIdServersServerIdConsoleRoute
   '/popout/$orgId/servers/$serverId/files': typeof PopoutOrgIdServersServerIdFilesRoute
@@ -801,6 +810,7 @@ export interface FileRoutesById {
   '/orgs/$orgId/servers/$serverId/settings': typeof OrgsOrgIdServersServerIdSettingsRoute
   '/orgs/$orgId/servers/$serverId/startup': typeof OrgsOrgIdServersServerIdStartupRoute
   '/orgs/$orgId/servers/$serverId/workshop': typeof OrgsOrgIdServersServerIdWorkshopRoute
+  '/orgs/$orgId/servers/$serverId/worlds': typeof OrgsOrgIdServersServerIdWorldsRoute
   '/popout/$orgId/nodes/$nodeId/stats': typeof PopoutOrgIdNodesNodeIdStatsRoute
   '/popout/$orgId/servers/$serverId/console': typeof PopoutOrgIdServersServerIdConsoleRoute
   '/popout/$orgId/servers/$serverId/files': typeof PopoutOrgIdServersServerIdFilesRoute
@@ -890,6 +900,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$serverId/settings'
     | '/orgs/$orgId/servers/$serverId/startup'
     | '/orgs/$orgId/servers/$serverId/workshop'
+    | '/orgs/$orgId/servers/$serverId/worlds'
     | '/popout/$orgId/nodes/$nodeId/stats'
     | '/popout/$orgId/servers/$serverId/console'
     | '/popout/$orgId/servers/$serverId/files'
@@ -970,6 +981,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$serverId/settings'
     | '/orgs/$orgId/servers/$serverId/startup'
     | '/orgs/$orgId/servers/$serverId/workshop'
+    | '/orgs/$orgId/servers/$serverId/worlds'
     | '/popout/$orgId/nodes/$nodeId/stats'
     | '/popout/$orgId/servers/$serverId/console'
     | '/popout/$orgId/servers/$serverId/files'
@@ -1057,6 +1069,7 @@ export interface FileRouteTypes {
     | '/orgs/$orgId/servers/$serverId/settings'
     | '/orgs/$orgId/servers/$serverId/startup'
     | '/orgs/$orgId/servers/$serverId/workshop'
+    | '/orgs/$orgId/servers/$serverId/worlds'
     | '/popout/$orgId/nodes/$nodeId/stats'
     | '/popout/$orgId/servers/$serverId/console'
     | '/popout/$orgId/servers/$serverId/files'
@@ -1599,6 +1612,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgsOrgIdServersServerIdWorkshopRouteImport
       parentRoute: typeof OrgsOrgIdServersServerIdRoute
     }
+    '/orgs/$orgId/servers/$serverId/worlds': {
+      id: '/orgs/$orgId/servers/$serverId/worlds'
+      path: '/worlds'
+      fullPath: '/orgs/$orgId/servers/$serverId/worlds'
+      preLoaderRoute: typeof OrgsOrgIdServersServerIdWorldsRouteImport
+      parentRoute: typeof OrgsOrgIdServersServerIdRoute
+    }
     '/popout/$orgId/nodes/$nodeId/stats': {
       id: '/popout/$orgId/nodes/$nodeId/stats'
       path: '/stats'
@@ -1888,6 +1908,7 @@ interface OrgsOrgIdServersServerIdRouteChildren {
   OrgsOrgIdServersServerIdSettingsRoute: typeof OrgsOrgIdServersServerIdSettingsRoute
   OrgsOrgIdServersServerIdStartupRoute: typeof OrgsOrgIdServersServerIdStartupRoute
   OrgsOrgIdServersServerIdWorkshopRoute: typeof OrgsOrgIdServersServerIdWorkshopRoute
+  OrgsOrgIdServersServerIdWorldsRoute: typeof OrgsOrgIdServersServerIdWorldsRoute
   OrgsOrgIdServersServerIdIndexRoute: typeof OrgsOrgIdServersServerIdIndexRoute
   OrgsOrgIdServersServerIdDatabasesDatabaseIdRoute: typeof OrgsOrgIdServersServerIdDatabasesDatabaseIdRoute
   OrgsOrgIdServersServerIdDatabasesIndexRoute: typeof OrgsOrgIdServersServerIdDatabasesIndexRoute
@@ -1912,6 +1933,7 @@ const OrgsOrgIdServersServerIdRouteChildren: OrgsOrgIdServersServerIdRouteChildr
     OrgsOrgIdServersServerIdStartupRoute: OrgsOrgIdServersServerIdStartupRoute,
     OrgsOrgIdServersServerIdWorkshopRoute:
       OrgsOrgIdServersServerIdWorkshopRoute,
+    OrgsOrgIdServersServerIdWorldsRoute: OrgsOrgIdServersServerIdWorldsRoute,
     OrgsOrgIdServersServerIdIndexRoute: OrgsOrgIdServersServerIdIndexRoute,
     OrgsOrgIdServersServerIdDatabasesDatabaseIdRoute:
       OrgsOrgIdServersServerIdDatabasesDatabaseIdRoute,
