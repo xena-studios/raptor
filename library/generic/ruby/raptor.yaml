@@ -1,0 +1,31 @@
+source:
+  repo: xena-studios/raptor
+  path: library/generic/ruby/egg-ruby.json
+license: MIT
+credits:
+  - "Written for Raptor, following its Node.js and Python eggs"
+  - "Icon: the Ruby logo, the https://github.com/ruby avatar (Yukihiro Matsumoto, CC BY-SA 2.5)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  files:
+    Gemfile: |
+      source "https://rubygems.org"
+      gem "json", "~> 2.7"
+    app.rb: |
+      # Stands in for a bot: says it's ready, then echoes the console. json
+      # is a native gem, so Bundler builds it.
+      require "json"
+
+      puts JSON.parse('["ready"]').first
+      $stdout.sync = true
+      begin
+        $stdin.each_line { |l| puts "got: #{l.strip}" unless l.strip.empty? }
+      rescue Interrupt
+      end
+  done_timeout: 5m
+  ready: "^ready$"
+  command: "hello"
+  expect: "^got: hello$"
