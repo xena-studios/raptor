@@ -13,6 +13,7 @@ import (
 
 	"github.com/xena-studios/raptor/internal/wings/command"
 	"github.com/xena-studios/raptor/internal/wings/files"
+	"github.com/xena-studios/raptor/internal/wings/metrics"
 	"github.com/xena-studios/raptor/internal/wings/server"
 )
 
@@ -25,6 +26,7 @@ import (
 const (
 	PlayersLists  = "players.lists"  // a read: the list files
 	PlayersManage = "players.manage" // whitelist, op, ban, kick, and their undoing
+	PlayersOnline = "players.online" // a read: who's online, from the game's ping
 )
 
 // playerFiles are the files players.lists reads, by key.
@@ -34,6 +36,15 @@ var playerFiles = map[string]string{
 	"bans":      "banned-players.json",
 	"ip_bans":   "banned-ips.json",
 	"seen":      "usercache.json",
+}
+
+// Online is players.online's answer. Names can be fewer than Online:
+// Minecraft's ping lists at most 12, and servers can hide them.
+type Online struct {
+	Running bool     `json:"running"`
+	Online  int      `json:"online"`
+	Max     int      `json:"max"`
+	Names   []string `json:"names"`
 }
 
 // PlayersParams are players.manage's params.
@@ -230,6 +241,25 @@ func RegisterPlayers(x *command.Executor, m *server.Manager, fsvc *files.Service
 		}
 		out["properties"], _ = json.Marshal(props)
 		return out, nil
+	}})
+	x.Register(PlayersOnline, command.Handler{Signed: command.Never, ReadOnly: true, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		if err := minecraft(ctx, e); err != nil {
+			return nil, err
+		}
+		s, err := m.Sample(ctx, e.ServerID)
+		if err != nil {
+			return nil, err
+		}
+		if s.State != server.Running || s.Query != "minecraft" || s.QueryAddr == "" {
+			return Online{}, nil
+		}
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		p, err := metrics.QueryPlayers(ctx, s.Query, s.QueryAddr)
+		if err != nil {
+			return nil, fmt.Errorf("the server didn't answer its ping: %w", err)
+		}
+		return Online{Running: true, Online: p.Online, Max: p.Max, Names: p.Names}, nil
 	}})
 	x.Register(PlayersManage, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
 		if err := minecraft(ctx, e); err != nil {
