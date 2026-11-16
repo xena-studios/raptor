@@ -492,7 +492,48 @@ func (r *run) restartWings() {
 		}
 		time.Sleep(200 * time.Millisecond)
 	}
-	r.command(r.e.Test.Command)
+	// The command again through the re-attached console. Rust sometimes
+	// misses the first one after a re-attach (#463): try up to three
+	// times, and say which answered, so CI shows whether a command is
+	// lost (later attempts answer) or the console is dead (none do).
+	for attempt := 1; ; attempt++ {
+		if r.tryCommand(r.e.Test.Command, replyTimeout/3) {
+			if attempt > 1 {
+				r.t.Logf("wings_restart: %q answered on attempt %d (#463)", r.e.Test.Command, attempt)
+			}
+			return
+		}
+		if attempt == 3 {
+			r.fail("no reply to %q matching %q in 3 tries after the Wings restart", r.e.Test.Command, r.e.Test.Expect)
+		}
+	}
+}
+
+// tryCommand sends a command and reports whether a reply matching the
+// test's expect came within timeout.
+func (r *run) tryCommand(cmd string, timeout time.Duration) bool {
+	r.t.Helper()
+	expect := regexp.MustCompile(r.e.Test.Expect)
+	st, err := r.m.Status(r.id)
+	if err != nil {
+		r.fail("status: %v", err)
+	}
+	_, sub, unsubscribe := st.Console.Subscribe()
+	defer unsubscribe()
+	if err := r.m.SendCommand(r.id, "conformance", cmd); err != nil {
+		r.fail("send %q: %v", cmd, err)
+	}
+	deadline := time.After(timeout)
+	for {
+		select {
+		case l := <-sub.C:
+			if expect.MatchString(stripANSI(l)) {
+				return true
+			}
+		case <-deadline:
+			return false
+		}
+	}
 }
 
 // checkConfig checks files the egg's config parsers must have written.
