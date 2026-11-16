@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand/v2"
-	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -32,7 +31,8 @@ type DemoServer struct {
 	CPU, MemoryGiB    float64
 	Players, MaxSlots int
 	// Crash: it crashes about half a minute after the node links.
-	Crash bool
+	// Installed: its install finishes then.
+	Crash, Installed bool
 }
 
 // DemoFleet is what each demo node runs, by its place in the fleet.
@@ -42,7 +42,7 @@ func DemoFleet(node int) []DemoServer {
 			{Name: "Survival SMP", Egg: "Paper", State: "running", CPU: 86, MemoryGiB: 5.6, Players: 14, MaxSlots: 40},
 			{Name: "Rust Weekly", Egg: "Rust", State: "running", CPU: 142, MemoryGiB: 9.2, Players: 41, MaxSlots: 100},
 			{Name: "Creative", Egg: "Paper", State: "running", CPU: 21, MemoryGiB: 2.4, Players: 3, MaxSlots: 20},
-			{Name: "Modded ATM10", Egg: "NeoForge", State: "starting", CPU: 180, MemoryGiB: 7.1, MaxSlots: 12},
+			{Name: "Modded ATM10", Egg: "NeoForge", State: "starting", CPU: 180, MemoryGiB: 7.1, MaxSlots: 12, Installed: true},
 		},
 		{
 			{Name: "Valheim", Egg: "Valheim", State: "running", CPU: 64, MemoryGiB: 3.8, Players: 6, MaxSlots: 10},
@@ -142,34 +142,39 @@ func (n *Node) demoState(id string) string {
 	return ""
 }
 
-// demoCrash crashes the server meant to, once, and records the event.
-func (n *Node) demoCrash() (int64, bool) {
+// demoEvents makes the demo's one-time events, once: the crash of the
+// server meant to crash, with the console's last lines as Wings sends them,
+// and the install of the one meant to finish installing. ok is whether
+// there were any.
+func (n *Node) demoEvents() (int64, bool) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	if n.demo.crashed {
 		return n.seq, false
 	}
-	for _, s := range n.servers {
-		if !n.demo.byID[s.GetId()].Crash {
-			continue
-		}
-		n.demo.crashed = true
-		s.State = "crashed"
+	n.demo.crashed = true
+	add := func(s *nodev1.Server, typ string, data any) {
 		n.seq++
-		now := time.Now().UnixMilli()
-		e := &nodev1.Event{Seq: n.seq, ServerId: s.GetId(), At: now, Type: "server.state", Version: s.GetVersion()}
-		e.Data, _ = json.Marshal(map[string]any{"state": "crashed"})
-		// What alerts: as Wings says it, with the console's last lines.
-		n.seq++
-		c := &nodev1.Event{Seq: n.seq, ServerId: s.GetId(), At: now, Type: "server.crashed", Version: s.GetVersion()}
-		c.Data, _ = json.Marshal(map[string]any{"exit_code": 139, "reason": "error", "console": []string{
-			"Saving map to file autosave3.zip",
-			"Segmentation fault (core dumped)",
-		}})
-		n.events = append(n.events, e, c)
-		return n.seq, true
+		e := &nodev1.Event{Seq: n.seq, ServerId: s.GetId(), At: time.Now().UnixMilli(), Type: typ, Version: s.GetVersion()}
+		e.Data, _ = json.Marshal(data)
+		n.events = append(n.events, e)
 	}
-	return n.seq, false
+	before := n.seq
+	for _, s := range n.servers {
+		d := n.demo.byID[s.GetId()]
+		if d.Crash {
+			s.State = "crashed"
+			add(s, "server.state", map[string]any{"state": "crashed"})
+			add(s, "server.crashed", map[string]any{"exit_code": 139, "reason": "error", "console": []string{
+				"Saving map to file autosave3.zip",
+				"Segmentation fault (core dumped)",
+			}})
+		}
+		if d.Installed {
+			add(s, "server.install.finished", map[string]any{})
+		}
+	}
+	return n.seq, n.seq > before
 }
 
 func (s *service) demoExecute(req *nodev1.ExecuteRequest) (*nodev1.ExecuteResponse, error) {
@@ -213,32 +218,46 @@ func (s *service) demoConsole(ctx context.Context, req *nodev1.ConsoleRequest, s
 			return nil
 		case <-time.After(time.Duration(4+rand.IntN(5)) * time.Second): //nolint:gosec // a demo's pacing
 		}
-		if err := stream.Send(&nodev1.ConsoleResponse{Lines: []string{later[i%len(later)]}}); err != nil {
+		line := later[i%len(later)]
+		if d.Egg != "Rust" {
+			// Minecraft stamps each line as it's printed.
+			line = fmt.Sprintf("[%s INFO]: %s", time.Now().Format("15:04:05"), line)
+		}
+		if err := stream.Send(&nodev1.ConsoleResponse{Lines: []string{line}}); err != nil {
 			return err
 		}
 	}
 }
 
 func consoleLines(d DemoServer) (history, later []string) {
-	stamp := func(ago time.Duration) string { return time.Now().Add(-ago).Format("15:04:05") }
+	// Minutes and seconds ago, so the stamps look printed, not generated.
+	stamp := func(m, sec int) string {
+		return time.Now().Add(-time.Duration(m)*time.Minute - time.Duration(sec)*time.Second).Format("15:04:05")
+	}
 	switch d.Egg {
 	case "Paper", "NeoForge":
-		history = []string{
-			fmt.Sprintf("[%s INFO]: Starting minecraft server version 1.21.4", stamp(52*time.Minute)),
-			fmt.Sprintf("[%s INFO]: Preparing level \"world\"", stamp(52*time.Minute)),
-			fmt.Sprintf("[%s INFO]: Done (8.412s)! For help, type \"help\"", stamp(51*time.Minute)),
-			fmt.Sprintf("[%s INFO]: Steve joined the game", stamp(34*time.Minute)),
-			fmt.Sprintf("[%s INFO]: <Steve> anyone up for the end raid tonight?", stamp(33*time.Minute)),
-			fmt.Sprintf("[%s INFO]: <Alex> yes! after dinner", stamp(32*time.Minute)),
-			fmt.Sprintf("[%s INFO]: Notch has made the advancement [Diamonds!]", stamp(12*time.Minute)),
-			fmt.Sprintf("[%s INFO]: Saved the game", stamp(5*time.Minute)),
+		lines := []struct {
+			m, s int
+			text string
+		}{
+			{52, 41, "Starting minecraft server version 1.21.4"},
+			{52, 38, "Preparing level \"world\""},
+			{52, 30, "Done (8.412s)! For help, type \"help\""},
+			{34, 12, "Maya_Builds joined the game"},
+			{33, 47, "<Maya_Builds> anyone up for the end raid tonight?"},
+			{32, 5, "<kestrel77> yes! after dinner"},
+			{12, 19, "kestrel77 has made the advancement [Diamonds!]"},
+			{5, 2, "Saved the game"},
+		}
+		for _, l := range lines {
+			history = append(history, fmt.Sprintf("[%s INFO]: %s", stamp(l.m, l.s), l.text))
 		}
 		later = []string{
-			"[INFO]: <Alex> who has spare iron?",
-			"[INFO]: Jeb joined the game",
-			"[INFO]: <Steve> chests by spawn",
-			"[INFO]: Automatic saving is now enabled",
-			"[INFO]: Jeb has made the advancement [Stone Age]",
+			"<kestrel77> who has spare iron?",
+			"Tobi_R joined the game",
+			"<Maya_Builds> chests by spawn",
+			"Tobi_R has made the advancement [Stone Age]",
+			"Saved the game",
 		}
 	case "Rust":
 		history = []string{
@@ -252,12 +271,6 @@ func consoleLines(d DemoServer) (history, later []string) {
 	default:
 		history = []string{"Server started", "World loaded", "Listening for players"}
 		later = []string{"Player connected", "World saved", "Player disconnected"}
-	}
-	for i, l := range later {
-		if !strings.HasPrefix(l, "[") || d.Egg == "Rust" {
-			continue
-		}
-		later[i] = "[" + time.Now().Format("15:04:05") + " " + l[1:]
 	}
 	return history, later
 }

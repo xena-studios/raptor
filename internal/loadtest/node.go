@@ -70,7 +70,8 @@ func NewNode(id Identity, load Load, stats *Stats) *Node {
 	now := time.Now().UnixMilli()
 	if load.Demo != nil {
 		for _, d := range load.Demo {
-			sid, _ := uuid.NewV7()
+			// The same ID every run, so restarting doesn't leave copies.
+			sid := uuid.NewSHA1(uuid.NameSpaceOID, []byte(id.NodeID+"/"+d.Name))
 			desired := "running"
 			if d.State == "offline" {
 				desired = "offline"
@@ -143,7 +144,7 @@ func (n *Node) linked(ctx context.Context, s *nodelink.Session) {
 			return
 		case <-time.After(30 * time.Second):
 		}
-		if last, ok := n.demoCrash(); ok {
+		if last, ok := n.demoEvents(); ok {
 			_, _ = panel.EventsAvailable(ctx, &nodev1.EventsAvailableRequest{LastSeq: last})
 		}
 		<-s.Done()
