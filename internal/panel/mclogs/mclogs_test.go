@@ -2,6 +2,7 @@ package mclogs
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -47,10 +48,10 @@ func TestShare(t *testing.T) {
 	if err != nil || u != "https://mclo.gs/abc" || got != "a log" {
 		t.Fatalf("Share = %q, %v (sent %q)", u, err, got)
 	}
-	if _, err := c.Share(context.Background(), "evil"); err != ErrUnavailable {
+	if _, err := c.Share(context.Background(), "evil"); !errors.Is(err, ErrUnavailable) {
 		t.Errorf("a link elsewhere: %v", err)
 	}
-	if _, err := c.Share(context.Background(), ""); err == nil || err == ErrUnavailable {
+	if _, err := c.Share(context.Background(), ""); err == nil || errors.Is(err, ErrUnavailable) {
 		t.Errorf("mclo.gs' own error: %v", err)
 	}
 }
