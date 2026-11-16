@@ -23,7 +23,13 @@ const facts: [term: string, detail: string][] = [];
 if (e.addons.length) facts.push(["Add-ons", `Search and install ${list(e.addons)}, with their dependencies, and update them all at once.`]);
 if (e.modpack) facts.push(["Modpacks", `Pick a modpack from ${e.modpack} by name, and Raptor installs it.`]);
 if (e.workshop) facts.push(["Steam Workshop", "Paste a Workshop link or collection, and the game downloads the items itself."]);
-if (e.players) facts.push(["Players", "Who's online and how many, live, on the server's overview."]);
+if (e.players)
+  facts.push([
+    "Players",
+    e.playerLists
+      ? "How many are online, live, and who: with the whitelist, operators, and bans on the Players tab."
+      : "How many are online, live, on the server's overview.",
+  ]);
 facts.push([
   "Backups",
   e.safeBackups
@@ -98,8 +104,8 @@ const credits = e.credits.map((c) => (/[.)]$/.test(c) ? c : `${c}.`)).join(" ");
       )}
     </div>
 
-    <aside class="game-side" aria-label="Getting started">
-      <h2>From a bare machine</h2>
+    <section class="game-side" aria-labelledby="start-steps">
+      <h2 id="start-steps">From a bare machine</h2>
       <ol class="steps compact">
         <li><h3>Link your machine</h3><p>One command on any Debian or Ubuntu box, at home or rented.</p></li>
         <li><h3>Pick {e.name}</h3><p>Raptor installs it and starts it, on images it keeps updated.</p></li>
@@ -109,7 +115,7 @@ const credits = e.credits.map((c) => (/[.)]$/.test(c) ? c : `${c}.`)).join(" ");
         Made by Raptor and MIT-licensed. {credits}{" "}
         <a href={e.source}>The egg's source</a>.
       </p>
-    </aside>
+    </section>
   </section>
 
   {near.length > 0 && (

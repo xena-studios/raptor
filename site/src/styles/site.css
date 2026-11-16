@@ -251,6 +251,12 @@ html.signed-in [data-out] {
     display: none;
   }
 }
+/* The smallest phones (320px) keep the raptor, Start free, and the menu. */
+@media (max-width: 23rem) {
+  .site-top .brand .word {
+    display: none;
+  }
+}
 
 /* Buttons, as in the app: mono, uppercase, 4px corners. */
 .button {
@@ -462,6 +468,13 @@ section.why {
 }
 .compare thead .us {
   color: var(--red);
+}
+/* Daylight's red on its own 9% wash is just under AA for small type. */
+@media (prefers-color-scheme: light) {
+  .compare thead .us,
+  .matrix thead .us {
+    color: color-mix(in oklch, var(--red) 80%, var(--text));
+  }
 }
 /* On a phone each row stands alone, Raptor's answer first. */
 @media (max-width: 44rem) {
@@ -1472,6 +1485,7 @@ h2 .accent {
   font-variant-numeric: tabular-nums;
 }
 .lib-search.compact {
+  width: 100%;
   max-width: 26rem;
   margin: 0;
   padding-right: 0.375rem;
@@ -1494,7 +1508,7 @@ h2 .accent {
   gap: 0.5rem;
   padding: 0.375rem 0.75rem;
   border: 1px solid var(--rule);
-  border-radius: 999px;
+  border-radius: 4px;
   font-size: 0.875rem;
   text-decoration: none;
   color: var(--text);
@@ -1938,7 +1952,7 @@ section.switch-band {
 .jump a {
   padding: 0.375rem 0.75rem;
   border: 1px solid var(--rule);
-  border-radius: 999px;
+  border-radius: 4px;
   font-size: 0.875rem;
   text-decoration: none;
 }

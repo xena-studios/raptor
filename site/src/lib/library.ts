@@ -32,6 +32,9 @@ export type Entry = {
   arch: string[];
   /** Live player counts in the Panel (a status query the game answers). */
   players: boolean;
+  /** A Players tab (who's online, whitelist, ops, bans): Minecraft Java,
+   * not proxies (playerLists in internal/panel/orgs/nodes.go). */
+  playerLists: boolean;
   /** What the server's Add-ons tab installs, in words ("plugins from Modrinth, Hangar, and CurseForge"). */
   addons: string[];
   /** A modpack picker, and where its packs come from. */
@@ -59,7 +62,7 @@ type Egg = {
 type Meta = {
   internal?: boolean;
   arch?: string[];
-  players?: unknown;
+  players?: { query?: string };
   addons?: Record<string, unknown>;
   modpack?: { source?: string };
   web?: unknown;
@@ -106,6 +109,11 @@ function load(): Entry[] {
         description: egg.description ?? "",
         arch: meta.arch ?? ["amd64"],
         players: Boolean(meta.players),
+        playerLists:
+          meta.players?.query === "minecraft" &&
+          !Object.values(meta.addons ?? {}).some((a) =>
+            ["velocity", "bungeecord", "waterfall"].includes(((a as { loaders?: string[] }).loaders ?? [])[0] ?? ""),
+          ),
         addons: Object.keys(meta.addons ?? {}).map((k) => addonWords[k] ?? k),
         modpack: meta.modpack ? (packSource[meta.modpack.source ?? ""] ?? "a modpack site") : null,
         web: Boolean(meta.web),
