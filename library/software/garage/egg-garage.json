@@ -1,0 +1,51 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Garage",
+    "author": "support@raptorpanel.net",
+    "description": "Garage is lightweight, S3-compatible object storage. The egg runs it as one node with the S3 API on the server's port; type Garage's commands in the console to make keys and buckets.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "[ -x garage ] || { echo \"Reinstall the server to download Garage.\"; exit 1; }; export RUST_LOG=\"${RUST_LOG:-warn,garage=info,garage_util=warn,garage_net=warn,garage_table=warn,garage_api_admin=warn,garage_rpc=warn,garage_model=warn,garage_db=warn}\"; set -f; g() { ./garage -c garage.toml \"$@\"; }; (trap - INT TERM; exec ./garage -c garage.toml server) & pid=$!; trap ':' INT; trap 'kill -INT $pid 2>/dev/null' TERM; (for i in $(seq 30); do sleep 2; l=$(g layout show 2>&1) && break; done; case \"$l\" in *\"Current cluster layout version: 0\"*) id=$(g node id -q 2>/dev/null); g layout assign -z dc1 -c \"{{CAPACITY}}\" \"${id%%@*}\" > /dev/null && g layout apply --version 1 > /dev/null && echo \"Garage is set up as one node with {{CAPACITY}} of storage.\" ;; esac; echo \"Type Garage's commands in the console, such as: key create my-key, bucket create my-bucket, bucket allow --read --write --owner my-bucket --key my-key\") & while kill -0 $pid 2>/dev/null; do if read -r -t 1 line; then [ -z \"$line\" ] || g $line; elif [ $? -le 128 ]; then sleep 1; fi; done; wait $pid",
+    "config": {
+        "files": "{\n    \"garage.toml\": {\n        \"parser\": \"file\",\n        \"find\": {\n            \"api_bind_addr = \\\"[::]:\": \"api_bind_addr = \\\"[::]:{{server.build.default.port}}\\\"\"\n        }\n    }\n}",
+        "startup": "{\n    \"done\": [\n        \"S3 API server listening on\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Garage: downloads Garage's official release build for the chosen version\n# (garagehq.deuxfleurs.fr) and writes a first garage.toml for a single\n# node, with its own RPC secret. The data, the metadata and garage.toml are\n# never touched once there.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) platform=x86_64-unknown-linux-musl ;;\n    aarch64) platform=aarch64-unknown-linux-musl ;;\n    *) fail \"Garage has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nreleases=$(curl -fsSL --retry 3 -A \"raptor-installer (+https://raptorpanel.net)\" https://garagehq.deuxfleurs.fr/_releases.json) ||\n    fail \"garagehq.deuxfleurs.fr can't be reached right now. Reinstall to try again.\"\nlist=$(jq -r '.[] | select(.name == \"Release\") | .builds[].version' <<<\"$releases\")\nlatest=$(head -n 1 <<<\"$list\")\nversion=\"${VERSION:-latest}\"\nif [ \"$version\" = latest ]; then version=\"$latest\"; else version=\"v${version#v}\"; fi\nbuild=$(jq -c --arg v \"$version\" --arg p \"$platform\" '.[] | select(.name == \"Release\") | .builds[] | select(.version == $v) | .builds[] | select(.platform == $p)' <<<\"$releases\")\n[ -n \"$build\" ] || fail \"Garage has no release $version. Set Version to latest, or to a release such as ${latest#v}, then reinstall.\"\n\nif [ -x garage ] && [ \"$(cat .garage-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"Garage $version is already installed.\"\nelse\n    echo \"Downloading Garage $version.\"\n    url=$(jq -r .url <<<\"$build\")\n    size=$(jq -r .size <<<\"$build\")\n    curl -fsSL --retry 3 -A \"raptor-installer (+https://raptorpanel.net)\" -o \"$work/garage\" \"$url\" ||\n        fail \"The download failed. Reinstall to try again.\"\n    # Garage publishes no checksums: check the size it lists, and that it runs.\n    [ \"$(stat -c %s \"$work/garage\")\" = \"$size\" ] && chmod 0755 \"$work/garage\" && \"$work/garage\" --version > /dev/null ||\n        fail \"The download is incomplete. Reinstall to try again.\"\n    mv -f \"$work/garage\" garage\n    echo \"$version\" > .garage-version\nfi\n\nmkdir -p data meta\nif [ ! -f garage.toml ]; then\n    secret=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \\n')\n    cat > garage.toml <<TOML\n# Garage's settings: https://garagehq.deuxfleurs.fr/documentation/reference-manual/configuration/\n# One node keeping one copy of each object. The S3 API's port is set by the\n# server's settings. Restart the server after changing this file.\nmetadata_dir = \"/home/container/meta\"\ndata_dir = \"/home/container/data\"\ndb_engine = \"lmdb\"\nmetadata_auto_snapshot_interval = \"6h\"\nreplication_factor = 1\n\nrpc_bind_addr = \"127.0.0.1:3901\"\nrpc_public_addr = \"127.0.0.1:3901\"\nrpc_secret = \"$secret\"\n\n[s3_api]\ns3_region = \"garage\"\napi_bind_addr = \"[::]:${SERVER_PORT:-3900}\"\nroot_domain = \".s3.garage.localhost\"\nTOML\nfi\necho \"Installed Garage $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Garage version to install, such as 2.5.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.]+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Storage capacity",
+            "description": "How much storage the node offers, such as 100G or 2T, set on the first start. Change it later with layout assign in the console.",
+            "env_variable": "CAPACITY",
+            "default_value": "100G",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^\\d+[KMGTP]B?$/",
+            "field_type": "text"
+        }
+    ]
+}

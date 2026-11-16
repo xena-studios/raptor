@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/filebrowser-quantum/egg-filebrowser-quantum.json
+license: MIT
+credits:
+  - "Written for Raptor from FileBrowser Quantum's documentation, https://github.com/gtsteffaniak/filebrowser (Apache-2.0); no upstream egg"
+  - "Icon: FileBrowser Quantum's icon, from https://github.com/gtsteffaniak/filebrowser (Apache-2.0)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m
+  variables:
+    FILEBROWSER_ADMIN_PASSWORD: "raptor-test-password"
+  config:
+    config.yaml: "port: {{port}}"

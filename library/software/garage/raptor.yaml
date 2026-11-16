@@ -1,0 +1,17 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/garage/egg-garage.json
+license: MIT
+credits:
+  - "Written for Raptor from Garage's documentation, https://garagehq.deuxfleurs.fr (AGPL-3.0); no upstream egg"
+  - "Icon: the Garage logo, from https://garagehq.deuxfleurs.fr"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m
+  command: "status"
+  expect: "HEALTHY NODES"
+  config:
+    garage.toml: 'api_bind_addr = "[::]:{{port}}"'

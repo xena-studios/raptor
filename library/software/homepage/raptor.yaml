@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/homepage/egg-homepage.json
+license: MIT
+credits:
+  - "Written for Raptor from Homepage's documentation, https://gethomepage.dev (GPL-3.0); no upstream egg"
+  - "Icon: the Homepage logo, from https://github.com/gethomepage"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  # The first start builds Homepage (pnpm and Next.js), about 3 minutes.
+  memory_mib: 2048
+  done_timeout: 15m
+  variables:
+    HOMEPAGE_AUTH_PASSWORD: "raptor-test-password"

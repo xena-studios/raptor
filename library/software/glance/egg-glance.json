@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Glance",
+    "author": "support@raptorpanel.net",
+    "description": "Glance is a self-hosted start page that puts feeds, calendars, bookmarks and status widgets on one dashboard. The egg serves it on the server's port behind a login you set; edit glance.yml to build your page.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "if [ -z \"${GLANCE_PASSWORD:-}\" ] && grep -q 'GLANCE_PASSWORD}' glance.yml; then echo \"Set Login password in the server's settings, or remove the auth block from glance.yml, then start the server again.\"; exit 1; fi; exec ./glance -config glance.yml",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"Starting server on\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Glance: downloads Glance from its GitHub releases, checked against\n# GitHub's SHA-256, and writes a first glance.yml with a login. glance.yml\n# and anything it includes are never touched once there.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Glance has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\ntag=$(gh-release tag glanceapp/glance \"$version\") ||\n    fail \"Set Version to latest, or to a release such as 0.8.8, then reinstall.\"\nif [ -x glance ] && [ \"$(cat .glance-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Glance $tag is already installed.\"\nelse\n    echo \"Downloading Glance $tag.\"\n    gh-release download glanceapp/glance \"$tag\" \"glance-linux-$arch.tar.gz\" \"$work/glance.tar.gz\"\n    tar -xzf \"$work/glance.tar.gz\" -C \"$work\" glance\n    install -m 0755 \"$work/glance\" glance.new\n    mv -f glance.new glance\n    echo \"$tag\" > .glance-version\nfi\n\nif [ ! -f glance.yml ]; then\n    secret=$(./glance secret:make)\n    cat > glance.yml <<YAML\n# Glance's settings: https://github.com/glanceapp/glance/blob/main/docs/configuration.md\n# Glance reloads this file when it changes. \\${...} are the server's settings.\nserver:\n  host: 0.0.0.0\n  port: \\${SERVER_PORT}\n\n# Visitors sign in with the server's Login name and Login password. Remove\n# this block to make the dashboard public.\nauth:\n  secret-key: $secret\n  users:\n    \\${GLANCE_USERNAME}:\n      password: \\${GLANCE_PASSWORD}\n\npages:\n  - name: Home\n    columns:\n      - size: small\n        widgets:\n          - type: calendar\n            first-day-of-week: monday\n          - type: clock\n            hour-format: 24h\n\n      - size: full\n        widgets:\n          - type: search\n            search-engine: duckduckgo\n          - type: hacker-news\n          - type: rss\n            limit: 10\n            collapse-after: 5\n            cache: 12h\n            feeds:\n              - url: https://selfh.st/rss/\n                title: selfh.st\nYAML\nfi\necho \"Installed Glance $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Glance version to install, such as 0.8.8, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.]+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Login name",
+            "description": "The name visitors sign in with.",
+            "env_variable": "GLANCE_USERNAME",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:50|regex:/^[A-Za-z0-9._-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Login password",
+            "description": "The password visitors sign in with, at least 8 characters.",
+            "env_variable": "GLANCE_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100",
+            "field_type": "text"
+        }
+    ]
+}

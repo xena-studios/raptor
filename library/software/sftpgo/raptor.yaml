@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/sftpgo/egg-sftpgo.json
+license: MIT
+credits:
+  - "Written for Raptor from SFTPGo's documentation, https://github.com/drakkan/sftpgo (AGPL-3.0); no upstream egg"
+  - "Icon: the SFTPGo logo, shipped in SFTPGo's releases (static/img/logo.png)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m
+  variables:
+    SFTPGO_DEFAULT_ADMIN_PASSWORD: "raptor-test-password"

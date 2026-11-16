@@ -1,0 +1,111 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Syncthing",
+    "author": "support@raptorpanel.net",
+    "description": "Syncthing keeps folders in sync between devices, peer to peer. The egg runs Syncthing with its web interface on the server's port and a login you set, or a private relay or discovery server for your own devices.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "case \"{{MODE}}\" in relay) [ -x strelaysrv ] || { echo \"Reinstall the server to download the relay server.\"; exit 1; }; mkdir -p relay; pools=\"\"; if [ \"{{RELAY_PUBLIC}}\" = 1 ]; then pools=https://relays.syncthing.net/endpoint; fi; exec ./strelaysrv -listen=:{{SERVER_PORT}} -keys=relay -status-srv= -pools=\"$pools\" ${RELAY_TOKEN:+-token=\"$RELAY_TOKEN\"} ;; discovery) [ -x stdiscosrv ] || { echo \"Reinstall the server to download the discovery server.\"; exit 1; }; mkdir -p discovery; exec ./stdiscosrv --listen=:{{SERVER_PORT}} --db-dir=discovery --cert=discovery/cert.pem --key=discovery/key.pem ;; *) [ -x syncthing ] || { echo \"Reinstall the server to download Syncthing.\"; exit 1; }; if [ -z \"${GUI_PASSWORD:-}\" ]; then echo \"Set GUI password in the server's settings, then start the server again.\"; exit 1; fi; ./syncthing generate --home=config --gui-user=\"{{GUI_USER}}\" --gui-password=\"$GUI_PASSWORD\" --no-port-probing > /dev/null 2>&1 || { echo \"Syncthing couldn't write its configuration in the config folder.\"; exit 1; }; sed -i -e '/<listenAddress>/d' -e \"s#^\\( *\\)<options>#&\\n\\1    <listenAddress>tcp://:{{SYNC_PORT}}</listenAddress>\\n\\1    <listenAddress>quic://:{{SYNC_PORT}}</listenAddress>#\" config/config.xml; if [ \"{{USAGE_REPORTING}}\" != 1 ]; then sed -i -e 's#<urAccepted>[^<]*<#<urAccepted>-1<#' -e 's#<crashReportingEnabled>[^<]*<#<crashReportingEnabled>false<#' config/config.xml; fi; STNOUPGRADE=1 exec ./syncthing serve --home=config --no-browser --no-restart --gui-address=http://0.0.0.0:{{SERVER_PORT}} ;; esac",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"GUI and API listening\",\n        \"URI: relay://\",\n        \"Loaded database\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Syncthing: downloads what Run chooses, Syncthing itself (from its GitHub\n# releases, checked against GitHub's SHA-256) or its relay or discovery\n# server (from Syncthing's apt repository, checked against its index). The\n# configuration, keys, database and synced folders are never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Syncthing has no build for this CPU ($(uname -m)).\" ;;\nesac\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\nmode=\"${MODE:-syncthing}\"\n\ncase \"$mode\" in\nsyncthing)\n    bin=syncthing what=Syncthing\n    tag=$(gh-release tag syncthing/syncthing \"$version\") ||\n        fail \"Set Version to latest, or to a release such as 2.1.7, then reinstall.\"\n    if [ -x syncthing ] && [ \"$(cat .syncthing-version 2>/dev/null)\" = \"$tag\" ]; then\n        echo \"Syncthing $tag is already installed.\"\n    else\n        echo \"Downloading Syncthing $tag.\"\n        gh-release download syncthing/syncthing \"$tag\" \"syncthing-linux-$arch-$tag.tar.gz\" \"$work/st.tar.gz\"\n        tar -xzf \"$work/st.tar.gz\" -C \"$work\" --strip-components=1 \"syncthing-linux-$arch-$tag/syncthing\"\n        install -m 0755 \"$work/syncthing\" syncthing.new\n        mv -f syncthing.new syncthing\n        echo \"$tag\" > .syncthing-version\n    fi\n    ;;\nrelay | discovery)\n    if [ \"$mode\" = relay ]; then pkg=syncthing-relaysrv bin=strelaysrv; else pkg=syncthing-discosrv bin=stdiscosrv; fi\n    what=\"the Syncthing $mode server\"\n    # The apt repository lists the newest releases with their checksums.\n    index=$(curl -fsSL --retry 3 \"https://apt.syncthing.net/dists/syncthing/stable-v2/binary-$arch/Packages\") ||\n        fail \"Syncthing's apt repository can't be reached right now. Reinstall to try again.\"\n    entries=$(awk -v p=\"$pkg\" '/^Package:/ { ok = ($2 == p) } ok && /^Version:/ { v = $2 } ok && /^Filename:/ { f = $2 } ok && /^SHA256:/ { print v, f, $2 }' <<<\"$index\" | sort -V)\n    [ -n \"$entries\" ] || fail \"Syncthing's apt repository has no $pkg for this CPU.\"\n    if [ \"$version\" = latest ]; then\n        read -r ver file sum < <(tail -n 1 <<<\"$entries\")\n    else\n        read -r ver file sum < <(awk -v v=\"${version#v}\" '$1 == v' <<<\"$entries\") ||\n            fail \"The $mode server is only published for Syncthing's newest releases ($(awk '{print $1}' <<<\"$entries\" | paste -sd, - | sed 's/,/, /g')). Set Version to latest or one of those, then reinstall.\"\n    fi\n    tag=\"v$ver\"\n    if [ -x \"$bin\" ] && [ \"$(cat \".$bin-version\" 2>/dev/null)\" = \"$tag\" ]; then\n        echo \"The Syncthing $mode server $tag is already installed.\"\n    else\n        echo \"Downloading the Syncthing $mode server $tag.\"\n        curl -fsSL --retry 3 -A \"raptor-installer (+https://raptorpanel.net)\" -o \"$work/pkg.deb\" \"https://apt.syncthing.net/$file\" ||\n            fail \"The download failed. Reinstall to try again.\"\n        [ \"$(sha256sum \"$work/pkg.deb\" | cut -d' ' -f1)\" = \"$sum\" ] ||\n            fail \"The download didn't match its checksum. Reinstall to try again.\"\n        dpkg-deb -x \"$work/pkg.deb\" \"$work/pkg\"\n        install -m 0755 \"$work/pkg/usr/bin/$bin\" \"$bin.new\"\n        mv -f \"$bin.new\" \"$bin\"\n        echo \"$tag\" > \".$bin-version\"\n    fi\n    ;;\n*) fail \"Run must be syncthing, relay or discovery.\" ;;\nesac\necho \"Installed $what $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Run",
+            "description": "What to run: syncthing, relay (a relay server) or discovery (a discovery server). Reinstall after changing it.",
+            "env_variable": "MODE",
+            "default_value": "syncthing",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:syncthing,relay,discovery",
+            "field_type": "text"
+        },
+        {
+            "name": "Version",
+            "description": "The Syncthing version to install, such as 2.1.7, or latest. The relay and discovery servers are only published for the newest releases. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.]+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "GUI username",
+            "description": "The login name for Syncthing's web interface.",
+            "env_variable": "GUI_USER",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:50|regex:/^[A-Za-z0-9._@-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "GUI password",
+            "description": "The password for Syncthing's web interface, at least 8 characters. Syncthing won't start without one.",
+            "env_variable": "GUI_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Sync port",
+            "description": "The port devices connect to, over TCP and UDP (QUIC). Add it to the server's ports too.",
+            "env_variable": "SYNC_PORT",
+            "default_value": "22000",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Usage reports",
+            "description": "Off sends no usage statistics or crash reports to Syncthing's developers. On lets you choose in the web interface.",
+            "env_variable": "USAGE_REPORTING",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Public relay",
+            "description": "For the relay server: join Syncthing's public relay pool, so anyone's devices may use it. Off keeps it for devices you point at it.",
+            "env_variable": "RELAY_PUBLIC",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Relay token",
+            "description": "For the relay server: a token devices must give to use it. Setting one keeps it out of the public pool.",
+            "env_variable": "RELAY_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        }
+    ]
+}

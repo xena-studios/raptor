@@ -1,0 +1,101 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Hugo site",
+    "author": "support@raptorpanel.net",
+    "description": "Hugo is a fast static site generator. The egg builds your Hugo site from a Git repository or the site folder at every start, then serves it with Caddy.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "if [ \"{{AUTO_UPDATE}}\" = 1 ] && [ -d site/.git ]; then git -C site pull --ff-only && git -C site submodule update --init --recursive --depth 1 || echo \"git pull failed: building the site as it is.\"; fi; ./hugo build --source site --destination ../public --cleanDestinationDir --minify ${BASE_URL:+--baseURL \"$BASE_URL\"} || { echo \"Hugo couldn't build the site: see the errors above.\"; exit 1; }; exec ./caddy run --config Caddyfile --adapter caddyfile",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"serving initial configuration\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Hugo site: downloads Hugo (extended) and Caddy from their GitHub releases,\n# checked against GitHub's SHA-256, and clones the site's Git repository\n# into the site folder (with its theme submodules), or writes a starter\n# site. The site's files and the Caddyfile are never touched once there.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Hugo has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\ntag=$(gh-release tag gohugoio/hugo \"$version\") ||\n    fail \"Set Version to latest, or to a release such as 0.170.0, then reinstall.\"\nif [ -x hugo ] && [ \"$(cat .hugo-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"Hugo $tag is already installed.\"\nelse\n    echo \"Downloading Hugo $tag.\"\n    gh-release download gohugoio/hugo \"$tag\" \"hugo_extended_${tag#v}_linux-${arch}.tar.gz\" \"$work/hugo.tar.gz\"\n    tar -xzf \"$work/hugo.tar.gz\" -C \"$work\" hugo\n    install -m 0755 \"$work/hugo\" hugo.new\n    mv -f hugo.new hugo\n    echo \"$tag\" > .hugo-version\nfi\n\ncaddy=$(gh-release tag caddyserver/caddy latest) || exit 1\nif [ -x caddy ] && [ \"$(cat .caddy-version 2>/dev/null)\" = \"$caddy\" ]; then\n    echo \"Caddy $caddy is already installed.\"\nelse\n    echo \"Downloading Caddy $caddy.\"\n    gh-release download caddyserver/caddy \"$caddy\" \"caddy_${caddy#v}_linux_${arch}.tar.gz\" \"$work/caddy.tar.gz\"\n    tar -xzf \"$work/caddy.tar.gz\" -C \"$work\" caddy\n    install -m 0755 \"$work/caddy\" caddy.new\n    mv -f caddy.new caddy\n    echo \"$caddy\" > .caddy-version\nfi\n\nif [ ! -f Caddyfile ]; then\n    cat > Caddyfile <<'CADDY'\n# Caddy's settings: https://caddyserver.com/docs/caddyfile\n# Caddy listens on the server's port ({$SERVER_PORT}) and serves the site\n# Hugo builds into the public folder. Restart the server after changing it.\n{\n\tadmin off\n\tlog {\n\t\tformat console\n\t}\n}\n\n:{$SERVER_PORT} {\n\troot * public\n\tencode\n\tfile_server\n}\nCADDY\nfi\n\nmkdir -p site\nurl=\"${GIT_ADDRESS:-}\"\nif [ -n \"$url\" ]; then\n    case \"$url\" in *.git) ;; *) url=\"$url.git\" ;; esac\n    if [ -n \"${GIT_USERNAME:-}\" ] && [ -n \"${GIT_TOKEN:-}\" ]; then\n        url=\"https://${GIT_USERNAME}:${GIT_TOKEN}@${url#https://}\"\n    fi\nfi\nif [ -d site/.git ]; then\n    echo \"The site's repository is already here: pulling the latest changes.\"\n    git -C site pull --ff-only\n    git -C site submodule update --init --recursive --depth 1\nelif [ -n \"$(ls -A site)\" ]; then\n    echo \"The site folder already has files and isn't a Git repository, so nothing was cloned.\"\nelif [ -n \"$url\" ]; then\n    git clone --depth 1 --recurse-submodules --shallow-submodules ${GIT_BRANCH:+--branch \"$GIT_BRANCH\"} \"$url\" site\nelse\n    echo \"No Git repository set: writing a starter site. Replace the site folder with your own.\"\n    mkdir -p site/content site/layouts/_default\n    cat > site/hugo.toml <<'TOML'\ntitle = \"My Hugo site\"\nTOML\n    cat > site/content/_index.md <<'MD'\n---\ntitle: It works\n---\nUpload your Hugo site to the site folder, or set a Git repository and reinstall, to replace this page.\nMD\n    cat > site/layouts/_default/baseof.html <<'HTML'\n<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{{ .Title }}</title>\n</head>\n<body>\n{{ block \"main\" . }}{{ end }}\n</body>\n</html>\nHTML\n    cat > site/layouts/_default/list.html <<'HTML'\n{{ define \"main\" }}<h1>{{ .Title }}</h1>\n{{ .Content }}{{ end }}\nHTML\n    cp site/layouts/_default/list.html site/layouts/_default/single.html\nfi\necho \"Installed Hugo $tag and Caddy $caddy.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Hugo version to install, such as 0.170.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Git repository",
+            "description": "An https link to the site's repository, cloned into the site folder when the server is installed. Leave it empty to upload the site yourself.",
+            "env_variable": "GIT_ADDRESS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Git branch",
+            "description": "The branch to clone. Empty uses the repository's default branch.",
+            "env_variable": "GIT_BRANCH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git username",
+            "description": "Your username on the Git host, for a private repository.",
+            "env_variable": "GIT_USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Git access token",
+            "description": "An access token that can read the private repository.",
+            "env_variable": "GIT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Pull updates at start",
+            "description": "Pull the repository's latest changes every time the server starts, before building.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Base URL",
+            "description": "The site's full address with http or https in front, used for its links. Empty uses the one in the site's settings.",
+            "env_variable": "BASE_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        }
+    ]
+}

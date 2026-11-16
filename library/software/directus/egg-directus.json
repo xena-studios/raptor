@@ -1,0 +1,81 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Directus",
+    "author": "support@raptorpanel.net",
+    "description": "Directus is a headless CMS that turns a database into a REST and GraphQL API with an admin app. The egg runs it on SQLite, with an admin account made on the first start. Its licence is free for organisations under 5 million dollars a year.",
+    "features": [],
+    "docker_images": {
+        "Node.js 26": "ghcr.io/xena-studios/yolks:nodejs_26@sha256:887afaa41d8937a5c664a887d55b730b4078f05610137705f918d423f78f90f3"
+    },
+    "file_denylist": [],
+    "startup": "h=$( (node --version; cat package.json) | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat node_modules/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing Directus and its dependencies\"; npm install --omit=dev --no-audit --no-fund --loglevel=error && npm cache clean --force --loglevel=error && echo \"$h\" > node_modules/.raptor-installed || exit 1; fi; if [ ! -f data/database.db ] && [ -z \"${ADMIN_PASSWORD:-}\" ]; then echo \"Set Admin password in the server's settings, then start the server again.\"; exit 1; fi; [ -n \"${ADMIN_PASSWORD:-}\" ] || unset ADMIN_PASSWORD; [ -n \"${PUBLIC_URL:-}\" ] || unset PUBLIC_URL; export HOST=0.0.0.0 PORT={{SERVER_PORT}} PROJECT_OWNER_ENABLED=false; node node_modules/@directus/api/dist/cli/run.js bootstrap || exit 1; node node_modules/@directus/api/dist/cli/run.js start 2>&1 | (trap '' INT TERM; while IFS= read -r l; do printf '%s\\n' \"$l\"; case \"$l\" in *'shut down OK'*) (sleep 3; kill 0) & ;; esac; done)",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"Server started at\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Directus: writes the package.json for the chosen Directus version (from\n# npm) and a first .env for SQLite, with its own secret. Directus itself is\n# installed by npm when the server starts, for the Node.js version it runs.\n# The database, uploads, extensions and .env are never touched once there.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n\nmeta=$(curl -fsSL --retry 3 -H 'Accept: application/vnd.npm.install-v1+json' https://registry.npmjs.org/directus) ||\n    fail \"npm can't be reached right now. Reinstall to try again.\"\nlatest=$(jq -r '.\"dist-tags\".latest' <<<\"$meta\")\nversion=\"${VERSION:-latest}\"\nversion=\"${version#v}\"\n[ \"$version\" = latest ] && version=\"$latest\"\njq -e --arg v \"$version\" '.versions[$v]' <<<\"$meta\" > /dev/null ||\n    fail \"Directus has no version $version. Set Version to latest, or to a release such as $latest, then reinstall.\"\nmajor=${version%%.*}\n[ \"$major\" -ge 11 ] || fail \"This egg runs Directus 11 and newer. Set Version to latest, or to a release such as $latest, then reinstall.\"\n\n# sqlite3 6 needs a newer C library than Raptor's Node.js images (Debian 12)\n# have: 5.1.7 works with Directus the same way.\njq -n --arg v \"$version\" '{private: true, name: \"directus-server\", dependencies: {directus: $v, sqlite3: \"5.1.7\"}, overrides: {sqlite3: \"5.1.7\"}}' > package.json\nrm -f package-lock.json\n\nmkdir -p data uploads extensions\nif [ ! -f .env ]; then\n    secret=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \\n')\n    cat > .env <<ENV\n# Directus's settings: https://directus.io/docs/configuration/general\n# The port, the public URL and usage reports are set by the server's\n# settings. Restart the server after changing this file.\nDB_CLIENT=\"sqlite3\"\nDB_FILENAME=\"./data/database.db\"\nSECRET=\"$secret\"\nSTORAGE_LOCATIONS=\"local\"\nSTORAGE_LOCAL_ROOT=\"./uploads\"\nEXTENSIONS_PATH=\"./extensions\"\nWEBSOCKETS_ENABLED=true\nENV\nfi\necho \"Set up Directus $version. It is downloaded when the server starts.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Directus version to install, such as 12.6.1, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.]+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin email",
+            "description": "The email address the admin signs in with, used for the account made on the first start.",
+            "env_variable": "ADMIN_EMAIL",
+            "default_value": "admin@example.com",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100|regex:/^[^@\\s]+@[^@\\s]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The admin account's password, needed for the first start. Change it later in the admin app.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Public URL",
+            "description": "The full address people open Directus at, with http or https in front, for links and emails. Empty leaves it unset.",
+            "env_variable": "PUBLIC_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Usage reports",
+            "description": "Send anonymous usage statistics to Directus's developers.",
+            "env_variable": "TELEMETRY",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}

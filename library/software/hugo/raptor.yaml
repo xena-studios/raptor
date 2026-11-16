@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/hugo/egg-hugo.json
+license: MIT
+credits:
+  - "Written for Raptor from Hugo's documentation, https://gohugo.io (Apache-2.0), and Raptor's Caddy egg; no upstream egg"
+  - "Icon: the Hugo logo, from https://github.com/gohugoio"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m

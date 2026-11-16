@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "FileBrowser Quantum",
+    "author": "support@raptorpanel.net",
+    "description": "FileBrowser Quantum is a web file manager with search, previews, sharing and WebDAV. The egg serves the files folder, with sign-ups closed and an admin account whose password you set.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "if [ -z \"${FILEBROWSER_ADMIN_PASSWORD:-}\" ]; then echo \"Set Admin password in the server's settings, then start the server again.\"; exit 1; fi; exec ./filebrowser -c config.yaml",
+    "config": {
+        "files": "{\n    \"config.yaml\": {\n        \"parser\": \"yaml\",\n        \"find\": {\n            \"http.port\": \"{{server.build.default.port}}\",\n            \"auth.adminUsername\": \"{{server.build.env.ADMIN_USERNAME}}\"\n        }\n    }\n}",
+        "startup": "{\n    \"done\": [\n        \"Running at\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# FileBrowser Quantum: downloads FileBrowser Quantum from its GitHub\n# releases, checked against GitHub's SHA-256, and writes a first\n# config.yaml. The files folder, the database and config.yaml are never\n# touched once there.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"FileBrowser Quantum has no build for this CPU ($(uname -m)).\" ;;\nesac\n\n# Releases are tagged v2.0.2-stable or v2.1.5-beta: a plain 2.0.2 means the\n# stable release.\nversion=\"${VERSION:-latest}\"\nif [ \"$version\" != latest ]; then\n    version=\"v${version#v}\"\n    [[ $version =~ -[A-Za-z] ]] || version=\"$version-stable\"\nfi\ntag=$(gh-release tag gtsteffaniak/filebrowser \"$version\") ||\n    fail \"Set Version to latest, or to a release such as 2.0.2 or 2.1.5-beta, then reinstall.\"\n\nif [ -x filebrowser ] && [ \"$(cat .filebrowser-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"FileBrowser Quantum $tag is already installed.\"\nelse\n    echo \"Downloading FileBrowser Quantum $tag.\"\n    gh-release download gtsteffaniak/filebrowser \"$tag\" \"linux-$arch-filebrowser\" filebrowser.new\n    chmod 0755 filebrowser.new\n    mv -f filebrowser.new filebrowser\n    echo \"$tag\" > .filebrowser-version\nfi\n\nmkdir -p files\nif [ ! -f config.yaml ]; then\n    cat > config.yaml <<'YAML'\n# FileBrowser Quantum's settings:\n# https://github.com/gtsteffaniak/filebrowser/wiki/Full-Config-Example\n# The port and the admin's name are set by the server's settings. Restart\n# the server after changing this file.\nhttp:\n  port: 8080\nserver:\n  # No calls to GitHub to look for new versions.\n  disableUpdateCheck: true\n  cacheDir: .cache\n  database:\n    path: filebrowser.db\n  sources:\n    - path: files\n      name: Files\nauth:\n  adminUsername: admin\n  methods:\n    password:\n      enabled: true\n      signup: false\nYAML\nfi\necho \"Installed FileBrowser Quantum $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The FileBrowser Quantum version to install, such as 2.0.2 or 2.1.5-beta, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.]+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin username",
+            "description": "The name of the admin account.",
+            "env_variable": "ADMIN_USERNAME",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:50|regex:/^[A-Za-z0-9._@-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The admin account's password, at least 8 characters. It is set again at every start, so change it here.",
+            "env_variable": "FILEBROWSER_ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100",
+            "field_type": "text"
+        }
+    ]
+}
