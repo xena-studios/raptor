@@ -1,27 +1,18 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "local>xena-studios/.github:renovate-config"
-  ],
+  "extends": ["local>xena-studios/.github:renovate-config"],
   "description": "Every commit needs a DCO sign-off (scripts/check-dco.sh), Renovate's included.",
   "commitBody": "Signed-off-by: {{{gitAuthor}}}",
   "packageRules": [
     {
       "description": "pnpm refuses packages under a day old (its minimumReleaseAge), so Renovate waits as long: otherwise its PRs fail to install.",
-      "matchDatasources": [
-        "npm"
-      ],
+      "matchDatasources": ["npm"],
       "minimumReleaseAge": "1 day"
     },
     {
       "description": "Third-party actions run with the release jobs' token and deploy key, so they're pinned to a commit (a tag can be moved); Renovate keeps the pins current. GitHub's own actions stay on tags. DECISIONS #326.",
-      "matchManagers": [
-        "github-actions"
-      ],
-      "matchPackageNames": [
-        "!actions/**",
-        "!github/**"
-      ],
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["!actions/**", "!github/**"],
       "pinDigests": true
     }
   ]
