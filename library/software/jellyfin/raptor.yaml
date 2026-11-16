@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/jellyfin/egg-jellyfin.json
+license: MIT
+credits:
+  - "Written for Raptor from Jellyfin's own documentation (https://jellyfin.org/docs/)"
+  - "Icon: the Jellyfin logo, the jellyfin avatar from https://github.com/jellyfin"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 2048
+  done_timeout: 8m

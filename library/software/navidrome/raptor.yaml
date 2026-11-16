@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/navidrome/egg-navidrome.json
+license: MIT
+credits:
+  - "Written for Raptor from Navidrome's own documentation (https://www.navidrome.org/docs/)"
+  - "Icon: the Navidrome logo, the navidrome avatar from https://github.com/navidrome"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 512
+  done_timeout: 3m

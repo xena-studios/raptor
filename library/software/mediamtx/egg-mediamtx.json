@@ -1,0 +1,91 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written from scratch.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "MediaMTX",
+    "author": "support@raptorpanel.net",
+    "description": "MediaMTX is a media server that takes live video and audio over RTSP, RTMP, SRT or WebRTC and serves it to viewers over all of them and HLS. The egg sets it up so anyone can watch, and only the publish user, with a password made at install, can send streams.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "./mediamtx mediamtx.yml",
+    "config": {
+        "files": "{\"mediamtx.yml\": {\"parser\": \"yaml\", \"find\": {\"rtspAddress\": \":{{server.build.default.port}}\", \"rtmpAddress\": \":{{server.build.env.RTMP_PORT}}\", \"hlsAddress\": \":{{server.build.env.HLS_PORT}}\", \"webrtcAddress\": \":{{server.build.env.WEBRTC_PORT}}\", \"webrtcLocalUDPAddress\": \":{{server.build.env.WEBRTC_UDP_PORT}}\", \"srtAddress\": \":{{server.build.env.SRT_PORT}}\"}}}",
+        "startup": "{\"done\": [\"[RTSP] started with listener\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# MediaMTX: downloads MediaMTX from its GitHub releases, checked against\n# GitHub's checksum. mediamtx.yml is only written on the first install\n# (with publishing locked behind a password); after that it's the owner's,\n# and recordings are never touched. The binary is only replaced once the\n# new one has downloaded and checked out.\nset -euo pipefail\ncd /mnt/server\n\nrepo=bluenviron/mediamtx\nfail() { echo \"$1\"; exit 1; }\n# gh_tag <latest|tag> prints the release's tag; returns 1 when there's no\n# such release, 2 when GitHub can't be reached.\ngh_tag() {\n    local out\n    out=$(gh-release tag \"$repo\" \"$1\" 2>&1) && { echo \"$out\"; return 0; }\n    case \"$out\" in *\"has no release\"* | *\"no releases\"*) return 1 ;; *) return 2 ;; esac\n}\noffline=\"GitHub can't be reached right now, or is limiting downloads. Reinstall to try again in a few minutes.\"\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"MediaMTX has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nversion=\"${VERSION:-latest}\"\ncase \"$version\" in latest|v*) ;; *) version=\"v$version\" ;; esac\nrc=0; tag=$(gh_tag \"$version\") || rc=$?\nif [ \"$rc\" = 1 ]; then\n    latest=$(gh_tag latest) || fail \"$offline\"\n    fail \"MediaMTX has no version ${VERSION}. Set Version to latest, or to a release such as ${latest#v}.\"\nfi\n[ \"$rc\" = 0 ] || fail \"$offline\"\nversion=$tag\nasset=\"mediamtx_${version}_linux_${arch}.tar.gz\"\nassets=$(gh-release assets \"$repo\" \"$version\") || fail \"$offline\"\nsum=$(awk -v a=\"$asset\" '$1 == a { print $2 }' <<<\"$assets\")\n[ -n \"$sum\" ] || fail \"MediaMTX $version has no Linux build for this CPU. Choose another version.\"\n\ntmp=/mnt/server/.raptor-build\nrm -rf \"$tmp\" && mkdir -p \"$tmp\"\ntrap 'rm -rf \"$tmp\"' EXIT\nif [ -x mediamtx ] && [ \"$(cat .raptor-mediamtx 2>/dev/null)\" = \"$sum\" ]; then\n    echo \"MediaMTX $version is already installed.\"\nelse\n    echo \"Downloading MediaMTX $version\"\n    gh-release download \"$repo\" \"$version\" \"$asset\" \"$tmp/mediamtx.tar.gz\" || fail \"The download failed or didn't match GitHub's checksum. Reinstall to try again.\"\n    tar -xzf \"$tmp/mediamtx.tar.gz\" -C \"$tmp\" mediamtx mediamtx.yml\n    mv -f \"$tmp/mediamtx\" mediamtx\n    echo \"$sum\" > .raptor-mediamtx\nfi\n\n# The shipped config lets anyone publish a stream. On the first install,\n# keep reading open (that's what a media server is for) but make publishing\n# need the user \"publish\" with a random password, and use RTSP over TCP\n# (RTP over UDP needs two more ports that the server doesn't have).\nif [ ! -f mediamtx.yml ]; then\n    if [ ! -f \"$tmp/mediamtx.yml\" ]; then\n        gh-release download \"$repo\" \"$version\" \"$asset\" \"$tmp/mediamtx.tar.gz\" || fail \"The download failed or didn't match GitHub's checksum. Reinstall to try again.\"\n        tar -xzf \"$tmp/mediamtx.tar.gz\" -C \"$tmp\" mediamtx.yml\n    fi\n    password=$(head -c 18 /dev/urandom | base64 | tr -d '/+=')\n    awk -v pass=\"$password\" '\n        /^authInternalUsers:/ {\n            print \"authInternalUsers:\"\n            print \"  # Anyone can watch and play recordings.\"\n            print \"  - user: any\"\n            print \"    pass:\"\n            print \"    ips: []\"\n            print \"    permissions:\"\n            print \"      - action: read\"\n            print \"      - action: playback\"\n            print \"  # Publishing needs this user and password.\"\n            print \"  - user: publish\"\n            print \"    pass: \" pass\n            print \"    ips: []\"\n            print \"    permissions:\"\n            print \"      - action: publish\"\n            print \"  # The API, metrics and pprof, from the server itself only.\"\n            print \"  - user: any\"\n            print \"    pass:\"\n            print \"    ips: [\\\"127.0.0.1\\\", \\\"::1\\\"]\"\n            print \"    permissions:\"\n            print \"      - action: api\"\n            print \"      - action: metrics\"\n            print \"      - action: pprof\"\n            print \"\"\n            skip = 1; done = 1; next\n        }\n        skip && /^(# HTTP-based|[a-zA-Z])/ { skip = 0 }\n        skip { next }\n        /^rtspTransports:/ { print \"rtspTransports: [tcp]\"; next }\n        { print }\n        END { if (!done) exit 1 }\n    ' \"$tmp/mediamtx.yml\" > \"$tmp/mediamtx.new\" || fail \"MediaMTX's default config has changed, so the install can't lock publishing. Choose an earlier version.\"\n    mv -f \"$tmp/mediamtx.new\" mediamtx.yml\n    echo \"Publishing needs the user publish with the password $password (change it in mediamtx.yml).\"\nfi\necho \"Installed MediaMTX $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The MediaMTX version to install, such as 1.21.4, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "RTMP port",
+            "description": "The port OBS and other RTMP software publish to and read from. Add it to the server's ports first.",
+            "env_variable": "RTMP_PORT",
+            "default_value": "1935",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "HLS port",
+            "description": "The web port that serves streams to browsers over HLS. Add it to the server's ports first.",
+            "env_variable": "HLS_PORT",
+            "default_value": "8888",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "WebRTC port",
+            "description": "The web port for WebRTC viewers and publishers (TCP). Add it to the server's ports first.",
+            "env_variable": "WEBRTC_PORT",
+            "default_value": "8889",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "WebRTC media port",
+            "description": "The UDP port WebRTC sends media over. Add it to the server's ports first.",
+            "env_variable": "WEBRTC_UDP_PORT",
+            "default_value": "8189",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "SRT port",
+            "description": "The UDP port for SRT publishers and readers. Add it to the server's ports first.",
+            "env_variable": "SRT_PORT",
+            "default_value": "8890",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        }
+    ]
+}

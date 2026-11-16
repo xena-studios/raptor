@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written from scratch.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Navidrome",
+    "author": "support@raptorpanel.net",
+    "description": "Navidrome is a music streaming server for your own collection, with a web player and support for Subsonic apps. The egg installs it with ffmpeg for transcoding and creates the admin account with a password made at install.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "mkdir -p \"{{MUSIC_FOLDER}}\"; ND_ENABLEINSIGHTSCOLLECTOR={{INSIGHTS}} ND_FFMPEGPATH=/home/container/ffmpeg exec ./navidrome --address 0.0.0.0 --port {{SERVER_PORT}} --datafolder data --musicfolder \"{{MUSIC_FOLDER}}\"",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Navidrome server is ready\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Navidrome: downloads Navidrome from its GitHub releases and a static\n# ffmpeg (for transcoding) from BtbN's FFmpeg builds, each checked against\n# its published checksum. The database and settings in data/ and the music\n# folder are never touched; binaries are only replaced once the new ones\n# have downloaded and checked out.\nset -euo pipefail\ncd /mnt/server\n\nrepo=navidrome/navidrome\nfail() { echo \"$1\"; exit 1; }\n# gh_tag <latest|tag> prints the release's tag; returns 1 when there's no\n# such release, 2 when GitHub can't be reached.\ngh_tag() {\n    local out\n    out=$(gh-release tag \"$repo\" \"$1\" 2>&1) && { echo \"$out\"; return 0; }\n    case \"$out\" in *\"has no release\"* | *\"no releases\"*) return 1 ;; *) return 2 ;; esac\n}\noffline=\"GitHub can't be reached right now, or is limiting downloads. Reinstall to try again in a few minutes.\"\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ffarch=linux64 ;;\n    aarch64) arch=arm64 ffarch=linuxarm64 ;;\n    *) fail \"Navidrome has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nversion=\"${VERSION:-latest}\"\ncase \"$version\" in latest|v*) ;; *) version=\"v$version\" ;; esac\nrc=0; tag=$(gh_tag \"$version\") || rc=$?\nif [ \"$rc\" = 1 ]; then\n    latest=$(gh_tag latest) || fail \"$offline\"\n    fail \"Navidrome has no version ${VERSION}. Set Version to latest, or to a release such as ${latest#v}.\"\nfi\n[ \"$rc\" = 0 ] || fail \"$offline\"\nversion=$tag\nasset=\"navidrome_${version#v}_linux_${arch}.tar.gz\"\nassets=$(gh-release assets \"$repo\" \"$version\") || fail \"$offline\"\nsum=$(awk -v a=\"$asset\" '$1 == a { print $2 }' <<<\"$assets\")\n[ -n \"$sum\" ] || fail \"Navidrome $version has no Linux build for this CPU. Choose another version.\"\n\ntmp=/mnt/server/.raptor-build\nrm -rf \"$tmp\" && mkdir -p \"$tmp\"\ntrap 'rm -rf \"$tmp\"' EXIT\nif [ -x navidrome ] && [ \"$(cat .raptor-navidrome 2>/dev/null)\" = \"$sum\" ]; then\n    echo \"Navidrome $version is already installed.\"\nelse\n    echo \"Downloading Navidrome $version\"\n    gh-release download \"$repo\" \"$version\" \"$asset\" \"$tmp/navidrome.tar.gz\" || fail \"The download failed or didn't match GitHub's checksum. Reinstall to try again.\"\n    tar -xzf \"$tmp/navidrome.tar.gz\" -C \"$tmp\" navidrome\n    mv -f \"$tmp/navidrome\" navidrome\n    echo \"$sum\" > .raptor-navidrome\nfi\n\n# ffmpeg: the newest release build (not the development one) for this CPU.\nff=https://github.com/BtbN/FFmpeg-Builds/releases/download/latest\nsums=$(curl -fsSL --retry 3 \"$ff/checksums.sha256\") || fail \"The ffmpeg builds can't be reached right now. Reinstall to try again.\"\nline=$(grep -E \"  ffmpeg-n[0-9.]+-latest-$ffarch-gpl-[0-9.]+\\.tar\\.xz$\" <<<\"$sums\" | sort -V -k2 | tail -n 1)\n[ -n \"$line\" ] || fail \"There's no ffmpeg build for this CPU right now. Reinstall to try again later.\"\nffsum=${line%% *}\nffname=${line##* }\nif [ -x ffmpeg ] && [ \"$(cat .raptor-ffmpeg 2>/dev/null)\" = \"$ffsum\" ]; then\n    echo \"ffmpeg is up to date.\"\nelse\n    echo \"Downloading ${ffname%.tar.xz}\"\n    curl -fsSL --retry 3 -o \"$tmp/ffmpeg.tar.xz\" \"$ff/$ffname\"\n    [ \"$(sha256sum \"$tmp/ffmpeg.tar.xz\" | cut -d' ' -f1)\" = \"$ffsum\" ] || fail \"The ffmpeg download didn't match its checksum. Reinstall to try again.\"\n    tar -xJf \"$tmp/ffmpeg.tar.xz\" -C \"$tmp\" --wildcards --strip-components=2 '*/bin/ffmpeg'\n    mv -f \"$tmp/ffmpeg\" ffmpeg\n    echo \"$ffsum\" > .raptor-ffmpeg\nfi\nmkdir -p data music\n\n# A new Navidrome lets whoever opens it first create the admin account.\n# On the first install, start it once here to create the admin with a\n# random password instead.\nif [ ! -f data/navidrome.db ]; then\n    password=$(head -c 18 /dev/urandom | base64 | tr -d '/+=')\n    ND_DEVAUTOCREATEADMINPASSWORD=\"$password\" ND_ENABLEINSIGHTSCOLLECTOR=false ND_SCANNER_ENABLED=false \\\n        ./navidrome --address 127.0.0.1 --port 14533 --datafolder data --musicfolder music > \"$tmp/first.log\" 2>&1 &\n    pid=$!\n    for _ in $(seq 60); do\n        grep -q \"Navidrome server is ready\" \"$tmp/first.log\" && break\n        kill -0 \"$pid\" 2>/dev/null || break\n        sleep 1\n    done\n    kill -TERM \"$pid\" 2>/dev/null || true\n    wait \"$pid\" || true\n    grep -q \"Creating initial admin user\" \"$tmp/first.log\" || { sed \"s/$password/<password>/g\" \"$tmp/first.log\"; rm -f data/navidrome.db*; fail \"Navidrome didn't start to create its admin account. Reinstall to try again.\"; }\n    echo \"The admin account is admin, with the password $password. Change it in Navidrome's settings.\"\nfi\necho \"Installed Navidrome $version with ${ffname%-latest-*}.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Navidrome version to install, such as 0.64.2, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Music folder",
+            "description": "The folder, in the server's files, that Navidrome reads your music from.",
+            "env_variable": "MUSIC_FOLDER",
+            "default_value": "music",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:128|regex:/^[A-Za-z0-9._\\/-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Usage statistics",
+            "description": "Send anonymous usage statistics to Navidrome's developers once a day (true or false).",
+            "env_variable": "INSIGHTS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        }
+    ]
+}
