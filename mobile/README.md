@@ -36,4 +36,6 @@ Push needs a real device (the iOS Simulator can't get a token from APNs) and a P
 ## Before the stores
 
 - `google-services.json` for Android push: from Firebase, added to `app.json` as `android.googleServicesFile` (kept out of git, or from an EAS secret).
-- Builds and submission with EAS (`eas.json`), store listings, privacy labels, and a demo account for App Review (#450).
+- **iOS builds go to App Store Connect from a Mac, without EAS:** `npx expo prebuild -p ios`, `pod install` in `ios/`, then `xcodebuild -workspace Raptor.xcworkspace -scheme Raptor -configuration Release -destination generic/platform=iOS -archivePath <path>/Raptor.xcarchive -allowProvisioningUpdates archive` and `xcodebuild -exportArchive` with an `app-store-connect` export (destination `upload`), which uploads it for TestFlight. Raise `version` or `ios.buildNumber` in `app.json` for each upload. With no `EXPO_PUBLIC_*` set, it talks to production.
+- The listing (description, keywords, privacy answers, review notes) is filled in App Store Connect; its art is in [`store/`](store/README.md). App Review signs in with the review account ([docs/DEPLOY.md](../docs/DEPLOY.md#app-store-review)).
+- Android still needs its Play listing and a build (#450); EAS Build is an option there, but not required.
