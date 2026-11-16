@@ -7,6 +7,8 @@ sidebar:
 
 The console says most of what's wrong: open the server's **Overview** and read its last lines. Lines starting `[raptor]` are from Raptor itself.
 
+For the common ones, the Overview says it for you: a card above the console names the problem in a sentence, with a button to where it's fixed. It knows running out of memory, a port already in use, Minecraft's EULA, the wrong Java, a mod or plugin missing another it needs, a plugin made for another version, and a server that keeps crashing. **The console line** under it shows exactly what it matched.
+
 ## It crashed
 
 A server that stops on its own is restarted, and after three crashes in ten minutes it's left **crashed** ([why](/servers/overview/#crashes)). The crash alert has its last 50 console lines.

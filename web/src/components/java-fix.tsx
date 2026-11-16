@@ -27,7 +27,7 @@ export function JavaFix({
   canStart,
   onDone,
 }: {
-  problem: Problem;
+  problem: Extract<Problem, { kind: "java" }>;
   orgId: string;
   nodeId: string;
   serverId: string;

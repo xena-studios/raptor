@@ -6,6 +6,7 @@ import { ChartSubject } from "@/components/chart-export";
 import { JavaFix } from "@/components/java-fix";
 import { DetailList } from "@/components/page";
 import { PopoutButton } from "@/components/popout";
+import { ProblemHint } from "@/components/problem-hint";
 import { ServerGraphs, ServerLastHour, ServerStats } from "@/components/server-stats";
 import { RangePicker } from "@/components/stats";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,14 +37,18 @@ function Overview() {
   // its newest lines.
   const tail = useRef<string[]>([]);
   const [problem, setProblem] = useState<Problem>();
+  // The line of a problem dismissed, so the next lines don't bring it back.
+  const dismissed = useRef("");
   const onOutput = useCallback((lines: string[], reset: boolean) => {
     tail.current = (reset ? lines : [...tail.current, ...lines]).slice(-problemWindow);
-    setProblem(findProblem(tail.current));
+    const p = findProblem(tail.current);
+    setProblem(p && p.line !== dismissed.current ? p : undefined);
   }, []);
   const state = server?.state;
-  // Starting again clears it; if it's still wrong, the console says so again.
+  // Starting again clears it; if it's still wrong, the console says so
+  // again. (Not on "running": a plugin that failed while starting stays.)
   useEffect(() => {
-    if (state === "starting" || state === "running") {
+    if (state === "starting") {
       tail.current = [];
       setProblem(undefined);
     }
@@ -53,6 +58,17 @@ function Overview() {
 
   return (
     <div className="flex flex-col gap-6">
+      {problem?.kind === "hint" && (!running || problem.whileRunning) && (
+        <ProblemHint
+          problem={problem}
+          orgId={orgId}
+          serverId={serverId}
+          onDismiss={() => {
+            dismissed.current = problem.line;
+            setProblem(undefined);
+          }}
+        />
+      )}
       {problem?.kind === "java" && !running && (
         <JavaFix
           problem={problem}
