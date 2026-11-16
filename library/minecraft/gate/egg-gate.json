@@ -1,0 +1,51 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written from scratch for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Minecraft: Gate",
+    "author": "support@raptorpanel.net",
+    "description": "Gate, a fast and lightweight Minecraft Java proxy written in Go that links your servers into one network, with a Lite mode that routes players by hostname. Installs any release, checked against GitHub's checksums.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "exec ./gate",
+    "config": {
+        "files": "{\"config.yml\": {\"parser\": \"yaml\", \"find\": {\"config.bind\": \"0.0.0.0:{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": \"listening for connections\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Minecraft: Gate. Downloads a Gate release for the node's CPU from GitHub\n# and checks it against GitHub's checksum. config.yml is never touched once\n# it exists, and the program is only replaced once the new one checks out.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n\ncase \"$(uname -m)\" in\nx86_64) cpu=amd64 ;;\naarch64 | arm64) cpu=arm64 ;;\n*) fail \"Gate has no build for this server's CPU ($(uname -m)).\" ;;\nesac\n\nwant=\"${GATE_VERSION:-latest}\"\ncase \"$want\" in latest | v*) ;; *) want=\"v$want\" ;; esac\nif ! tag=$(gh-release tag minekube/gate \"$want\" 2>&1); then\n    case \"$tag\" in\n    *\"has no release\"*) fail \"Gate has no release ${GATE_VERSION}. Set Version to latest, or to a release such as 0.81.1.\" ;;\n    *) fail \"GitHub can't be reached right now. Reinstall to try again.\" ;;\n    esac\nfi\nasset=\"gate_${tag#v}_linux_$cpu\"\nassets=$(gh-release assets minekube/gate \"$tag\") || fail \"GitHub can't be reached right now. Reinstall to try again.\"\nsum=$(awk -v a=\"$asset\" '$1 == a { print $2; f = 1 } END { exit !f }' <<<\"$assets\") ||\n    fail \"Gate $tag has no Linux build for this CPU ($cpu). Choose another version.\"\n\nif [ -x gate ] && [ \"$sum\" != - ] && [ \"$(sha256sum gate | cut -d' ' -f1)\" = \"$sum\" ]; then\n    echo \"Gate $tag is already installed.\"\nelse\n    echo \"Downloading Gate $tag\"\n    # gh-release puts the file in place only once it has arrived and checked out.\n    gh-release download minekube/gate \"$tag\" \"$asset\" gate || fail \"The download from GitHub failed or didn't match GitHub's checksum. Reinstall to try again.\"\n    chmod +x gate\nfi\n\n# Gate's own documented settings file, the first time: the full one, or its\n# Lite (routes by hostname) or Bedrock cross-play example.\nif [ ! -s config.yml ]; then\n    type=\"${CONFIG_TYPE:-full}\"\n    ./gate config --type \"$type\" > config.yml.new || { rm -f config.yml.new; fail \"Gate couldn't write its $type settings file.\"; }\n    mv -f config.yml.new config.yml\n    echo \"Wrote Gate's $type settings to config.yml.\"\nfi\necho \"Installed Gate $tag for $cpu.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Gate release, such as 0.81.1, or latest for the newest one. Reinstall the server after changing it.",
+            "env_variable": "GATE_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|v?[0-9]+(\\.[0-9]+){1,2})$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Settings template",
+            "description": "The settings file Gate starts with the first time: full (every option, explained), simple (a short example), or lite (routes players to servers by hostname). An existing config.yml is never replaced.",
+            "env_variable": "CONFIG_TYPE",
+            "default_value": "full",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:full,simple,lite",
+            "field_type": "text"
+        }
+    ]
+}

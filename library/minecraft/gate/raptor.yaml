@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/gate/egg-gate.json
+license: MIT
+credits:
+  - "Written for Raptor from Gate's documentation, https://gate.minekube.com"
+  - "Icon: Minekube's logo, from https://github.com/minekube"
+certified: true
+arch: [amd64, arm64]
+players:
+  query: minecraft
+# Gate has no console: the test proves it starts and answers status pings.
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m

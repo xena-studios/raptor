@@ -1,0 +1,24 @@
+source:
+  repo: xena-studios/raptor
+  path: library/minecraft/pocketmine-mp/egg-pocketmine-mp.json
+license: MIT
+credits:
+  - "Written for Raptor from PocketMine-MP's documentation, https://doc.pmmp.io"
+  - "Icon: PocketMine-MP's logo, from https://github.com/pmmp"
+certified: true
+# PocketMine-MP's PHP builds are x86-64 only.
+arch: [amd64]
+# PocketMine-MP answers Bedrock pings and GS4 queries, not the Java status
+# ping or A2S.
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 5m
+  command: "list"
+  expect: "There are 0/\\d+ players online"
+# save-off and the worlds written out before the snapshot; save-on after.
+backup:
+  pre: ["save-off", "save-all"]
+  post: ["save-on"]
+  wait_for: "Save complete"
+  timeout: 5m

@@ -1,0 +1,102 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written from scratch for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Minecraft: Endstone",
+    "author": "support@raptorpanel.net",
+    "description": "Endstone, Mojang's own Minecraft: Bedrock Edition server with a plugin loader for Python and C++ plugins. Installs any Endstone release and the Bedrock server it supports, keeping worlds and settings when it updates.",
+    "features": [],
+    "docker_images": {
+        "Python 3.13": "ghcr.io/xena-studios/yolks:python_3.13@sha256:72e9beb9618e5ebecf1d3211271308dc506ada537fa458911b866a23c787e617",
+        "Python 3.14": "ghcr.io/xena-studios/yolks:python_3.14@sha256:fb52a42f00788ae6bf2b1dca5ab499e325a737c20aab9a6f8c9f800c9fced225"
+    },
+    "file_denylist": [],
+    "startup": "v=\"$(cat .endstone-version) $(python3 --version)\"; if [ \"$v\" != \"$(cat .venv/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing Endstone $(cat .endstone-version)\"; { python3 -m venv --clear .venv && .venv/bin/pip install -q --no-cache-dir --disable-pip-version-check \"endstone==$(cat .endstone-version)\" && echo \"$v\" > .venv/.raptor-installed; } || exit 1; fi; h=$(echo .venv/lib/python3*/site-packages/endstone/crashpad_handler*); h=${h%.off}; if [ \"{{CRASH_REPORTS}}\" = true ]; then [ -e \"$h\" ] || mv -f \"$h.off\" \"$h\"; elif [ -e \"$h\" ]; then mv -f \"$h\" \"$h.off\"; fi; mkdir -p plugins/bstats; b=plugins/bstats/config.toml; touch $b; if ! grep -q \"^server-uuid\" $b; then read -r u < /proc/sys/kernel/random/uuid; echo \"server-uuid = \\\"$u\\\"\" >> $b; fi; if grep -q \"^enabled\" $b; then sed -i \"s/^enabled.*/enabled = {{BSTATS}}/\" $b; else echo \"enabled = {{BSTATS}}\" >> $b; fi; exec .venv/bin/python -m endstone -s . -y",
+    "config": {
+        "files": "{\"server.properties\": {\"parser\": \"properties\", \"find\": {\"server-port\": \"{{server.build.default.port}}\", \"server-udp-ports\": \"{{server.build.default.port}}\", \"server-name\": \"{{server.build.env.SERVERNAME}}\", \"gamemode\": \"{{server.build.env.GAMEMODE}}\", \"difficulty\": \"{{server.build.env.DIFFICULTY}}\", \"allow-cheats\": \"{{server.build.env.CHEATS}}\"}}}",
+        "startup": "{\"done\": \"Server started.\"}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Minecraft: Endstone. Checks the chosen Endstone version on PyPI. Endstone\n# is installed when the server starts, into its own Python environment\n# (.venv) for the Python the server runs, and it downloads the Bedrock\n# server it supports from Mojang, checked against its checksum. Worlds,\n# plugins and settings are never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n\n# Endstone and Mojang's server are built for x86-64 only.\n[ \"$(uname -m)\" = x86_64 ] || fail \"Endstone only runs on x86-64 servers, and this one is $(uname -m).\"\n\nua=\"raptor-egg-library/1.0 (+https://raptorpanel.net)\"\nwant=\"${ENDSTONE_VERSION:-latest}\"\nif [ \"$want\" = latest ]; then\n    url=https://pypi.org/pypi/endstone/json\nelse\n    url=\"https://pypi.org/pypi/endstone/$want/json\"\nfi\ncode=$(curl -sSL --retry 3 -A \"$ua\" -o /tmp/endstone.json -w '%{http_code}' \"$url\") || fail \"PyPI can't be reached right now. Reinstall to try again.\"\n[ \"$code\" = 404 ] && fail \"Endstone has no version $want. Set Version to latest, or to a release such as 0.11.15.\"\n[ \"$code\" = 200 ] || fail \"PyPI can't be reached right now (HTTP $code). Reinstall to try again.\"\nversion=$(jq -r .info.version /tmp/endstone.json)\njq -e 'any(.urls[]; .filename | test(\"manylinux.*x86_64\\\\.whl$\"))' /tmp/endstone.json >/dev/null ||\n    fail \"Endstone $version has no Linux build. Choose another version.\"\necho \"$version\" > .endstone-version\nmkdir -p plugins\necho \"Installed Endstone $version. It's set up, with the Bedrock server it supports, when the server first starts.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Endstone release, such as 0.11.15, or latest for the newest one. Each release runs one Bedrock version. Reinstall the server after changing it.",
+            "env_variable": "ENDSTONE_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(latest|[0-9]+(\\.[0-9]+){1,2}([a-z]+[0-9]*)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in their server list.",
+            "env_variable": "SERVERNAME",
+            "default_value": "Endstone Server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:50",
+            "field_type": "text"
+        },
+        {
+            "name": "Game mode",
+            "description": "The game mode new players start in: survival, creative or adventure.",
+            "env_variable": "GAMEMODE",
+            "default_value": "survival",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:survival,creative,adventure",
+            "field_type": "text"
+        },
+        {
+            "name": "Difficulty",
+            "description": "The world's difficulty: peaceful, easy, normal or hard.",
+            "env_variable": "DIFFICULTY",
+            "default_value": "easy",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:peaceful,easy,normal,hard",
+            "field_type": "text"
+        },
+        {
+            "name": "Cheats",
+            "description": "Whether commands such as /gamemode and /give work for operators: true or false.",
+            "env_variable": "CHEATS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Usage statistics",
+            "description": "Send anonymous statistics about the server to bStats.org, where its developers see them (true or false).",
+            "env_variable": "BSTATS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Crash reports",
+            "description": "Send each start and any crash report to Endstone's developers (true or false).",
+            "env_variable": "CRASH_REPORTS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        }
+    ]
+}
