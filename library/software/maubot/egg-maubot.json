@@ -1,0 +1,72 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "maubot",
+    "author": "support@raptorpanel.net",
+    "description": "A plugin-based bot system for Matrix, managed in its own web interface. Bots, plugins and their data are kept in SQLite.",
+    "features": [],
+    "docker_images": {
+        "Python 3.13": "ghcr.io/xena-studios/yolks:python_3.13@sha256:72e9beb9618e5ebecf1d3211271308dc506ada537fa458911b866a23c787e617",
+        "Python 3.12": "ghcr.io/xena-studios/yolks:python_3.12@sha256:7cebda1186da0e0830d7947537d488e8d0f039249a70391c907ceac92fb0ce76"
+    },
+    "file_denylist": [],
+    "startup": "v=$(cat .maubot-version); h=$( (python3 --version; echo \"$v\") | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat .venv/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing maubot $v\"; rm -rf .venv; python3 -m venv .venv && .venv/bin/pip install -q --no-cache-dir --disable-pip-version-check \"maubot==$v\" && echo \"$h\" > .venv/.raptor-installed || exit 1; fi; .venv/bin/python .raptor-config.py || exit 1; exec .venv/bin/python -m maubot -c config.yaml",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"regex:maubot.server.*Listening on http\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# maubot: picks the chosen maubot version from PyPI and writes the helper\n# that makes its first config.yaml. maubot itself is installed from PyPI\n# when the server starts, for the Python version it runs. The settings\n# (config.yaml), the database, plugins and logs are never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\n\nwant=\"${VERSION:-latest}\"\njson=$(curl -fsSL --retry 3 https://pypi.org/pypi/maubot/json) || fail \"PyPI can't be reached right now. Reinstall to try again.\"\nif [ \"$want\" = latest ]; then\n    version=$(jq -r .info.version <<<\"$json\")\nelse\n    version=\"${want#v}\"\n    jq -e --arg v \"$version\" '.releases[$v] | length > 0' <<<\"$json\" >/dev/null ||\n        fail \"maubot has no version $want. Set Version to latest, or to a release such as 0.6.0, then reinstall.\"\nfi\necho \"$version\" > .maubot-version\nmkdir -p plugins trash logs\n\n# Run at every start with maubot's Python: makes config.yaml from maubot's\n# own example the first time (a random encryption key, the admin account,\n# logs in logs/ at INFO), and sets the public address.\ncat > .raptor-config.py <<'PY'\nimport os, secrets, sys\nfrom importlib.resources import files\nfrom ruamel.yaml import YAML\n\nyaml = YAML()\nyaml.preserve_quotes = True\nfirst = not os.path.exists(\"config.yaml\")\nif first:\n    cfg = yaml.load(files(\"maubot\").joinpath(\"example-config.yaml\").read_text())\n    cfg[\"crypto_db_pickle_key\"] = secrets.token_urlsafe(32)\n    cfg[\"logging\"][\"handlers\"][\"file\"][\"filename\"] = \"./logs/maubot.log\"\n    for name in (\"maubot\", \"mau\"):\n        cfg[\"logging\"][\"loggers\"][name][\"level\"] = \"INFO\"\n    cfg[\"logging\"][\"root\"][\"level\"] = \"INFO\"\n    user = os.environ.get(\"ADMIN_USER\") or \"admin\"\n    password = os.environ.get(\"ADMIN_PASSWORD\") or \"\"\n    if not password:\n        password = secrets.token_urlsafe(18)\n        fd = os.open(\"admin-password.txt\", os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)\n        os.write(fd, (password + \"\\n\").encode())\n        os.close(fd)\n        print(f\"Admin password is empty, so the account {user} has the password in admin-password.txt.\")\n    # maubot replaces the plain password with a bcrypt hash when it starts.\n    cfg[\"admins\"][user] = password\nelse:\n    cfg = yaml.load(open(\"config.yaml\"))\nurl = os.environ.get(\"PUBLIC_URL\") or \"\"\nif not url:\n    ip = os.environ.get(\"SERVER_IP\") or \"\"\n    url = \"http://%s:%s\" % (\"localhost\" if ip in (\"\", \"0.0.0.0\") else ip, os.environ.get(\"SERVER_PORT\", \"29316\"))\ncfg[\"server\"][\"hostname\"] = \"0.0.0.0\"\ncfg[\"server\"][\"port\"] = int(os.environ.get(\"SERVER_PORT\", \"29316\"))\ncfg[\"server\"][\"public_url\"] = url.rstrip(\"/\")\nwith open(\"config.yaml.new\", \"w\") as f:\n    yaml.dump(cfg, f)\nos.replace(\"config.yaml.new\", \"config.yaml\")\nif first:\n    print(\"Wrote a first config.yaml.\")\nPY\necho \"Selected maubot $version (it's installed from PyPI when the server starts).\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The maubot version to install, such as 0.6.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin username",
+            "description": "The account for maubot's web interface, made at the first start.",
+            "env_variable": "ADMIN_USER",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9._-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "That account's password, used only at the first start. Leave it empty to use a random one, saved in admin-password.txt.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Address",
+            "description": "The public address of maubot, starting with http or https. Empty uses the server's IP and port.",
+            "env_variable": "PUBLIC_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^https?:\\/\\/[^\\s\\\"]+$/",
+            "field_type": "text"
+        }
+    ]
+}

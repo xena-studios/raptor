@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "VictoriaMetrics",
+    "author": "support@raptorpanel.net",
+    "description": "A fast time series database that takes metrics from Prometheus, InfluxDB, Graphite and OpenTelemetry, and answers PromQL queries. Everything is behind a password.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "pw=\"{{WEB_PASSWORD}}\"; if [ -z \"$pw\" ]; then [ -s web-password.txt ] || (umask 077; head -c 18 /dev/urandom | base64 | tr -d \"\\n/+=\" > web-password.txt); pw=$(cat web-password.txt); echo \"Web password is empty, so VictoriaMetrics uses the password in web-password.txt (username {{WEB_USER}}).\"; fi; exec ./victoria-metrics -storageDataPath=data -httpListenAddr=:{{SERVER_PORT}} -retentionPeriod={{RETENTION}} -promscrape.config=scrape.yml -httpAuth.username=\"{{WEB_USER}}\" -httpAuth.password=\"$pw\" -memory.allowedPercent=60 -loggerTimezone=\"${TZ:-UTC}\"",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"started server at http\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# VictoriaMetrics: downloads the single-node release for the chosen version\n# from GitHub (checked against GitHub's checksum). The data folder and\n# scrape.yml are never touched; only the program is replaced, once the new\n# one has arrived.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"VictoriaMetrics has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nwant=\"${VERSION:-latest}\"\ntag=latest\nif [ \"$want\" != latest ]; then tag=\"v${want#v}\"; fi\ntag=$(gh-release tag VictoriaMetrics/VictoriaMetrics \"$tag\") || fail \"VictoriaMetrics has no version $want. Set Version to latest, or to a release such as 1.156.0, then reinstall.\"\nversion=\"${tag#v}\"\n\nif [ -x victoria-metrics ] && ./victoria-metrics -version 2>&1 | grep -q -- \"-tags-v$version-\"; then\n    echo \"VictoriaMetrics $version is already installed.\"\nelse\n    echo \"Downloading VictoriaMetrics $version\"\n    gh-release download VictoriaMetrics/VictoriaMetrics \"$tag\" \"victoria-metrics-linux-$arch-v$version.tar.gz\" \"$work/vm.tar.gz\" ||\n        fail \"VictoriaMetrics $version has no single-node download for this CPU.\"\n    tar -xzf \"$work/vm.tar.gz\" -C \"$work\"\n    [ -x \"$work/victoria-metrics-prod\" ] || fail \"The download isn't VictoriaMetrics. Reinstall to try again.\"\n    mv -f \"$work/victoria-metrics-prod\" victoria-metrics\nfi\n\nmkdir -p data\nif [ ! -f scrape.yml ]; then\n    cat > scrape.yml <<'YML'\n# Targets VictoriaMetrics scrapes itself, in Prometheus's format:\n# https://docs.victoriametrics.com/victoriametrics/vmagent/#how-to-collect-metrics-in-prometheus-format\n# Restart the server after changing it.\nscrape_configs: []\nYML\nfi\necho \"Installed VictoriaMetrics $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The VictoriaMetrics version to install, such as 1.156.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Web username",
+            "description": "The username for the web interface and API.",
+            "env_variable": "WEB_USER",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9._-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Web password",
+            "description": "The password for the web interface and API. Leave it empty to use a random one, saved in web-password.txt.",
+            "env_variable": "WEB_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100|regex:/^\\S+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Data retention",
+            "description": "How long metrics are kept: a number of months, or a time such as 30d, 12w or 2y.",
+            "env_variable": "RETENTION",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:10|regex:/^\\d+(h|d|w|y)?$/",
+            "field_type": "text"
+        }
+    ]
+}

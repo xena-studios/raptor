@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/voice/inspircd/egg-inspircd.json
+license: MIT
+credits:
+  - "Written for Raptor from InspIRCd's own documentation and packages (https://github.com/inspircd/inspircd, GPL-2.0)"
+  - "Icon: the InspIRCd logo, from https://github.com/inspircd"
+certified: true
+# InspIRCd publishes builds for x86-64 only.
+arch: [amd64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m
+  config:
+    conf/inspircd.conf: '<bind address="" port="{{port}}" type="clients">'

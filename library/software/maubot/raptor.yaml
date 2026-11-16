@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/maubot/egg-maubot.json
+license: MIT
+credits:
+  - "Written for Raptor from maubot's own documentation and example configuration (https://github.com/maubot/maubot, AGPL-3.0)"
+  - "Icon: the maubot logo, from https://github.com/maubot"
+certified: true
+arch: [amd64, arm64]
+test:
+  # The first start installs maubot from PyPI.
+  tier: fast
+  memory_mib: 512
+  done_timeout: 8m
+  variables:
+    ADMIN_PASSWORD: "raptor-test-pw"

@@ -1,0 +1,81 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Alertmanager",
+    "author": "support@raptorpanel.net",
+    "description": "Groups, silences and routes the alerts Prometheus sends to email, chat and webhooks. The web interface and API are behind a password.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "pw=\"{{WEB_PASSWORD}}\"; if [ -z \"$pw\" ]; then [ -s web-password.txt ] || (umask 077; head -c 18 /dev/urandom | base64 | tr -d \"\\n/+=\" > web-password.txt); pw=$(cat web-password.txt); echo \"Web password is empty, so Alertmanager uses the password in web-password.txt (username {{WEB_USER}}).\"; fi; h=$(PW=\"$pw\" perl -e 'my @a = (\"a\"..\"z\", \"A\"..\"Z\", 0..9, \".\", \"/\"); print crypt($ENV{PW}, \"\\$2b\\$10\\$\" . join(\"\", map { $a[rand @a] } 1..22));'); printf \"# Raptor writes this file at every start, from Web username and Web password.\\nbasic_auth_users:\\n  \\\"%s\\\": \\\"%s\\\"\\n\" \"{{WEB_USER}}\" \"$h\" > web-auth.yml; exec ./alertmanager --config.file=alertmanager.yml --storage.path=data --web.listen-address=0.0.0.0:{{SERVER_PORT}} --web.config.file=web-auth.yml --cluster.listen-address= ${EXTERNAL_URL:+--web.external-url=\"$EXTERNAL_URL\"} --data.retention={{RETENTION}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Listening on\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Alertmanager: downloads the release for the chosen version from GitHub\n# (checked against GitHub's checksum). alertmanager.yml and the data folder\n# (silences, notification log) are never touched; only the alertmanager and\n# amtool programs are replaced, once the new ones have arrived.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"Alertmanager has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nwant=\"${VERSION:-latest}\"\ntag=latest\nif [ \"$want\" != latest ]; then tag=\"v${want#v}\"; fi\ntag=$(gh-release tag prometheus/alertmanager \"$tag\") || fail \"Alertmanager has no version $want. Set Version to latest, or to a release such as 0.35.0, then reinstall.\"\nversion=\"${tag#v}\"\n\nif [ -x alertmanager ] && ./alertmanager --version 2>&1 | grep -q \"version $version \"; then\n    echo \"Alertmanager $version is already installed.\"\nelse\n    echo \"Downloading Alertmanager $version\"\n    gh-release download prometheus/alertmanager \"$tag\" \"alertmanager-$version.linux-$arch.tar.gz\" \"$work/am.tar.gz\"\n    tar -xzf \"$work/am.tar.gz\" -C \"$work\" --strip-components=1\n    [ -x \"$work/alertmanager\" ] || fail \"The download isn't Alertmanager. Reinstall to try again.\"\n    mv -f \"$work/amtool\" amtool\n    mv -f \"$work/alertmanager\" alertmanager\nfi\n\nmkdir -p data\nif [ ! -f alertmanager.yml ]; then\n    cat > alertmanager.yml <<'YML'\n# Alertmanager's settings: https://prometheus.io/docs/alerting/latest/configuration/\n# Add receivers (email, Slack, webhooks...) and route alerts to them.\nroute:\n  receiver: \"none\"\n  group_by: [\"alertname\"]\n\nreceivers:\n  # Alerts are received and shown, but sent nowhere, until you add a receiver.\n  - name: \"none\"\nYML\nfi\necho \"Installed Alertmanager $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Alertmanager version to install, such as 0.35.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Web username",
+            "description": "The username for the web interface and API.",
+            "env_variable": "WEB_USER",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64|regex:/^[A-Za-z0-9._-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Web password",
+            "description": "The password for the web interface and API. Leave it empty to use a random one, saved in web-password.txt.",
+            "env_variable": "WEB_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100|regex:/^\\S+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Address",
+            "description": "The public address of Alertmanager, starting with http or https, used in links in notifications. Empty uses the server's own.",
+            "env_variable": "EXTERNAL_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200|regex:/^https?:\\/\\/[^\\s\\\"]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Data retention",
+            "description": "How long silences and the notification log are kept, such as 120h.",
+            "env_variable": "RETENTION",
+            "default_value": "120h",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:10|regex:/^(\\d+(ms|s|m|h|d|w|y))+$/",
+            "field_type": "text"
+        }
+    ]
+}

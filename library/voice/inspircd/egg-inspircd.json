@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "InspIRCd",
+    "author": "support@raptorpanel.net",
+    "description": "A modular IRC server. Runs plain IRC on the server's port, with an admin operator whose password you set.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "export CLOAK_KEY=\"$(cat data/cloak-key)\"; [ -n \"${OPER_PASSWORD:-}\" ] || export OPER_PASSWORD=\"$(head -c 24 /dev/urandom | base64)\"; exec ./bin/inspircd --nofork --nopid --config conf/inspircd.conf",
+    "config": {
+        "files": "{\"conf/inspircd.conf\": {\"parser\": \"file\", \"find\": {\"<bind address=\\\"\\\" port=\\\"\": \"<bind address=\\\"\\\" port=\\\"{{server.build.default.port}}\\\" type=\\\"clients\\\">\"}}}",
+        "startup": "{\"done\": [\"is now running as\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# InspIRCd: downloads the chosen release's Debian 13 package from GitHub\n# (checked against GitHub's checksum) and unpacks its program and modules\n# into the server's folder, then writes a first configuration. The settings\n# (conf/), the MOTD and the data folder are never touched; the program and\n# modules are replaced only once the new ones have been unpacked.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\n[ \"$(uname -m)\" = x86_64 ] || fail \"InspIRCd publishes builds for x86-64 CPUs only, and this server's CPU is $(uname -m).\"\n\nwant=\"${VERSION:-latest}\"\ntag=latest\nif [ \"$want\" != latest ]; then tag=\"v${want#v}\"; fi\ntag=$(gh-release tag inspircd/inspircd \"$tag\") || fail \"InspIRCd has no version $want. Set Version to latest, or to a release such as 4.12.1, then reinstall.\"\nversion=\"${tag#v}\"\ndeb=$(gh-release assets inspircd/inspircd \"$tag\" | awk '!f && $1 ~ /\\.deb13u[0-9]+_amd64\\.deb$/ { print $1; f = 1 }')\n[ -n \"$deb\" ] || fail \"InspIRCd $version has no Debian 13 package, so it can't be installed here. Choose version 4.10.0 or newer.\"\n\nif [ -x bin/inspircd ] && [ \"$(cat .inspircd-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"InspIRCd $version is already installed.\"\nelse\n    echo \"Downloading InspIRCd $version\"\n    gh-release download inspircd/inspircd \"$tag\" \"$deb\" \"$work/inspircd.deb\"\n    dpkg-deb -x \"$work/inspircd.deb\" \"$work/x\"\n    [ -x \"$work/x/usr/bin/inspircd\" ] || fail \"The download isn't InspIRCd's package. Reinstall to try again.\"\n    # Modules for databases and libraries the runtime image doesn't have.\n    rm -f \"$work\"/x/usr/lib/inspircd/m_{argon2,log_json,mysql,pgsql,regex_re2}.so\n    mkdir -p bin\n    rm -rf modules.old\n    [ ! -d modules ] || mv modules modules.old\n    mv \"$work/x/usr/lib/inspircd\" modules\n    rm -rf modules.old\n    mv -f \"$work/x/usr/bin/inspircd\" bin/inspircd\n    rm -rf examples\n    mv \"$work/x/usr/share/doc/inspircd/examples\" examples\n    echo \"$version\" > .inspircd-version\nfi\n\nmkdir -p conf data logs\n[ -f conf/motd.txt ] || printf 'Welcome to %s.\\n' \"${NETWORK_NAME:-IRC}\" > conf/motd.txt\n[ -f conf/help.conf ] || cp examples/help.example.conf conf/help.conf\nif [ ! -f conf/inspircd.conf ]; then\n    cat > conf/inspircd.conf <<'CONF'\n# InspIRCd's settings: https://docs.inspircd.org/4/configuration/\n# The examples folder has every option. The network name, server name and\n# operator password come from the server's settings in the Panel.\n<path configdir=\"conf\" datadir=\"data\" logdir=\"logs\" moduledir=\"modules\">\n\n<server name=\"&env.SERVER_HOSTNAME;\"\n        description=\"&env.NETWORK_NAME; IRC server\"\n        network=\"&env.NETWORK_NAME;\">\n\n<admin name=\"Admin\" description=\"The network's administrator\" email=\"noreply@example.com\">\n\n# Raptor sets the next line to the server's port at every start. Add other\n# <bind> lines for more ports (TLS needs the ssl_gnutls module).\n<bind address=\"\" port=\"6667\" type=\"clients\">\n\n<connect name=\"main\"\n         allow=\"*\"\n         maxchans=\"20\"\n         timeout=\"20\"\n         pingfreq=\"120\"\n         hardsendq=\"1M\"\n         softsendq=\"10240\"\n         recvq=\"10240\"\n         threshold=\"10\"\n         commandrate=\"1000\"\n         fakelag=\"yes\"\n         localmax=\"5\"\n         globalmax=\"5\"\n         resolvehostnames=\"yes\"\n         useident=\"no\"\n         limit=\"5000\"\n         modes=\"+x\">\n\n<files motd=\"motd.txt\">\n\n<log method=\"stdout\" level=\"normal\" type=\"* -USERINPUT -USEROUTPUT -MODULE\">\n<maxlist mode=\"ban\" limit=\"100\">\n\n<class name=\"Everything\" commands=\"*\" privs=\"*\" usermodes=\"*\" chanmodes=\"*\" snomasks=\"*\">\n<type name=\"NetAdmin\" classes=\"Everything\" vhost=\"netadmin.&env.SERVER_HOSTNAME;\">\n\n# The admin operator: /OPER admin <Operator password>. With no Operator\n# password set, the startup gives it a random one nobody knows.\n<oper name=\"admin\" password=\"&env.OPER_PASSWORD;\" host=\"*@*\" type=\"NetAdmin\">\n\n<options prefixquit=\"Quit: \" suffixquit=\"\" fixedquit=\"\" syntaxhints=\"yes\" announcets=\"yes\" hostintopic=\"yes\" defaultmodes=\"not\" xlinemessage=\"You're banned from this server.\">\n<security announceinvites=\"dynamic\" hideservices=\"no\" hidesplits=\"no\" hideulinekills=\"no\" maxtargets=\"5\" customversion=\"\" restrictbannedusers=\"yes\" genericoper=\"no\" userstats=\"Pu\">\n<performance netbuffersize=\"10240\" somaxconn=\"128\" softlimit=\"12800\" clonesonconnect=\"yes\" timeskipwarn=\"2s\" quietbursts=\"yes\">\n<whowas groupsize=\"10\" maxgroups=\"100000\" maxkeep=\"3d\">\n\n<module name=\"cloak_sha256\">\n<cloak method=\"hmac-sha256\" key=\"&env.CLOAK_KEY;\" prefix=\"&env.NETWORK_NAME;-\">\n<module name=\"sha2\">\n<module name=\"help\">\n<include file=\"/home/container/conf/help.conf\">\nCONF\n    echo \"Wrote a first conf/inspircd.conf (plain IRC on the server's port).\"\nfi\n# The cloaking key that hides users' addresses, made here once.\nif [ ! -s data/cloak-key ]; then\n    head -c 32 /dev/urandom | base64 | tr -d '\\n/+=' > data/cloak-key\n    chmod 600 data/cloak-key\nfi\necho \"Installed InspIRCd $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The InspIRCd version to install, such as 4.12.1, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Network name",
+            "description": "The network's name, shown to people when they connect.",
+            "env_variable": "NETWORK_NAME",
+            "default_value": "RaptorNet",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32|regex:/^[A-Za-z0-9._-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server hostname",
+            "description": "The server's name on the network, a hostname such as irc.example.com.",
+            "env_variable": "SERVER_HOSTNAME",
+            "default_value": "irc.example.com",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:63|regex:/^[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Operator password",
+            "description": "The password for the admin operator, used with /OPER admin <password>. Leave it empty to have no usable operator.",
+            "env_variable": "OPER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100|regex:/^[^\\s\\\"&<>]+$/",
+            "field_type": "text"
+        }
+    ]
+}

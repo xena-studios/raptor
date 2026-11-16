@@ -1,0 +1,51 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "rathole",
+    "author": "support@raptorpanel.net",
+    "description": "A fast reverse tunnel, like frp or ngrok: exposes services behind NAT through this server. Clients sign in with a random token, made at install in server.toml.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "export RUST_LOG={{LOG_LEVEL}}; exec ./rathole --server server.toml",
+    "config": {
+        "files": "{\"server.toml\": {\"parser\": \"ini\", \"find\": {\"server.bind_addr\": \"0.0.0.0:{{server.build.default.port}}\"}}}",
+        "startup": "{\"done\": [\"Listening at\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# rathole: downloads the release for the chosen version from GitHub\n# (checked against GitHub's checksum) and writes a first server.toml with a\n# random token. server.toml is never touched; only the program is replaced,\n# once the new one has arrived.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\ncase \"$(uname -m)\" in\n    x86_64) asset=rathole-x86_64-unknown-linux-gnu.zip ;;\n    aarch64) asset=rathole-aarch64-unknown-linux-musl.zip ;;\n    *) fail \"rathole has no build for this CPU ($(uname -m)).\" ;;\nesac\n\nwant=\"${VERSION:-latest}\"\ntag=latest\nif [ \"$want\" != latest ]; then tag=\"v${want#v}\"; fi\ntag=$(gh-release tag rathole-org/rathole \"$tag\") || fail \"rathole has no version $want. Set Version to latest, or to a release such as 0.5.0, then reinstall.\"\nversion=\"${tag#v}\"\n\nif [ -x rathole ] && ./rathole --version 2>/dev/null | grep -qx \"Build Version: *$version\"; then\n    echo \"rathole $version is already installed.\"\nelse\n    echo \"Downloading rathole $version\"\n    gh-release download rathole-org/rathole \"$tag\" \"$asset\" \"$work/rathole.zip\" || fail \"rathole $version has no download for this CPU.\"\n    unzip -q -o \"$work/rathole.zip\" -d \"$work/x\"\n    [ -f \"$work/x/rathole\" ] || fail \"The download isn't rathole. Reinstall to try again.\"\n    chmod +x \"$work/x/rathole\"\n    mv -f \"$work/x/rathole\" rathole\nfi\n\nif [ ! -f server.toml ]; then\n    token=$(head -c 32 /dev/urandom | base64 | tr -d '\\n/+=')\n    cat > server.toml <<TOML\n# rathole's server settings: https://github.com/rathole-org/rathole#configuration\n# rathole reloads this file when it changes.\n[server]\n# Raptor sets this to the server's port at every start. Clients connect here.\nbind_addr = \"0.0.0.0:2333\"\n# The token clients need, unless a service sets its own. Raptor made a\n# random one; copy it into each client's client.toml.\ndefault_token = \"$token\"\n\n[server.services]\n# One block per service you expose. Each one's port must be one of the\n# server's ports in the Panel, and the client's service must have the same\n# name. For example, to expose a client's SSH on this server's port 2222:\n#\n# [server.services.ssh]\n# bind_addr = \"0.0.0.0:2222\"\nTOML\n    chmod 600 server.toml\n    echo \"Wrote a first server.toml with a random token.\"\nfi\necho \"Installed rathole $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The rathole version to install, such as 0.5.0, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Log level",
+            "description": "How much rathole writes to the console: error, warn, info, debug or trace.",
+            "env_variable": "LOG_LEVEL",
+            "default_value": "info",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:error,warn,info,debug,trace",
+            "field_type": "text"
+        }
+    ]
+}
