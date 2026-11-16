@@ -12,6 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
+import { AddonListMenu } from "@/components/addon-list";
 import { type AddonListing, addonListKey, useInstalledAddons } from "@/components/addons-data";
 import { useConfirm } from "@/components/confirm";
 import { useFilesApi } from "@/components/file-manager/data";
@@ -42,6 +43,7 @@ import { addonKinds, addonSources, loaderName, sourceNames } from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { dateOnly } from "@/lib/format";
 import { formatBytes as bytes } from "@/lib/metrics";
+import { useServer } from "@/lib/org-data";
 import { gameVersion, type ServerConfig } from "@/lib/servers";
 
 // The plugin installer and mod manager (docs/EGGS.md#add-ons): what's in
@@ -159,6 +161,7 @@ function Addons({
     loaders,
     version,
   );
+  const { server } = useServer(orgId, nodeId, serverId);
   const byHash = new Map((known.data?.addons ?? []).map((a) => [a.sha512, a]));
   const installedProjects = new Set((known.data?.addons ?? []).map((a) => a.project?.id));
   const [busy, setBusy] = useState("");
@@ -294,7 +297,7 @@ function Addons({
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-1 flex-col gap-1.5">
               <CardTitle>Installed {meta?.noun}s</CardTitle>
               <CardDescription>
                 In <code>{list.data?.dir ?? "…"}</code>
@@ -320,6 +323,27 @@ function Addons({
                   </Button>
                 )}
               </div>
+            )}
+            {list.data && (
+              <AddonListMenu
+                orgId={orgId}
+                nodeId={nodeId}
+                serverId={serverId}
+                serverName={server?.name ?? ""}
+                kind={kind}
+                loaders={loaders}
+                version={version}
+                dir={list.data.dir}
+                files={files}
+                addons={known.data?.addons ?? []}
+                identified={!files.some((f) => f.sha512) || !!known.data}
+                canWrite={canWrite}
+                onApplied={async (n, e) => {
+                  await refresh();
+                  setNote(n);
+                  setError(e);
+                }}
+              />
             )}
           </div>
         </CardHeader>
