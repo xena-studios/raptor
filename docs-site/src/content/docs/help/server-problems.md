@@ -12,7 +12,7 @@ The console says most of what's wrong: open the server's **Overview** and read i
 A server that stops on its own is restarted, and after three crashes in ten minutes it's left **crashed** ([why](/servers/overview/#crashes)). The crash alert has its last 50 console lines.
 
 - **"Out of memory"** (or `oom`): the game needed more than its memory limit. Raise **Memory** on [Settings](/servers/settings/#name-and-limits). Modded Minecraft often needs 6 GB or more.
-- **A Java error about the class file version:** the game needs a newer Java. Pick a newer **Runtime** on Startup.
+- **The server needs another Java** ("Choose Java 25 in Startup", or a Java error about the class file version): the server's Overview shows **This server needs Java 25** with a button that switches it and starts it again. Your passkey signs the switch, since it changes what the server runs. You can also pick the **Runtime** on Startup yourself.
 - **It stopped after someone typed `/stop`:** that counts as a crash by default. Turn on **A clean exit means it stopped** in Settings.
 - **It crashes right after a plugin or mod change:** remove the new one (it goes to the trash), and start it again.
 
