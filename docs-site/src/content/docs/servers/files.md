@@ -22,7 +22,7 @@ Files up to 4 MB open in the editor, with syntax highlighting for configs and sc
 
 ## Uploading and downloading
 
-- **Upload → From your computer**, or drop files anywhere on the file manager. Each can be up to 1 GB; uploads resume if your connection drops.
+- **Upload → From your computer**, or drop files on the file manager. Dropped on a folder, in the list or the tree on the left, they go **into that folder** (it's highlighted, and the label at the bottom says where); anywhere else, into the folder that's open. Hover a closed folder in the tree for a moment while dragging to open it and drop deeper. Each file can be up to 1 GB; uploads resume if your connection drops.
 - **Download** a file from its menu, up to 1 GB.
 - Anything bigger: use [SFTP](#sftp).
 
