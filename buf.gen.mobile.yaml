@@ -1,0 +1,13 @@
+# The phone app's code (task gen runs it for the Panel's and meta's
+# packages only, like the web app's).
+version: v2
+# The same as buf.gen.yaml's, which the files' descriptors carry.
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/xena-studios/raptor/internal/gen/proto
+plugins:
+  - local: mobile/node_modules/.bin/protoc-gen-es
+    out: mobile/src/gen
+    opt: target=ts

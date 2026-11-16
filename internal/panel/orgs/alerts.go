@@ -150,7 +150,7 @@ func ownerParams(o alerts.Owner) (org, user pgtype.UUID) {
 
 // ListAlertChannels implements AlertService.
 func (a *Alerts) ListAlertChannels(ctx context.Context, req *panelv1.ListAlertChannelsRequest) (*panelv1.ListAlertChannelsResponse, error) {
-	_, owner, err := a.scope(ctx, req.GetOrgId())
+	sess, owner, err := a.scope(ctx, req.GetOrgId())
 	if err != nil {
 		return nil, err
 	}
@@ -162,6 +162,7 @@ func (a *Alerts) ListAlertChannels(ctx context.Context, req *panelv1.ListAlertCh
 				rows = append(rows, store.AlertChannel{
 					ID: r.ID, Type: r.Type, Name: r.Name, Config: r.Config, Hint: r.Hint, FailingSince: r.FailingSince,
 					LastError: r.LastError, LastSentAt: r.LastSentAt, DisabledAt: r.DisabledAt, CreatedAt: r.CreatedAt,
+					SessionID: r.SessionID,
 				})
 			}
 			return err
@@ -193,7 +194,9 @@ func (a *Alerts) ListAlertChannels(ctx context.Context, req *panelv1.ListAlertCh
 		out.Types = append(out.Types, alerts.Ntfy, alerts.Discord, alerts.Slack, alerts.Webhook)
 	}
 	for _, r := range rows {
-		out.Channels = append(out.Channels, a.channel(ctx, owner, r))
+		ch := a.channel(ctx, owner, r)
+		ch.ThisDevice = r.SessionID.Valid && r.SessionID == sess.ID
+		out.Channels = append(out.Channels, ch)
 	}
 	return out, nil
 }
@@ -773,7 +776,9 @@ func (a *Alerts) RegisterPushDevice(ctx context.Context, req *panelv1.RegisterPu
 	if err != nil {
 		return nil, err
 	}
-	return &panelv1.RegisterPushDeviceResponse{Channel: a.channel(ctx, owner, ch)}, nil
+	out := a.channel(ctx, owner, ch)
+	out.ThisDevice = true
+	return &panelv1.RegisterPushDeviceResponse{Channel: out}, nil
 }
 
 // UnregisterPushDevice implements AlertService.

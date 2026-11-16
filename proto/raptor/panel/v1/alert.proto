@@ -97,6 +97,8 @@ message AlertChannel {
   // email_to: email channels are people's own now.
   reserved 10;
   reserved "email_to";
+  // A phone channel that's the calling app's own (this phone).
+  bool this_device = 11;
 }
 
 message ListAlertChannelsRequest {

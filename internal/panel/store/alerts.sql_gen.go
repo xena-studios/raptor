@@ -1347,7 +1347,7 @@ func (q *Queries) UseTelegramLink(ctx context.Context, tokenHash []byte) (UseTel
 }
 
 const userAlertChannels = `-- name: UserAlertChannels :many
-SELECT id, type, name, config, hint, failing_since, last_error, last_sent_at, disabled_at, created_at
+SELECT id, type, name, config, hint, failing_since, last_error, last_sent_at, disabled_at, created_at, session_id
 FROM alert_channels WHERE user_id = $1 ORDER BY created_at
 `
 
@@ -1362,6 +1362,7 @@ type UserAlertChannelsRow struct {
 	LastSentAt   pgtype.Timestamptz
 	DisabledAt   pgtype.Timestamptz
 	CreatedAt    pgtype.Timestamptz
+	SessionID    pgtype.UUID
 }
 
 // A user's own channels, for them (row-level security).
@@ -1385,6 +1386,7 @@ func (q *Queries) UserAlertChannels(ctx context.Context, userID pgtype.UUID) ([]
 			&i.LastSentAt,
 			&i.DisabledAt,
 			&i.CreatedAt,
+			&i.SessionID,
 		); err != nil {
 			return nil, err
 		}

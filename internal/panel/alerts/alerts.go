@@ -296,6 +296,9 @@ type People struct {
 // queue queues an alert to the rule's team channels and to its people: in
 // each one's inbox, and to each of their own channels that's on.
 func (s *Service) queue(ctx context.Context, q *store.Queries, org, rule pgtype.UUID, chans []pgtype.UUID, who People, m Message) error {
+	if org.Valid {
+		m.OrgID = uuid.UUID(org.Bytes).String()
+	}
 	body, err := json.Marshal(m)
 	if err != nil {
 		return err
@@ -799,6 +802,7 @@ func (s *Service) Test(ctx context.Context, owner Owner, ch store.AlertChannel, 
 	}
 	if owner.Org.Valid {
 		m.URL = s.link(owner.Org, "", "")
+		m.OrgID = uuid.UUID(owner.Org.Bytes).String()
 	} else {
 		m.Text = "Your alerts from Raptor reach this channel."
 	}

@@ -98,6 +98,7 @@ type Message struct {
 	Text      string         `json:"text,omitempty"`
 	Resolved  bool           `json:"resolved,omitempty"`
 	Org       string         `json:"org,omitempty"`
+	OrgID     string         `json:"org_id,omitempty"`
 	Node      string         `json:"node,omitempty"`
 	NodeID    string         `json:"node_id,omitempty"`
 	Server    string         `json:"server_name,omitempty"`
