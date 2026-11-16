@@ -83,7 +83,7 @@ jobs:
       github.event_name == 'pull_request' || github.event_name == 'push' ||
       github.event.schedule == '17 4 * * *' ||
       (github.event_name == 'workflow_dispatch' && inputs.tier != 'slow')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
@@ -110,7 +110,7 @@ jobs:
       matrix:
         shard: [0/4, 1/4, 2/4, 3/4]
     name: slow ${{ matrix.shard }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 360
     steps:
       - name: Free disk space
@@ -137,7 +137,7 @@ jobs:
   # (eggs for one CPU are skipped on the other).
   library-changes:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       ids: ${{ steps.ids.outputs.ids }}
     steps:

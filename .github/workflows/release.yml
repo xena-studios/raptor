@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
     steps:
@@ -30,7 +30,7 @@ jobs:
   # The Panel's images for the servers (docs/DEPLOY.md), tagged with the
   # release. Deploys name the tag: deploy/scripts/deploy.sh vX.Y.Z.
   images:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       packages: write
@@ -76,7 +76,7 @@ jobs:
   deploy:
     needs: images
     if: vars.DEPLOY_ENABLED == 'true' && !contains(github.ref_name, '-')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     environment: production
     concurrency:
       group: production
@@ -101,7 +101,7 @@ jobs:
   # not after it.
   web:
     needs: deploy
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     environment: production
     concurrency:
       group: production-web
@@ -126,7 +126,7 @@ jobs:
   # after the Panel.
   site:
     needs: deploy
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     environment: production
     concurrency:
       group: production-site
@@ -149,7 +149,7 @@ jobs:
   # after the Panel (a failed Panel deploy leaves the old docs up too).
   docs:
     needs: deploy
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     environment: production
     concurrency:
       group: production-docs
