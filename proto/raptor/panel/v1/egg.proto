@@ -135,7 +135,7 @@ message EggSpec {
 // EggAddon is an add-on an egg turns on: a plugin installer or a mod
 // manager.
 message EggAddon {
-  // "plugins", "mods", or "datapacks".
+  // "plugins", "mods", "datapacks", or "umod".
   string kind = 1;
   // Modrinth's loader names: paper, spigot, fabric, ...
   repeated string loaders = 2;
@@ -143,6 +143,10 @@ message EggAddon {
   string dir = 3;
   // The variable holding the game version; empty: any version.
   string version = 4;
+  // A variable whose value picks the folder (dirs: value to folder), for
+  // software that keeps add-ons in different places; dir otherwise.
+  string dir_variable = 5;
+  map<string, string> dirs = 6;
 }
 
 message EggStartup {

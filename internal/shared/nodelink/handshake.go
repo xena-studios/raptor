@@ -224,6 +224,9 @@ const (
 	// CapRaptorEggs: eggs in Raptor's own format (RPTR_v1,
 	// docs/EGGS.md#raptor-eggs).
 	CapRaptorEggs = "raptor-eggs"
+	// CapAddonsUMod: the umod add-on kind (Rust's plugins from umod.org,
+	// checked by SHA-1), and add-on folders chosen by a variable.
+	CapAddonsUMod = "addons-umod"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
@@ -231,7 +234,7 @@ var nodeCapabilities = []string{
 	CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases, CapDatabaseBrowser,
 	CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal, CapDatabaseDocuments, CapDatabaseAlerts,
 	CapDatabaseSettings, CapDatabaseQueryStream, CapDatabaseInstanceBrowser, CapDatabaseRedisExternal,
-	CapDatabaseUsage, CapDatabaseShared, CapDatabaseInstanceBackups, CapRaptorEggs,
+	CapDatabaseUsage, CapDatabaseShared, CapDatabaseInstanceBackups, CapRaptorEggs, CapAddonsUMod,
 }
 
 // NewHello starts a handshake for a node.

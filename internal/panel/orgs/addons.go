@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
 	"slices"
 	"strconv"
@@ -21,6 +22,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/modrinth"
 	"github.com/xena-studios/raptor/internal/panel/steam"
 	"github.com/xena-studios/raptor/internal/panel/store"
+	"github.com/xena-studios/raptor/internal/panel/umod"
 )
 
 // Addons implements AddonService: Modrinth for the plugin installer and
@@ -30,6 +32,7 @@ type Addons struct {
 	Modrinth *modrinth.Client
 	Hangar   *hangar.Client
 	Steam    *steam.Client
+	UMod     *umod.Client
 }
 
 // kindModpacks is the pack picker's kind (#413): Modrinth's modpacks,
@@ -40,7 +43,11 @@ const kindModpacks = "modpacks"
 const (
 	sourceModrinth = "modrinth"
 	sourceHangar   = "hangar"
+	sourceUMod     = "umod"
 )
+
+// umodGame is the uMod category the umod kind's plugins come from.
+const umodGame = "rust"
 
 var _ panelv1connect.AddonServiceHandler = (*Addons)(nil)
 
@@ -107,6 +114,10 @@ func modrinthError(err error) error {
 		return connect.NewError(connect.CodeUnavailable, hangar.ErrUnavailable)
 	case errors.Is(err, steam.ErrUnavailable):
 		return connect.NewError(connect.CodeUnavailable, steam.ErrUnavailable)
+	case errors.Is(err, umod.ErrNotFound):
+		return connect.NewError(connect.CodeNotFound, err)
+	case errors.Is(err, umod.ErrUnavailable):
+		return connect.NewError(connect.CodeUnavailable, umod.ErrUnavailable)
 	}
 	return err
 }
@@ -125,8 +136,8 @@ func hangarPlatform(kind string, loaders []string) (string, error) {
 }
 
 func checkSource(source string) error {
-	if source != "" && source != sourceModrinth && source != sourceHangar {
-		return invalid(errors.New("the source is modrinth or hangar"))
+	if source != "" && source != sourceModrinth && source != sourceHangar && source != sourceUMod {
+		return invalid(errors.New("the source is modrinth, hangar, or umod"))
 	}
 	return nil
 }
@@ -151,6 +162,32 @@ func hangarVersion(project string, v hangar.Version, platform string) *panelv1.A
 	}
 	if !v.CreatedAt.IsZero() {
 		out.PublishedAt = timestamppb.New(v.CreatedAt)
+	}
+	return out
+}
+
+func umodProject(p umod.Plugin) *panelv1.AddonProject {
+	out := &panelv1.AddonProject{
+		Id: p.Slug, Slug: p.Slug, Title: p.Title, Description: p.Description,
+		Downloads: p.Downloads, Author: p.Author, Url: "https://umod.org/plugins/" + p.Slug, Source: sourceUMod,
+	}
+	if u, err := url.Parse(p.IconURL); err == nil && u.Scheme == "https" && u.Host == umod.IconHost {
+		out.IconUrl = p.IconURL
+	}
+	return out
+}
+
+// umodVersion is a plugin's one installable file, or nil.
+func umodVersion(p umod.Plugin) *panelv1.AddonVersion {
+	if !p.Installable() {
+		return nil
+	}
+	out := &panelv1.AddonVersion{
+		Id: p.Version, ProjectId: p.Slug, Name: p.Version, VersionNumber: p.Version, Loaders: []string{"oxide", "carbon"},
+		File: &panelv1.AddonFile{Url: p.DownloadURL, Filename: p.Name + ".cs", Sha1: p.SHA1},
+	}
+	if t := p.Released(); !t.IsZero() {
+		out.PublishedAt = timestamppb.New(t)
 	}
 	return out
 }
@@ -198,6 +235,20 @@ func (s *Addons) SearchAddons(ctx context.Context, req *panelv1.SearchAddonsRequ
 	if req.GetKind() == kindModpacks && req.GetSource() != "" && req.GetSource() != sourceModrinth {
 		return nil, invalid(errors.New("modpacks come from Modrinth"))
 	}
+	if req.GetKind() == "umod" || req.GetSource() == sourceUMod {
+		if req.GetKind() != "umod" || req.GetSource() != sourceUMod {
+			return nil, invalid(errors.New("uMod has the umod kind's plugins, and only uMod has them"))
+		}
+		plugins, total, err := s.UMod.Search(ctx, umodGame, query, offset/umod.PageSize+1)
+		if err != nil {
+			return nil, modrinthError(err)
+		}
+		out := &panelv1.SearchAddonsResponse{Total: int32(min(total, 1<<30))} //nolint:gosec // capped
+		for _, p := range plugins {
+			out.Projects = append(out.Projects, umodProject(p))
+		}
+		return out, nil
+	}
 	if req.GetSource() == sourceHangar {
 		platform, err := hangarPlatform(req.GetKind(), req.GetLoaders())
 		if err != nil {
@@ -240,6 +291,17 @@ func (s *Addons) ListAddonVersions(ctx context.Context, req *panelv1.ListAddonVe
 	}
 	if !projectRef.MatchString(req.GetProjectId()) {
 		return nil, invalid(errors.New("that isn't a project"))
+	}
+	if req.GetSource() == sourceUMod {
+		p, err := s.UMod.Get(ctx, req.GetProjectId())
+		if err != nil {
+			return nil, modrinthError(err)
+		}
+		out := &panelv1.ListAddonVersionsResponse{}
+		if v := umodVersion(p); v != nil {
+			out.Versions = append(out.Versions, v)
+		}
+		return out, nil
 	}
 	if req.GetSource() == sourceHangar {
 		platform, err := hangarPlatform("", req.GetLoaders())
@@ -290,6 +352,16 @@ func (s *Addons) IdentifyAddons(ctx context.Context, req *panelv1.IdentifyAddons
 			return nil, invalid(errors.New("that isn't a SHA-256"))
 		}
 	}
+	for k, v := range req.GetSha1() {
+		if !sha512Hex.MatchString(k) || !sha1Hex.MatchString(v) {
+			return nil, invalid(errors.New("that isn't a SHA-1"))
+		}
+	}
+	for k, v := range req.GetNames() {
+		if !sha512Hex.MatchString(k) || v == "" || len(v) > 255 || strings.ContainsAny(v, `/\`) {
+			return nil, invalid(errors.New("that isn't a file name"))
+		}
+	}
 	out := &panelv1.IdentifyAddonsResponse{}
 	if len(hashes) == 0 {
 		return out, nil
@@ -335,7 +407,47 @@ func (s *Addons) IdentifyAddons(ctx context.Context, req *panelv1.IdentifyAddons
 	if err := s.identifyOnHangar(ctx, req, current, out); err != nil {
 		return nil, err
 	}
+	if err := s.identifyOnUMod(ctx, req, out); err != nil {
+		return nil, err
+	}
 	return out, nil
+}
+
+var sha1Hex = regexp.MustCompile(`^[0-9a-f]{40}$`)
+
+// identifyOnUMod names uMod plugins by their files' names (uMod has no
+// lookup by hash): Kits.cs is the plugin named Kits. A file whose SHA-1
+// is the newest file's is that version; any other is offered the newest,
+// since uMod lists no other. At most umod.MaxNames are looked up.
+func (s *Addons) identifyOnUMod(ctx context.Context, req *panelv1.IdentifyAddonsRequest, out *panelv1.IdentifyAddonsResponse) error {
+	if s.UMod == nil || !slices.ContainsFunc(req.GetLoaders(), func(l string) bool { return l == "oxide" || l == "carbon" }) {
+		return nil
+	}
+	looked := 0
+	for _, h := range req.GetHashes() {
+		file := req.GetNames()[h]
+		pluginName, ok := strings.CutSuffix(file, ".cs")
+		if !ok || looked == umod.MaxNames {
+			continue
+		}
+		looked++
+		p, found, err := s.UMod.ByName(ctx, umodGame, pluginName)
+		if err != nil {
+			return modrinthError(err)
+		}
+		v := umodVersion(p)
+		if !found || v == nil {
+			continue
+		}
+		a := &panelv1.IdentifiedAddon{Sha512: h, Project: umodProject(p)}
+		if req.GetSha1()[h] == p.SHA1 {
+			a.Version = v
+		} else {
+			a.Latest = v
+		}
+		out.Addons = append(out.Addons, a)
+	}
+	return nil
 }
 
 // identifyOnHangar looks up on Hangar, by SHA-256, the files Modrinth

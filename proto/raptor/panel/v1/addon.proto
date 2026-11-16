@@ -77,9 +77,10 @@ message AddonFile {
   string url = 1;
   string filename = 2;
   int64 size = 3;
-  // Modrinth's files have a SHA-512, Hangar's a SHA-256.
+  // Modrinth's files have a SHA-512, Hangar's a SHA-256, uMod's a SHA-1.
   string sha512 = 4;
   string sha256 = 5;
+  string sha1 = 6;
 }
 
 message AddonVersion {
@@ -106,7 +107,8 @@ message SearchAddonsRequest {
   string game_version = 4;
   string query = 5;
   int32 offset = 6;
-  // "modrinth" (the default) or "hangar" (plugins only).
+  // "modrinth" (the default), "hangar" (plugins only), or "umod" (the
+  // umod kind, which has only uMod).
   string source = 7;
   // Mods only: include client-only ones (left out by default, since they
   // don't run on a server).
@@ -123,7 +125,7 @@ message ListAddonVersionsRequest {
   string project_id = 2;
   repeated string loaders = 3;
   string game_version = 4;
-  // The project's source: "modrinth" (the default) or "hangar".
+  // The project's source: "modrinth" (the default), "hangar", or "umod".
   string source = 5;
   // "modpacks" for a modpack's versions (no loaders needed); empty for
   // add-ons.
@@ -143,6 +145,11 @@ message IdentifyAddonsRequest {
   // The files' SHA-256s, by SHA-512: files Modrinth doesn't know are
   // looked up on Hangar.
   map<string, string> sha256 = 5;
+  // uMod plugins (the umod kind) are named by file: each file's name and
+  // SHA-1, by SHA-512. uMod lists only a plugin's newest file, so a file
+  // that isn't it is offered the update.
+  map<string, string> names = 6;
+  map<string, string> sha1 = 7;
 }
 
 message IdentifiedAddon {

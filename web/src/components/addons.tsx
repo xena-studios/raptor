@@ -38,7 +38,7 @@ import {
   type ResolvedAddon,
 } from "@/gen/raptor/panel/v1/addon_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
-import { addonKinds, loaderName, onHangar, sourceNames } from "@/lib/eggs";
+import { addonKinds, addonSources, loaderName, sourceNames } from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { dateOnly } from "@/lib/format";
 import { formatBytes as bytes } from "@/lib/metrics";
@@ -59,6 +59,7 @@ type Listing = {
     modified_at: number;
     sha512?: string;
     sha256?: string;
+    sha1?: string;
     disabled?: boolean;
   }[];
 };
@@ -117,16 +118,27 @@ export function AddonsPage({
     );
   }
   const version = gameVersion(cfg, addon.version);
+  // Rust's plugins need Oxide or Carbon: on vanilla nothing loads them.
+  const framework = addon.dir_variable ? cfg.variables?.[addon.dir_variable] : undefined;
   return (
-    <Addons
-      orgId={orgId}
-      nodeId={nodeId}
-      serverId={serverId}
-      kind={kind}
-      loaders={addon.loaders}
-      version={version}
-      canWrite={canWrite}
-    />
+    <>
+      {kind === "umod" && framework === "vanilla" && (
+        <p className="mb-4 rounded-lg border px-3 py-2 text-sm">
+          This server runs vanilla Rust, which doesn't load plugins. Set{" "}
+          <strong>Mod framework</strong> to Oxide or Carbon in Startup and restart it, then install
+          plugins here.
+        </p>
+      )}
+      <Addons
+        orgId={orgId}
+        nodeId={nodeId}
+        serverId={serverId}
+        kind={kind}
+        loaders={addon.loaders}
+        version={version}
+        canWrite={canWrite}
+      />
+    </>
   );
 }
 
@@ -160,9 +172,18 @@ function Addons({
   const sha256 = Object.fromEntries(
     files.flatMap((f) => (f.sha512 && f.sha256 ? [[f.sha512, f.sha256]] : [])),
   );
+  // uMod has no lookup by hash: its plugins are named by file, and
+  // compared by SHA-1.
+  const umod = kind === "umod";
+  const names = umod
+    ? Object.fromEntries(files.flatMap((f) => (f.sha512 ? [[f.sha512, f.name]] : [])))
+    : {};
+  const sha1 = umod
+    ? Object.fromEntries(files.flatMap((f) => (f.sha512 && f.sha1 ? [[f.sha512, f.sha1]] : [])))
+    : {};
   const known = useQuery(
     AddonService.method.identifyAddons,
-    { orgId, hashes, sha256, loaders, gameVersion: version },
+    { orgId, hashes, sha256, names, sha1, loaders, gameVersion: version },
     { enabled: hashes.length > 0 },
   );
   const byHash = new Map((known.data?.addons ?? []).map((a) => [a.sha512, a]));
@@ -189,6 +210,7 @@ function Addons({
       url: latest.url,
       sha512: latest.sha512 || undefined,
       sha256: latest.sha256 || undefined,
+      sha1: latest.sha1 || undefined,
       filename: latest.filename,
       replace: f.name,
     });
@@ -459,7 +481,13 @@ function Addons({
   );
 }
 
-type InstallFile = { url: string; sha512?: string; sha256?: string; filename: string };
+type InstallFile = {
+  url: string;
+  sha512?: string;
+  sha256?: string;
+  sha1?: string;
+  filename: string;
+};
 
 function Finder({
   orgId,
@@ -484,8 +512,8 @@ function Finder({
   // out: on a server they crash it or do nothing.
   const [clientOnly, setClientOnly] = useState(false);
   const [picked, setPicked] = useState<AddonProject>();
-  const sources = onHangar(kind, loaders) ? ["modrinth", "hangar"] : ["modrinth"];
-  const [source, setSource] = useState("modrinth");
+  const sources = addonSources(kind, loaders);
+  const [source, setSource] = useState(sources[0] ?? "modrinth");
   const q = useDeferredValue(query.trim());
   const search = useInfiniteQuery(
     AddonService.method.searchAddons,
@@ -738,11 +766,18 @@ function InstallDialog({
   );
 }
 
-function fileOf(f: { url: string; sha512: string; sha256: string; filename: string }): InstallFile {
+function fileOf(f: {
+  url: string;
+  sha512: string;
+  sha256: string;
+  sha1: string;
+  filename: string;
+}): InstallFile {
   return {
     url: f.url,
     sha512: f.sha512 || undefined,
     sha256: f.sha256 || undefined,
+    sha1: f.sha1 || undefined,
     filename: f.filename,
   };
 }

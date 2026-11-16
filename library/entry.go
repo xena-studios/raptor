@@ -260,6 +260,9 @@ func (e *Entry) validate() error {
 	if err := eggs.CheckAddons(e.Addons); err != nil {
 		return err
 	}
+	if err := eggs.CheckAddonVariables(e.Addons, egg.Variables); err != nil {
+		return err
+	}
 	if err := eggs.CheckWeb(e.Web, egg.Variables); err != nil {
 		return err
 	}
@@ -356,6 +359,14 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 			set(n, "dir", str(a.Dir))
 			if a.Version != "" {
 				set(n, "version", str(a.Version))
+			}
+			if a.DirVariable != "" {
+				set(n, "dir_variable", str(a.DirVariable))
+				dirs := &yaml.Node{Kind: yaml.MappingNode}
+				for _, v := range slices.Sorted(maps.Keys(a.Dirs)) {
+					set(dirs, v, str(a.Dirs[v]))
+				}
+				set(n, "dirs", dirs)
 			}
 			set(addons, kind, n)
 		}

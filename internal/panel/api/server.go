@@ -32,6 +32,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/staff"
 	"github.com/xena-studios/raptor/internal/panel/steam"
 	"github.com/xena-studios/raptor/internal/panel/transfers"
+	"github.com/xena-studios/raptor/internal/panel/umod"
 	"github.com/xena-studios/raptor/internal/shared/buildinfo"
 	"github.com/xena-studios/raptor/internal/shared/nodelink"
 )
@@ -78,6 +79,8 @@ type Config struct {
 	Hangar   *hangar.Client
 	// Steam names Workshop items (nil: Steam's Web API).
 	Steam *steam.Client
+	// UMod is where Rust's plugins are found (nil: umod.org).
+	UMod *umod.Client
 	// Support takes nodes' support bundles (nil: not configured).
 	Support http.Handler
 	// Transfers opens file transfer connections to nodes (*nodes.Router),
@@ -163,8 +166,12 @@ func Handler(cfg Config) http.Handler {
 		if st == nil {
 			st = &steam.Client{UserAgent: ua}
 		}
+		um := cfg.UMod
+		if um == nil {
+			um = &umod.Client{UserAgent: ua}
+		}
 		// A lookup is up to 500 SHA-512s, with their SHA-256s.
-		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg, Steam: st}, opts(connect.WithReadMaxBytes(256<<10))...)
+		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg, Steam: st, UMod: um}, opts(connect.WithReadMaxBytes(256<<10))...)
 		api.Handle(path, handler)
 	}
 	if cfg.Orgs != nil {

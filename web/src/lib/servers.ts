@@ -193,7 +193,17 @@ export type ServerConfig = {
       | null;
     features?: string[];
     // The egg's add-ons (docs/EGGS.md#add-ons), by kind.
-    addons?: Record<string, { loaders: string[]; dir: string; version?: string }>;
+    addons?: Record<
+      string,
+      {
+        loaders: string[];
+        dir: string;
+        version?: string;
+        // A variable whose value picks the folder (Rust's FRAMEWORK).
+        dir_variable?: string;
+        dirs?: Record<string, string>;
+      }
+    >;
     // Where the game takes Steam Workshop items (docs/EGGS.md#steam-workshop).
     workshop?: Workshop;
     // A web dashboard the server serves (#428): its name, the variable

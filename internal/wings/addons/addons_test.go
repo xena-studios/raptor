@@ -2,6 +2,7 @@ package addons_test
 
 import (
 	"context"
+	"crypto/sha1" //nolint:gosec // uMod publishes only SHA-1s
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
@@ -22,8 +23,9 @@ import (
 
 const srvID = "0199a0b1-7c2e-7a41-9f3e-2b1c4d5e6f70"
 
-// servers is a fake server manager with one Paper server.
-type servers struct{ dir string }
+// servers is a fake server manager with one Paper server (that also
+// takes uMod plugins, in the folder its FRAMEWORK picks).
+type servers struct{ dir, framework string }
 
 func (s *servers) FilesDir(string) (string, error)                  { return s.dir, nil }
 func (s *servers) CheckFiles(context.Context, string, bool) error   { return nil }
@@ -37,7 +39,20 @@ func (s *servers) Egg(context.Context, string) (*eggs.Egg, error) {
 	return &eggs.Egg{Raptor: eggs.Extension{Addons: map[string]eggs.Addon{
 		"plugins":   {Loaders: []string{"paper"}, Dir: "plugins", Version: "MINECRAFT_VERSION"},
 		"datapacks": {Loaders: []string{"datapack"}, Dir: "world/datapacks"},
+		"umod": {
+			Loaders: []string{"oxide", "carbon"}, Dir: "oxide/plugins",
+			DirVariable: "FRAMEWORK", Dirs: map[string]string{"carbon": "carbon/plugins"},
+		},
 	}}}, nil
+}
+
+func (s *servers) Variables(context.Context, string) (map[string]string, error) {
+	return map[string]string{"FRAMEWORK": s.framework}, nil
+}
+
+func sum1(b []byte) string {
+	h := sha1.Sum(b) //nolint:gosec // uMod's
+	return hex.EncodeToString(h[:])
 }
 
 func sum(b []byte) string {
@@ -91,7 +106,7 @@ func TestInstall(t *testing.T) {
 	tr.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {
 		return (&net.Dialer{}).DialContext(ctx, network, cdn.Listener.Addr().String())
 	}
-	svc := &addons.Service{Files: fsvc, Servers: srv, Hosts: []string{"example.com", addons.HangarHost}}
+	svc := &addons.Service{Files: fsvc, Servers: srv, Hosts: []string{"example.com", addons.HangarHost, addons.UModHost}}
 	svc.Client = &http.Client{Transport: tr, CheckRedirect: func(*http.Request, []*http.Request) error {
 		return addons.ErrSource // the default client only follows redirects to its hosts
 	}}
@@ -177,5 +192,36 @@ func TestInstall(t *testing.T) {
 	trash, err := fsvc.ListTrash(ctx, srvID)
 	if err != nil || len(trash) != 1 {
 		t.Errorf("trash: %+v, %v", trash, err)
+	}
+
+	// uMod: .cs files checked by their SHA-1, in the framework's folder.
+	umod := func(p addons.Install) (addons.File, error) {
+		p.Kind = "umod"
+		return svc.Install(ctx, srvID, "user", p)
+	}
+	from := "https://" + addons.UModHost + "/v1.jar"
+	if _, err := umod(addons.Install{URL: from, Sha512: sum(v1), Filename: "Kits.cs"}); err == nil {
+		t.Error("a uMod file without its SHA-1")
+	}
+	if _, err := umod(addons.Install{URL: "https://" + addons.UModHost + "/v2.jar", Sha1: sum1(v1), Filename: "Kits.cs"}); !errors.Is(err, addons.ErrHash) {
+		t.Errorf("a swapped uMod file: %v", err)
+	}
+	if _, err := umod(addons.Install{URL: from, Sha1: sum1(v1), Filename: "Kits.jar"}); !errors.Is(err, addons.ErrName) {
+		t.Errorf("a uMod plugin that isn't .cs: %v", err)
+	}
+	srv.framework = "oxide"
+	if _, err := umod(addons.Install{URL: from, Sha1: sum1(v1), Filename: "Kits.cs"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "oxide", "plugins", "Kits.cs")); err != nil {
+		t.Errorf("Oxide's plugin: %v", err)
+	}
+	srv.framework = "carbon"
+	if _, err := umod(addons.Install{URL: from, Sha1: sum1(v1), Filename: "Kits.cs"}); err != nil {
+		t.Fatal(err)
+	}
+	ls, err := svc.List(ctx, srvID, "umod")
+	if err != nil || ls.Dir != "carbon/plugins" || len(ls.Files) != 1 || ls.Files[0].Sha1 != sum1(v1) {
+		t.Errorf("Carbon's plugins: %+v, %v", ls, err)
 	}
 }

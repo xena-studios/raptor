@@ -106,6 +106,8 @@ export const addonKinds: Record<
     dflt: string[];
     // Where the files go unless the egg says otherwise.
     dir: string;
+    // The node capability the page needs, if not every node has it.
+    capability?: string;
   }
 > = {
   plugins: {
@@ -148,7 +150,25 @@ export const addonKinds: Record<
     dflt: ["datapack"],
     dir: "world/datapacks",
   },
+  umod: {
+    label: "uMod plugins",
+    tab: "Plugins",
+    noun: "plugin",
+    description:
+      "Find, install, and update Rust's Oxide and Carbon plugins from uMod. The folder can follow a variable (Rust's FRAMEWORK).",
+    loaders: ["oxide", "carbon"],
+    dflt: ["oxide", "carbon"],
+    dir: "oxide/plugins",
+    capability: "addons-umod",
+  },
 };
+
+// addonSources are where a kind's add-ons can come from, the default
+// first.
+export function addonSources(kind: string, loaders: string[]): string[] {
+  if (kind === "umod") return ["umod"];
+  return onHangar(kind, loaders) ? ["modrinth", "hangar"] : ["modrinth"];
+}
 
 // hangarLoaders are the loaders whose plugins Hangar has (Paper's, and
 // Velocity's and Waterfall's).
@@ -168,9 +188,14 @@ export function onHangar(kind: string, loaders: string[]): boolean {
   return kind === "plugins" && loaders.some((l) => hangarLoaders.includes(l));
 }
 
-export const sourceNames: Record<string, string> = { modrinth: "Modrinth", hangar: "Hangar" };
+export const sourceNames: Record<string, string> = {
+  modrinth: "Modrinth",
+  hangar: "Hangar",
+  umod: "uMod",
+};
 
 const loaderNames: Record<string, string> = {
+  oxide: "Oxide",
   bungeecord: "BungeeCord",
   neoforge: "NeoForge",
 };

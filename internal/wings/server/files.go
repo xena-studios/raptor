@@ -165,3 +165,12 @@ func (m *Manager) SpaceLeft(ctx context.Context, id string) (int64, error) {
 	}
 	return max(u.LimitBytes-u.Bytes, 0), nil
 }
+
+// Variables returns a server's variables.
+func (m *Manager) Variables(ctx context.Context, id string) (map[string]string, error) {
+	srv, err := m.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return srv.Variables, nil
+}

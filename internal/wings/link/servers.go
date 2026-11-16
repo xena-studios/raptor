@@ -138,6 +138,10 @@ type eggAddon struct {
 	Loaders []string `json:"loaders"`
 	Dir     string   `json:"dir"`
 	Version string   `json:"version,omitempty"`
+	// DirVariable picks the folder by its value (Dirs), e.g. Rust's
+	// FRAMEWORK.
+	DirVariable string            `json:"dir_variable,omitempty"`
+	Dirs        map[string]string `json:"dirs,omitempty"`
 }
 
 type eggImage struct {
@@ -165,7 +169,7 @@ func describeEgg(s *server.Server) *eggInfo {
 		if out.Addons == nil {
 			out.Addons = map[string]eggAddon{}
 		}
-		out.Addons[kind] = eggAddon{Loaders: a.Loaders, Dir: a.Dir, Version: a.Version}
+		out.Addons[kind] = eggAddon{Loaders: a.Loaders, Dir: a.Dir, Version: a.Version, DirVariable: a.DirVariable, Dirs: a.Dirs}
 	}
 	if w := e.Raptor.Web; w != nil {
 		out.Web = &eggWeb{Name: w.Name, Port: w.Port, Enabled: w.Enabled}
