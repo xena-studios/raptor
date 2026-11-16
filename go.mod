@@ -4,7 +4,8 @@ go 1.27.4
 
 require (
 	aead.dev/minisign v0.3.0
-	connectrpc.com/connect v1.21.1
+	connectrpc.com/connect v1.19.1
+	connectrpc.com/connect/v2 v2.0.2
 	connectrpc.com/otelconnect v0.12.0
 	github.com/charmbracelet/bubbles v1.0.0
 	github.com/charmbracelet/bubbletea v1.3.10
@@ -52,7 +53,6 @@ require (
 )
 
 require (
-	connectrpc.com/connect/v2 v2.0.0 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.24.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.15.0 // indirect
