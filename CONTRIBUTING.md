@@ -39,6 +39,7 @@ task setup     # install web deps, start Postgres
 task dev       # Postgres + Panel API (:8080) + web dev server (:5173)
 task dev:link  # link the dev VM's Wings to that Panel (a dev org and join token)
 task test      # all tests, including Postgres- and MinIO-backed ones
+task test:go SHARD=api   # one CI shard of the Go tests (api, backup, catalog, rest)
 task gen       # regenerate protobuf, sqlc, and route tree code
 task lint      # golangci-lint, buf lint, Biome
 task fmt       # format Go and web code
@@ -154,7 +155,7 @@ Since every stable release goes live, Panel migrations must work with the versio
 
 ## Pull requests
 
-`main` is protected. Every change lands through a pull request, and the CI jobs must pass (`lint`, `generated`, `test`, `build`, `security`, `e2e-runtime`, `e2e-update`, and `pr` are required; `site`, `docs`, `deploy`, and CodeQL run on every PR too). Third-party actions are pinned to a commit, and Renovate keeps the pins current; GitHub's own actions stay on tags. A bug fix comes with a test that fails without it. Merges are **squash only**, so every commit on `main` is signed by GitHub, and `main` **requires signed commits**. Sign your own commits too (GPG or SSH signing). Use [Conventional Commits](https://www.conventionalcommits.org) titles (`feat:`, `fix:`, `docs:`, …).
+`main` is protected. Every change lands through a pull request, and the CI jobs must pass (`lint`, `generated`, `test`, `build`, `security`, `e2e-runtime`, `e2e-update`, and `pr` are required; `site`, `docs`, `deploy`, and CodeQL run on every PR too). To keep a PR's checks quick, `test` and `e2e-runtime` are short jobs that pass when their parts do: the Go tests run in four shards side by side (`scripts/test-shard.sh`, `task test:go SHARD=…`), the web tests on their own (`task test:web`), and the end-to-end tests as Wings and database engines on separate runners. A `changes` job (`scripts/ci-changes.sh`) skips what a PR can't affect: the Go tests when only the web app, docs, or sites changed; the web tests when neither the web app nor the API did; the Wings end-to-end tests (`e2e-wings`, `e2e-databases`, `e2e-update`) unless Wings, eggs, shared code, the module, the installer, or the yolks changed. A skipped job counts as passing. Changes to CI, `scripts/`, `Taskfile.yml`, or `compose.yaml` run everything, and so does every push to `main`. Third-party actions are pinned to a commit, and Renovate keeps the pins current; GitHub's own actions stay on tags. A bug fix comes with a test that fails without it. Merges are **squash only**, so every commit on `main` is signed by GitHub, and `main` **requires signed commits**. Sign your own commits too (GPG or SSH signing). Use [Conventional Commits](https://www.conventionalcommits.org) titles (`feat:`, `fix:`, `docs:`, …).
 
 ## Ground rules
 

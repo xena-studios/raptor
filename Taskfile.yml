@@ -133,6 +133,24 @@ tasks:
       - pnpm --dir web typecheck
       - pnpm --dir web test
 
+  test:go:
+    desc: Run one shard of the Go tests (CI runs them side by side; scripts/test-shard.sh)
+    deps: [db:up]
+    env:
+      PANEL_TEST_DATABASE_URL: "{{.TEST_DATABASE_URL}}"
+      PANEL_TEST_S3: http://raptor:raptor-test@127.0.0.1:54322/bundles
+    requires:
+      vars: [SHARD]
+    cmds:
+      - go test -race $(scripts/test-shard.sh {{.SHARD}})
+
+  test:web:
+    desc: Typecheck and test the web app
+    deps: [web:install]
+    cmds:
+      - pnpm --dir web typecheck
+      - pnpm --dir web test
+
   fuzz:
     desc: "Run every fuzz test (FUZZTIME each, default 30s)"
     vars:

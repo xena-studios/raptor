@@ -13,6 +13,22 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # What a pull request changes, so jobs it can't affect are skipped (they
+  # still report, as skipped, which counts as passing). Pushes to main run
+  # everything.
+  changes:
+    runs-on: ubuntu-26.04
+    outputs:
+      go: ${{ steps.c.outputs.go }}
+      web: ${{ steps.c.outputs.web }}
+      wings: ${{ steps.c.outputs.wings }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: c
+        run: scripts/ci-changes.sh "${{ github.event_name }}" "${{ github.event.pull_request.base.sha }}" >> "$GITHUB_OUTPUT"
+
   lint:
     runs-on: ubuntu-26.04
     steps:
@@ -27,12 +43,42 @@ jobs:
       - uses: ./.github/actions/setup
       - run: task check:gen
 
-  test:
+  # The Go tests in four shards side by side: the slowest packages take
+  # minutes each with -race, and one runner ran them all at once.
+  test-go:
+    needs: changes
+    if: needs.changes.outputs.go == 'true'
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [api, backup, catalog, rest]
+    name: test-go (${{ matrix.shard }})
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+        with:
+          node-cache: ""
+      - run: task test:go SHARD=${{ matrix.shard }}
+
+  test-web:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
-      - run: task test
+      - run: task test:web
+
+  # The required check: passes when every part passed or was skipped.
+  test:
+    needs: [changes, test-go, test-web]
+    if: always()
+    runs-on: ubuntu-26.04
+    steps:
+      - env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: jq -e 'all(.[]; .result == "success" or .result == "skipped")' <<<"$NEEDS"
 
   build:
     runs-on: ubuntu-26.04
@@ -127,7 +173,9 @@ jobs:
 
   # The container runtime against a real Docker: networks, firewall isolation,
   # limits, hardening. Needs root, so it runs the compiled test binary with sudo.
-  e2e-runtime:
+  e2e-wings:
+    needs: changes
+    if: needs.changes.outputs.wings == 'true'
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
@@ -143,11 +191,8 @@ jobs:
           go test -c -tags e2e -o /tmp/actions-e2e ./internal/wings/actions
           go test -c -tags e2e -o /tmp/storage-e2e ./internal/wings/storage
           go test -c -tags e2e -o /tmp/backup-e2e ./internal/wings/backup
-          go test -c -tags e2e -o /tmp/databases-e2e ./internal/wings/databases
       - name: Run runtime tests
         run: sudo /tmp/docker-e2e -test.v -test.timeout 20m -test.run 'TestRuntime'
-      - name: Run database engine tests (MariaDB, MySQL, PostgreSQL)
-        run: sudo /tmp/databases-e2e -test.v -test.timeout 40m
       - name: Run server lifecycle tests
         run: sudo /tmp/server-e2e -test.v -test.timeout 20m
       - name: Run command path tests (grants, passkey signatures, schedules, backups)
@@ -158,10 +203,40 @@ jobs:
       - name: Run disk quota tests (XFS loop volume, seccomp escape check)
         run: sudo scripts/e2e-quotas.sh /tmp/storage-e2e /tmp/server-e2e
 
+  # The database engines (MariaDB, MySQL, PostgreSQL) on a runner of their
+  # own: they take longer than the rest of the end-to-end tests together.
+  e2e-databases:
+    needs: changes
+    if: needs.changes.outputs.wings == 'true'
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Install nftables
+        run: command -v nft || (sudo apt-get update && sudo apt-get install -y --no-install-recommends nftables)
+      - name: Build test binary
+        run: go test -c -tags e2e -o /tmp/databases-e2e ./internal/wings/databases
+      - name: Run database engine tests (MariaDB, MySQL, PostgreSQL)
+        run: sudo /tmp/databases-e2e -test.v -test.timeout 40m
+
+  # The required check: passes when both parts passed or were skipped.
+  e2e-runtime:
+    needs: [changes, e2e-wings, e2e-databases]
+    if: always()
+    runs-on: ubuntu-26.04
+    steps:
+      - env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: jq -e 'all(.[]; .result == "success" or .result == "skipped")' <<<"$NEEDS"
+
   # Self-update against the real systemd unit: an update, rollbacks of a
   # crashing and a hanging version, a restart during a trial, with a server
   # that must keep running throughout.
   e2e-update:
+    needs: changes
+    if: needs.changes.outputs.wings == 'true'
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
