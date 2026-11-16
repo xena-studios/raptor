@@ -1,8 +1,6 @@
 ---
 title: Plugins, mods, and the Workshop
-description: Install Minecraft plugins, mods, and datapacks from Modrinth and Hangar, Steam Workshop items, and Counter-Strike 2's plugin frameworks, from the app.
-description: Install Minecraft plugins, mods, and datapacks from Modrinth and Hangar, Steam Workshop items, and Arma Reforger mods, from the app.
-description: Install Minecraft plugins, mods, and datapacks from Modrinth and Hangar, Valheim and V Rising mods from Thunderstore, and Steam Workshop items, from the app.
+description: Install plugins and mods from Modrinth, Hangar, CurseForge, Thunderstore, and more, Steam Workshop items and Arma Reforger mods, and Counter-Strike 2's plugin frameworks, from the app.
 sidebar:
   order: 6
 ---
