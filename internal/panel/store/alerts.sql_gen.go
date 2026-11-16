@@ -516,6 +516,15 @@ func (q *Queries) DeleteAlertState(ctx context.Context, arg DeleteAlertStatePara
 	return err
 }
 
+const deletePhoneChannel = `-- name: DeletePhoneChannel :exec
+DELETE FROM alert_channels WHERE session_id = $1
+`
+
+func (q *Queries) DeletePhoneChannel(ctx context.Context, sessionID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deletePhoneChannel, sessionID)
+	return err
+}
+
 const disableAlertChannel = `-- name: DisableAlertChannel :exec
 UPDATE alert_channels SET disabled_at = now() WHERE id = $1 AND disabled_at IS NULL
 `
@@ -539,6 +548,16 @@ type DismissNotificationsParams struct {
 // Dismisses these (or, with none named, all of them).
 func (q *Queries) DismissNotifications(ctx context.Context, arg DismissNotificationsParams) error {
 	_, err := q.db.Exec(ctx, dismissNotifications, arg.UserID, arg.Ids)
+	return err
+}
+
+const dropPhoneChannel = `-- name: DropPhoneChannel :exec
+DELETE FROM alert_channels WHERE id = $1 AND type = 'phone'
+`
+
+// A phone whose push token is gone, or whose session ended.
+func (q *Queries) DropPhoneChannel(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, dropPhoneChannel, id)
 	return err
 }
 
@@ -598,7 +617,7 @@ func (q *Queries) DueAlertDeliveries(ctx context.Context, limit int32) ([]DueAle
 }
 
 const getAlertChannel = `-- name: GetAlertChannel :one
-SELECT id, org_id, type, name, config, secret, hint, failing_since, last_error, last_sent_at, disabled_at, created_by, created_at, user_id FROM alert_channels
+SELECT id, org_id, type, name, config, secret, hint, failing_since, last_error, last_sent_at, disabled_at, created_by, created_at, user_id, session_id FROM alert_channels
 WHERE id = $1 AND org_id IS NOT DISTINCT FROM $2::uuid AND user_id IS NOT DISTINCT FROM $3::uuid
 `
 
@@ -627,6 +646,7 @@ func (q *Queries) GetAlertChannel(ctx context.Context, arg GetAlertChannelParams
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UserID,
+		&i.SessionID,
 	)
 	return i, err
 }
@@ -1094,6 +1114,18 @@ func (q *Queries) OrgMembersExist(ctx context.Context, arg OrgMembersExistParams
 	return count, err
 }
 
+const phoneSessionLive = `-- name: PhoneSessionLive :one
+SELECT EXISTS (SELECT 1 FROM alert_channels c JOIN sessions s ON s.id = c.session_id
+    WHERE c.id = $1 AND s.revoked_at IS NULL AND s.expires_at > now())
+`
+
+func (q *Queries) PhoneSessionLive(ctx context.Context, id pgtype.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, phoneSessionLive, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const pruneAlertDeliveries = `-- name: PruneAlertDeliveries :exec
 DELETE FROM alert_deliveries WHERE status <> 'pending' AND created_at < now() - interval '30 days'
 `
@@ -1254,6 +1286,41 @@ func (q *Queries) UpdateAlertRule(ctx context.Context, arg UpdateAlertRuleParams
 		arg.NotifyUserIds,
 		arg.NotifyResolved,
 		arg.Enabled,
+	)
+	var id pgtype.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const upsertPhoneChannel = `-- name: UpsertPhoneChannel :one
+INSERT INTO alert_channels (user_id, type, name, config, secret, hint, created_by, session_id)
+VALUES ($1, 'phone', $2, $3, $4, $5, $1, $6)
+ON CONFLICT (session_id) DO UPDATE SET
+    config = EXCLUDED.config, secret = EXCLUDED.secret, hint = EXCLUDED.hint,
+    failing_since = NULL, last_error = ''
+RETURNING id
+`
+
+type UpsertPhoneChannelParams struct {
+	UserID    pgtype.UUID
+	Name      string
+	Config    []byte
+	Secret    []byte
+	Hint      string
+	SessionID pgtype.UUID
+}
+
+// The phone app's channel for its session: added the first time, its push
+// token replaced (and its failures forgotten) after. A new name or turning
+// it off stays.
+func (q *Queries) UpsertPhoneChannel(ctx context.Context, arg UpsertPhoneChannelParams) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, upsertPhoneChannel,
+		arg.UserID,
+		arg.Name,
+		arg.Config,
+		arg.Secret,
+		arg.Hint,
+		arg.SessionID,
 	)
 	var id pgtype.UUID
 	err := row.Scan(&id)

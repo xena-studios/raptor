@@ -66,11 +66,22 @@ service AlertService {
   // DismissNotifications clears alerts from the inbox: the ones named, or
   // all of them.
   rpc DismissNotifications(DismissNotificationsRequest) returns (DismissNotificationsResponse) {}
+
+  // RegisterPushDevice is for Raptor's phone app only: it makes the phone
+  // one of the user's own channels (type phone, named after the device),
+  // or gives that channel a new push token. The app calls it after signing
+  // in and whenever Apple or Google give it a new token.
+  rpc RegisterPushDevice(RegisterPushDeviceRequest) returns (RegisterPushDeviceResponse) {}
+
+  // UnregisterPushDevice stops push notifications to this phone (the app's
+  // own session), without signing it out.
+  rpc UnregisterPushDevice(UnregisterPushDeviceRequest) returns (UnregisterPushDeviceResponse) {}
 }
 
 message AlertChannel {
   string id = 1;
-  // email (someone's own only), discord, slack, telegram, ntfy, webhook.
+  // email (someone's own only), discord, slack, telegram, ntfy, webhook,
+  // phone (someone's own, added by Raptor's app).
   string type = 2;
   string name = 3;
   // What it sends to, without its secret: "Owners", a member's email,
@@ -316,3 +327,20 @@ message DismissNotificationsRequest {
 }
 
 message DismissNotificationsResponse {}
+
+message RegisterPushDeviceRequest {
+  // ios or android.
+  string platform = 1;
+  // The device's push token: APNs' (hex) or FCM's registration token.
+  string token = 2;
+  // An iOS development build, whose token is for Apple's sandbox.
+  bool sandbox = 3;
+}
+
+message RegisterPushDeviceResponse {
+  AlertChannel channel = 1;
+}
+
+message UnregisterPushDeviceRequest {}
+
+message UnregisterPushDeviceResponse {}

@@ -261,3 +261,25 @@ DELETE FROM alert_telegram_links WHERE expires_at < now() - interval '1 day';
 -- name: UserNames :many
 -- Users' names (or emails) for alert text.
 SELECT id, coalesce(nullif(name, ''), email)::text AS name FROM users WHERE id = ANY (sqlc.arg(ids)::uuid[]);
+
+-- name: UpsertPhoneChannel :one
+-- The phone app's channel for its session: added the first time, its push
+-- token replaced (and its failures forgotten) after. A new name or turning
+-- it off stays.
+INSERT INTO alert_channels (user_id, type, name, config, secret, hint, created_by, session_id)
+VALUES ($1, 'phone', $2, $3, $4, $5, $1, $6)
+ON CONFLICT (session_id) DO UPDATE SET
+    config = EXCLUDED.config, secret = EXCLUDED.secret, hint = EXCLUDED.hint,
+    failing_since = NULL, last_error = ''
+RETURNING id;
+
+-- name: DeletePhoneChannel :exec
+DELETE FROM alert_channels WHERE session_id = $1;
+
+-- name: DropPhoneChannel :exec
+-- A phone whose push token is gone, or whose session ended.
+DELETE FROM alert_channels WHERE id = $1 AND type = 'phone';
+
+-- name: PhoneSessionLive :one
+SELECT EXISTS (SELECT 1 FROM alert_channels c JOIN sessions s ON s.id = c.session_id
+    WHERE c.id = $1 AND s.revoked_at IS NULL AND s.expires_at > now());

@@ -87,6 +87,8 @@ type Service struct {
 	// Mail sends an email (auth.Mailer's Send); nil: email channels fail.
 	Mail     func(ctx context.Context, to string, e mail.Email) error
 	Telegram *TelegramBot
+	// Push sends to Raptor's phone app (nil: phones can't be added).
+	Push *Push
 	// AppURL is the web app, for links in alerts.
 	AppURL string
 	// Nodes and PanelKey send threshold rules to nodes.
@@ -124,7 +126,7 @@ func (s *Service) init() {
 		if s.Now == nil {
 			s.Now = time.Now
 		}
-		s.send = &sender{client: safeClient(s.AllowPrivate), mail: s.Mail, telegram: s.Telegram, now: s.Now}
+		s.send = &sender{client: safeClient(s.AllowPrivate), mail: s.Mail, telegram: s.Telegram, push: s.Push, now: s.Now}
 		s.limits = map[pgtype.UUID]*limiter{}
 		s.noticed = map[[2]pgtype.UUID]time.Time{}
 		s.syncCh = make(chan struct{}, 1)
@@ -571,6 +573,15 @@ func (s *Service) deliver(ctx context.Context, r store.DueAlertDeliveriesRow) {
 	if suppressed > 0 {
 		m.Text += fmt.Sprintf("\n\n(%d earlier alerts to this channel weren't sent: more than %d a minute.)", suppressed, perMinute)
 	}
+	if r.Type == Phone {
+		// A phone whose app session ended (signed out, or 30 days unused)
+		// isn't anyone's to notify.
+		if live, err := q.PhoneSessionLive(ctx, r.ChannelID); err == nil && !live {
+			done("dropped", "the phone was signed out", 0)
+			_ = q.DropPhoneChannel(ctx, r.ChannelID)
+			return
+		}
+	}
 	t, err := s.target(ctx, channelOwner(r.OrgID, r.UserID), r.Type, r.Config, r.Secret)
 	if err == nil {
 		sctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -595,6 +606,14 @@ func (s *Service) deliver(ctx context.Context, r store.DueAlertDeliveriesRow) {
 		return
 	}
 	done("failed", err.Error(), 1)
+	if errors.As(err, new(gone)) {
+		// Apple or Google no longer know the phone: the app was removed or
+		// signed in again with a new token. Nothing to fix or turn back on.
+		if err := q.DropPhoneChannel(ctx, r.ChannelID); err != nil {
+			s.Log.Error("alerts: removing a phone failed", "err", err)
+		}
+		return
+	}
 	s.failed(ctx, r.ChannelID, err)
 }
 
@@ -790,6 +809,59 @@ func (s *Service) Test(ctx context.Context, owner Owner, ch store.AlertChannel, 
 	}
 	_ = store.New(s.DB).AlertChannelWorked(ctx, ch.ID)
 	return nil
+}
+
+// PhoneInput is what Raptor's app registers for push.
+type PhoneInput struct {
+	User, Session pgtype.UUID
+	// Platform is ios or android; Token is the device's push token from
+	// Apple or Google, for Apple's sandbox if Sandbox.
+	Platform, Token string
+	Sandbox         bool
+	// Name is what the channel is called at first (the phone's name).
+	Name string
+}
+
+// RegisterPhone adds the phone channel for an app session, or gives it the
+// new push token.
+func (s *Service) RegisterPhone(ctx context.Context, in PhoneInput) (pgtype.UUID, error) {
+	s.init()
+	if in.Platform != IOS && in.Platform != Android {
+		return pgtype.UUID{}, invalid("the platform is ios or android")
+	}
+	if !s.Push.Offers(in.Platform) {
+		return pgtype.UUID{}, invalid("this Panel can't send push notifications to that kind of phone yet")
+	}
+	if len(in.Token) < 16 || len(in.Token) > 4096 || !pushToken.MatchString(in.Token) {
+		return pgtype.UUID{}, invalid("that isn't a push token")
+	}
+	if in.Platform == Android {
+		in.Sandbox = false
+	}
+	owner := Owner{User: in.User}
+	cfg, err := json.Marshal(config{Platform: in.Platform, Sandbox: in.Sandbox})
+	if err != nil {
+		return pgtype.UUID{}, err
+	}
+	sealed, err := s.seal(owner, secret{Token: in.Token})
+	if err != nil {
+		return pgtype.UUID{}, err
+	}
+	name := strings.TrimSpace(in.Name)
+	if name == "" {
+		name = "Phone"
+	}
+	if r := []rune(name); len(r) > 60 {
+		name = string(r[:60])
+	}
+	return store.New(s.DB).UpsertPhoneChannel(ctx, store.UpsertPhoneChannelParams{
+		UserID: in.User, Name: name, Config: cfg, Secret: sealed, Hint: name, SessionID: in.Session,
+	})
+}
+
+// UnregisterPhone removes an app session's phone channel.
+func (s *Service) UnregisterPhone(ctx context.Context, session pgtype.UUID) error {
+	return store.New(s.DB).DeletePhoneChannel(ctx, session)
 }
 
 // TelegramLink makes a Connect Telegram link for an org (org set) or for

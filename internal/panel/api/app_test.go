@@ -28,9 +28,10 @@ const (
 
 // phone is the app: no cookies, no Origin, its access token as a bearer.
 type phone struct {
-	token string
-	auth  panelv1connect.AuthServiceClient
-	staff panelv1connect.StaffServiceClient
+	token  string
+	auth   panelv1connect.AuthServiceClient
+	staff  panelv1connect.StaffServiceClient
+	alerts panelv1connect.AlertServiceClient
 }
 
 func newPhone(srv *httptest.Server) *phone {
@@ -45,6 +46,32 @@ func newPhone(srv *httptest.Server) *phone {
 	})
 	p.auth = panelv1connect.NewAuthServiceClient(srv.Client(), srv.URL+"/api", connect.WithInterceptors(bearer))
 	p.staff = panelv1connect.NewStaffServiceClient(srv.Client(), srv.URL+"/api", connect.WithInterceptors(bearer))
+	p.alerts = panelv1connect.NewAlertServiceClient(srv.Client(), srv.URL+"/api", connect.WithInterceptors(bearer))
+	return p
+}
+
+// signInPhone signs Raptor's app in as the browser's user, named device,
+// the way the app does: approved in the browser, then the code traded.
+func signInPhone(t *testing.T, srv *httptest.Server, b *browser, device string) *phone {
+	t.Helper()
+	ctx := context.Background()
+	verifier := "verifier-" + strings.Repeat("v", 50)
+	res, err := b.auth.ApproveApp(ctx, &panelv1.ApproveAppRequest{ClientId: appClient, RedirectUri: appRedirect, CodeChallenge: pkce(verifier), DeviceName: device})
+	if err != nil {
+		t.Fatal(err)
+	}
+	form := url.Values{"grant_type": {"authorization_code"}, "client_id": {appClient}, "redirect_uri": {appRedirect}, "code": {res.GetCode()}, "code_verifier": {verifier}}
+	resp, err := srv.Client().PostForm(srv.URL+auth.AppTokenPath, form)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	var tok tokens
+	if err := json.NewDecoder(resp.Body).Decode(&tok); err != nil || tok.AccessToken == "" {
+		t.Fatalf("signing the app in: %d %+v %v", resp.StatusCode, tok, err)
+	}
+	p := newPhone(srv)
+	p.token = tok.AccessToken
 	return p
 }
 

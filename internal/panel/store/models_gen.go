@@ -25,6 +25,7 @@ type AlertChannel struct {
 	CreatedBy    pgtype.UUID
 	CreatedAt    pgtype.Timestamptz
 	UserID       pgtype.UUID
+	SessionID    pgtype.UUID
 }
 
 type AlertDelivery struct {
