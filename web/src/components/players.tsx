@@ -90,6 +90,19 @@ export function Players({
     refetchOnWindowFocus: false,
   });
   const w = fromWings.data;
+  // Who's online, from the game's ping (players.online): refreshed while
+  // the tab is open.
+  const online = useTanQuery({
+    enabled: canPlayers && running,
+    queryKey: ["players.online", nodeId, serverId],
+    queryFn: () =>
+      api.run<{ running: boolean; online: number; max: number; names: string[] | null }>(
+        "players.online",
+        {},
+      ),
+    refetchInterval: 15_000,
+    retry: false,
+  });
   const lists = w
     ? {
         whitelist: w.whitelist ?? [],
@@ -116,6 +129,7 @@ export function Players({
   const refresh = () =>
     Promise.all([
       client.invalidateQueries({ queryKey: playersKey }),
+      client.invalidateQueries({ queryKey: ["players.online", nodeId, serverId] }),
       ...Object.values(listFiles).map((p) =>
         client.invalidateQueries({ queryKey: api.contentKey(p) }),
       ),
@@ -295,6 +309,58 @@ export function Players({
             ? " Changing them needs the Send console commands permission."
             : " Changing them needs the Change files permission.")}
       </p>
+      {canPlayers && running && (
+        <Section
+          title={
+            online.data?.running
+              ? `Online now: ${online.data.online} of ${online.data.max}`
+              : "Online now"
+          }
+          description={
+            online.error
+              ? `Couldn't ask the server: ${message(online.error)}`
+              : online.data?.running && (online.data.names?.length ?? 0) < online.data.online
+                ? "Minecraft only lists some names (up to 12, and servers can hide them); type list in the console for everyone."
+                : "Players on the server right now."
+          }
+          empty={online.isPending ? "Asking the server…" : "Nobody's online."}
+          rows={(online.data?.names ?? []).map((name) => {
+            const op = lists.ops.some((o) => o.name.toLowerCase() === name.toLowerCase());
+            return {
+              key: name,
+              label: name,
+              detail: op ? "operator" : "",
+              actions: (
+                <>
+                  {!op && (
+                    <RowButton
+                      icon={<Crown />}
+                      label={`Make ${name} an operator`}
+                      busy={busy === `op:${name}`}
+                      disabled={disabled}
+                      onClick={() => actions.op(name)}
+                    />
+                  )}
+                  <RowButton
+                    icon={<LogOut />}
+                    label={`Kick ${name}`}
+                    busy={busy === `kick:${name}`}
+                    disabled={disabled}
+                    onClick={() => actions.kick(name)}
+                  />
+                  <RowButton
+                    icon={<Ban />}
+                    label={`Ban ${name}`}
+                    busy={busy === `ban:${name}`}
+                    disabled={disabled}
+                    onClick={() => actions.ban(name, "")}
+                  />
+                </>
+              ),
+            };
+          })}
+        />
+      )}
       {note && <p className="text-sm text-muted-foreground">{note}</p>}
       {error && <p className="text-sm text-destructive">{error}</p>}
 

@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"io"
 	"net"
+	"reflect"
 	"testing"
 	"unicode/utf16"
 )
@@ -83,19 +84,25 @@ func fakeSource(t *testing.T, players, maxPlayers, bots byte) string {
 func TestQueryMinecraft(t *testing.T) {
 	addr := fakeMinecraft(t, `{"version":{"name":"1.21.10","protocol":773},"players":{"max":20,"online":3},"description":"hi"}`)
 	p, err := QueryPlayers(context.Background(), "minecraft", addr)
-	if err != nil || p != (Players{Online: 3, Max: 20}) {
+	if err != nil || !reflect.DeepEqual(p, Players{Online: 3, Max: 20}) {
+		t.Fatalf("players %+v, %v", p, err)
+	}
+	// The sample's names, without the text lines servers put there too.
+	addr = fakeMinecraft(t, `{"players":{"max":20,"online":40,"sample":[{"name":"Notch","id":"x"},{"name":"§7...and 39 more","id":"y"},{"name":"jeb_","id":"z"}]}}`)
+	p, err = QueryPlayers(context.Background(), "minecraft", addr)
+	if err != nil || !reflect.DeepEqual(p, Players{Online: 40, Max: 20, Names: []string{"Notch", "jeb_"}}) {
 		t.Fatalf("players %+v, %v", p, err)
 	}
 }
 
 func TestQuerySource(t *testing.T) {
 	p, err := QueryPlayers(context.Background(), "source", fakeSource(t, 7, 24, 0))
-	if err != nil || p != (Players{Online: 7, Max: 24}) {
+	if err != nil || !reflect.DeepEqual(p, Players{Online: 7, Max: 24}) {
 		t.Fatalf("players %+v, %v", p, err)
 	}
 	// Bots aren't players.
 	p, err = QueryPlayers(context.Background(), "source", fakeSource(t, 9, 32, 2))
-	if err != nil || p != (Players{Online: 7, Max: 32}) {
+	if err != nil || !reflect.DeepEqual(p, Players{Online: 7, Max: 32}) {
 		t.Fatalf("with bots: players %+v, %v", p, err)
 	}
 }
@@ -181,7 +188,7 @@ func TestQueryMinecraftLegacy(t *testing.T) {
 		"beta 1.8 to 1.3": "A Tekkit Classic server§2§20",
 	} {
 		p, err := QueryPlayers(context.Background(), "minecraft", fakeLegacyMinecraft(t, reason))
-		if err != nil || p != (Players{Online: 2, Max: 20}) {
+		if err != nil || !reflect.DeepEqual(p, Players{Online: 2, Max: 20}) {
 			t.Errorf("%s: players %+v, %v", name, p, err)
 		}
 	}

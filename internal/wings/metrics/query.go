@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,9 @@ import (
 // Players is a game's answer to a player query.
 type Players struct {
 	Online, Max int
+	// Names are some of who's online: a Minecraft server's ping lists up
+	// to 12 (servers can hide them), so it can be fewer than Online.
+	Names []string
 }
 
 // queryTimeout bounds each query: a game that doesn't answer quickly is
@@ -160,6 +164,9 @@ func queryMinecraft(ctx context.Context, addr string) (Players, error) {
 		Players *struct {
 			Online int `json:"online"`
 			Max    int `json:"max"`
+			Sample []struct {
+				Name string `json:"name"`
+			} `json:"sample"`
 		} `json:"players"`
 	}
 	if err := json.Unmarshal(body, &st); err != nil {
@@ -170,8 +177,19 @@ func queryMinecraft(ctx context.Context, addr string) (Players, error) {
 		// it's ready: no count yet, rather than 0 of 0.
 		return Players{}, errors.New("no player count in the status (the server is still starting)")
 	}
-	return Players{Online: st.Players.Online, Max: st.Players.Max}, nil
+	res := Players{Online: st.Players.Online, Max: st.Players.Max}
+	for _, s := range st.Players.Sample {
+		// Only real names: servers fill the sample with text lines too
+		// ("...and 40 more").
+		if minecraftName.MatchString(s.Name) && len(res.Names) < 100 {
+			res.Names = append(res.Names, s.Name)
+		}
+	}
+	return res, nil
 }
+
+// minecraftName is a Java player name.
+var minecraftName = regexp.MustCompile(`^[A-Za-z0-9_]{3,16}$`)
 
 func varint(v int32) []byte {
 	u := uint32(v) //nolint:gosec // two's complement, as the protocol wants

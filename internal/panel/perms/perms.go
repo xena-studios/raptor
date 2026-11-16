@@ -45,6 +45,7 @@ var actions = map[string]string{
 	// refuses other servers).
 	"players.lists":  Players,
 	"players.manage": Players,
+	"players.online": Players,
 	"server.ports":   View,
 	"server.console": ConsoleRead,
 	"server.command": ConsoleWrite,

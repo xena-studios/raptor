@@ -16,6 +16,8 @@ Give someone **Manage players** in the server's **Access** to let them whitelist
 
 ## The lists
 
+- **Online now** (while the server runs): how many are on, and their names, with buttons to make operator, kick, or ban. Minecraft's own server list shows at most 12 names, and some servers hide them, so a busy server may show fewer names than its count; `list` in the console names everyone. It needs **Manage players**.
+
 - **Whitelist:** only these players can join, when the whitelist is on. Turn it on (and **Enforce the whitelist**, to kick players taken off it) in **Game → Game settings**.
 - **Operators:** they can run every command. New operators get level 4; change the level in `ops.json` if you want less.
 - **Banned players** and **Banned addresses:** with a reason, if you give one.
