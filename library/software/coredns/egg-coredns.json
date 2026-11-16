@@ -1,0 +1,61 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from the project's own documentation; no upstream egg.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "CoreDNS",
+    "author": "support@raptorpanel.net",
+    "description": "CoreDNS is a small, flexible DNS server configured with a Corefile. The egg starts it as a caching resolver that answers only the clients you allow and forwards their queries upstream; most devices only use DNS on port 53, so give the server that port if the node allows it.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "printf '# Written by the server at every start, from the Startup settings.\\nacl {\\n    allow net %s\\n    block\\n}\\nforward . %s\\n' \"{{ALLOWED_NETS}}\" \"{{UPSTREAM_DNS}}\" > raptor-settings.conf && exec ./coredns -conf Corefile -dns.port {{SERVER_PORT}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"regex:^CoreDNS-\\\\d\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# CoreDNS: downloads CoreDNS from its GitHub releases, checked against\n# GitHub's SHA-256, and writes a starting Corefile if there's none. An\n# existing Corefile and zone files are never touched.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) echo \"CoreDNS has no build for this CPU ($(uname -m)).\"; exit 1 ;;\nesac\n\nversion=\"${VERSION:-latest}\"\n[ \"$version\" = latest ] || version=\"v${version#v}\"\n# gh-release says why when the release doesn't exist or GitHub can't be reached.\ntag=$(gh-release tag coredns/coredns \"$version\") || exit 1\n\nif [ -x coredns ] && [ \"$(cat .coredns-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"CoreDNS $tag is already installed.\"\nelse\n    echo \"Downloading CoreDNS $tag.\"\n    gh-release download coredns/coredns \"$tag\" \"coredns_${tag#v}_linux_${arch}.tgz\" \"$work/coredns.tgz\"\n    tar -xzf \"$work/coredns.tgz\" -C \"$work\"\n    install -m 0755 \"$work/coredns\" coredns.new\n    mv -f coredns.new coredns\n    echo \"$tag\" > .coredns-version\nfi\n\nif [ ! -f Corefile ]; then\n    cat > Corefile <<'COREFILE'\n# CoreDNS's configuration: https://coredns.io/manual/toc/\n# It listens on the server's port. raptor-settings.conf is written at every\n# start from the Upstream resolvers and Allowed clients settings in Startup:\n# only the clients you allow are answered (an open resolver gets abused), and\n# their queries are forwarded upstream. Changes to this file are picked up\n# within a minute, without a restart.\n. {\n    import raptor-settings.conf\n    cache 300\n    errors\n    reload\n    loop\n}\nCOREFILE\n    echo \"Wrote a starting Corefile that forwards queries to the upstream resolvers.\"\nfi\necho \"Installed CoreDNS $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The CoreDNS release to install, such as 1.15.0, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Upstream resolvers",
+            "description": "Where queries are forwarded, separated by spaces: addresses such as 1.1.1.1, or tls://1.1.1.1 for DNS over TLS.",
+            "env_variable": "UPSTREAM_DNS",
+            "default_value": "1.1.1.1 9.9.9.9",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:300|regex:/^[A-Za-z0-9.:\\/\\[\\]_ -]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Allowed clients",
+            "description": "The addresses CoreDNS answers, as CIDR ranges separated by spaces; add your own public address as 203.0.113.7/32. Everyone else is refused.",
+            "env_variable": "ALLOWED_NETS",
+            "default_value": "10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 100.64.0.0/10 127.0.0.0/8 fc00::/7",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:500|regex:/^[0-9A-Fa-f.:\\/ ]+$/",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,71 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor from the project's own documentation; no upstream egg.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Tailscale DERP",
+    "author": "support@raptorpanel.net",
+    "description": "Runs derper, Tailscale's relay server, for your tailnet's own DERP map. Use a domain on port 443 for a Let's Encrypt certificate, or an IP address on any port for a self-signed one; STUN needs a second, UDP allocation. Clients can't be verified without tailscaled, so anyone who finds it can relay their encrypted traffic through it.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "if [ \"{{CERT_MODE}}\" = letsencrypt ] && [ \"{{SERVER_PORT}}\" != 443 ]; then echo \"Let's Encrypt certificates need the server on port 443, and this one is on {{SERVER_PORT}}. Give the server port 443, or set Certificate to manual.\"; exit 1; fi; exec ./derper -c derper.json -a :{{SERVER_PORT}} -http-port -1 -stun-port {{STUN_PORT}} -hostname \"{{DERP_HOSTNAME}}\" -certmode {{CERT_MODE}} -certdir certs",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"derper: serving on\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Tailscale DERP: builds derper, Tailscale's relay server, from Tailscale's\n# source at the chosen release, with the newest Go from go.dev (checked\n# against its SHA-256). The key (derper.json) and certificates are never\n# touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nua=\"raptor-installer (+https://raptorpanel.net)\"\n# Go and its build cache live in the server's folder while building (the\n# install's /tmp is small), removed when the script ends.\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'chmod -R u+w \"$work\" 2>/dev/null; rm -rf \"$work\"' EXIT\n\ncase \"$(uname -m)\" in\n    x86_64) arch=amd64 ;;\n    aarch64) arch=arm64 ;;\n    *) fail \"derper can't be built for this CPU ($(uname -m)).\" ;;\nesac\n\n# Tailscale's releases, from Go's module proxy.\nwant=\"${VERSION:-latest}\"\nif [ \"$want\" = latest ]; then\n    tag=$(curl -fsSL -A \"$ua\" https://proxy.golang.org/tailscale.com/@latest | jq -r .Version) ||\n        fail \"Go's module proxy can't be reached right now. Reinstall to try again.\"\nelse\n    tag=\"v${want#v}\"\n    code=$(curl -sSL -A \"$ua\" -o /dev/null -w '%{http_code}' \"https://proxy.golang.org/tailscale.com/@v/$tag.info\") ||\n        fail \"Go's module proxy can't be reached right now. Reinstall to try again.\"\n    [ \"$code\" = 200 ] || fail \"Tailscale has no release $tag. Set Version to latest, or to a release such as 1.104.7, then reinstall.\"\nfi\n\nif [ -x derper ] && [ \"$(cat .derper-version 2>/dev/null)\" = \"$tag\" ]; then\n    echo \"derper $tag is already installed.\"\nelse\n    go=$(curl -fsSL -A \"$ua\" 'https://go.dev/dl/?mode=json' |\n        jq -r --arg a \"$arch\" '.[0] as $r | $r.files[] | select(.os == \"linux\" and .arch == $a and .kind == \"archive\") | \"\\($r.version) \\(.filename) \\(.sha256)\"') ||\n        fail \"go.dev can't be reached right now. Reinstall to try again.\"\n    read -r gover gofile gosum <<<\"$go\"\n    echo \"Downloading $gover to build with.\"\n    curl -fsSL -A \"$ua\" -o \"$work/$gofile\" \"https://go.dev/dl/$gofile\"\n    echo \"$gosum  $work/$gofile\" | sha256sum -c --quiet - || fail \"The Go download doesn't match its checksum. Reinstall to try again.\"\n    tar -xzf \"$work/$gofile\" -C \"$work\"\n    rm -f \"$work/$gofile\"\n    echo \"Building derper $tag.\"\n    mkdir -p \"$work/tmp\"\n    # Two build jobs, so the build fits in about 1 GiB of memory.\n    env -u GOFLAGS PATH=\"$work/go/bin:$PATH\" HOME=\"$work\" GOPATH=\"$work/gopath\" GOCACHE=\"$work/cache\" GOTMPDIR=\"$work/tmp\" \\\n        GOTOOLCHAIN=auto CGO_ENABLED=0 GOBIN=\"$work/bin\" \\\n        go install -p 2 -trimpath -ldflags=-s \"tailscale.com/cmd/derper@$tag\"\n    install -m 0755 \"$work/bin/derper\" derper.new\n    mv -f derper.new derper\n    echo \"$tag\" > .derper-version\nfi\nmkdir -p certs\necho \"Installed derper $tag.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Tailscale release derper is built from, such as 1.104.7, or latest.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Hostname",
+            "description": "The domain name that points at this server, or its public IP address.",
+            "env_variable": "DERP_HOSTNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:253|regex:/^[A-Za-z0-9.:-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Certificate",
+            "description": "letsencrypt gets a certificate for the domain (the server must be on port 443); manual uses certs/<hostname>.crt and .key, made for you when the hostname is an IP address.",
+            "env_variable": "CERT_MODE",
+            "default_value": "letsencrypt",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:letsencrypt,manual",
+            "field_type": "text"
+        },
+        {
+            "name": "STUN port",
+            "description": "The UDP port STUN answers on, which helps devices connect directly: one of the server's allocations.",
+            "env_variable": "STUN_PORT",
+            "default_value": "3478",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,65535",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,13 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/coredns/egg-coredns.json
+license: MIT
+credits:
+  - "Written for Raptor from CoreDNS's documentation, https://coredns.io (Apache-2.0); no upstream egg"
+  - "Icon: the CoreDNS logo, from https://github.com/coredns"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 2m
