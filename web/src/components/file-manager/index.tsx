@@ -29,6 +29,7 @@ import {
   type FormEvent,
   type MouseEvent,
   type ReactNode,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -75,7 +76,7 @@ import { PullDialog, PullRows, usePulls } from "./pull";
 import { SettingsMenu } from "./settings";
 import { ShortcutsDialog } from "./shortcuts";
 import { TrashView, useTrash } from "./trash";
-import { Tree } from "./tree";
+import { isFileDrag, Tree } from "./tree";
 
 type PendingUpload = {
   key: string;
@@ -151,6 +152,10 @@ export function Files({
   const imports = useImports(api);
   const [importing, setImporting] = useState(false);
   const [dragging, setDragging] = useState(false);
+  // Where dropped files would go (#440): a folder under the pointer, in the
+  // list or the tree; null for the folder that's open.
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const canDrop = canWrite && !!transfers;
   const [full, setFull] = useState(false);
   const [shortcuts, setShortcuts] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
@@ -247,9 +252,8 @@ export function Files({
   }
 
   // Uploads go one after another, each in chunks that resume.
-  function startUploads(list: FileList | File[] | null) {
+  function startUploads(list: FileList | File[] | null, dir = path) {
     if (!list || list.length === 0 || !canWrite) return;
-    const dir = path;
     const added: PendingUpload[] = [...list].map((f) => ({
       key: `${Date.now()}-${f.name}-${Math.random()}`,
       name: f.name,
@@ -271,7 +275,7 @@ export function Files({
             onProgress: (f) => update(u.key, { progress: f }),
           });
           update(u.key, { progress: 1, done: true });
-          toast.success(`Uploaded ${u.name}.`);
+          toast.success(dir === path ? `Uploaded ${u.name}.` : `Uploaded ${u.name} to /${dir}.`);
           void api.refresh();
         } catch (err) {
           if (!u.abort.signal.aborted) update(u.key, { error: message(err) });
@@ -331,11 +335,40 @@ export function Files({
       `Extracting ${e.name}. Its files appear here when it's done.`,
     );
 
-  function onDrop(ev: DragEvent) {
-    ev.preventDefault();
+  function endDrag() {
     setDragging(false);
-    startUploads(ev.dataTransfer.files);
+    setDropTarget(null);
   }
+
+  // dropInto uploads files into a folder: the one under the pointer, or
+  // the one that's open.
+  function dropInto(dir: string, files: FileList) {
+    endDrag();
+    startUploads(files, dir);
+  }
+
+  function onDrop(ev: DragEvent) {
+    if (!isFileDrag(ev)) return;
+    ev.preventDefault();
+    dropInto(dropTarget ?? path, ev.dataTransfer.files);
+  }
+
+  // Dragging out of the window, or cancelling, leaves no target behind.
+  useEffect(() => {
+    const reset = () => {
+      setDragging(false);
+      setDropTarget(null);
+    };
+    const leave = (ev: globalThis.DragEvent) => {
+      if (ev.relatedTarget === null) reset();
+    };
+    window.addEventListener("dragleave", leave);
+    window.addEventListener("drop", reset);
+    return () => {
+      window.removeEventListener("dragleave", leave);
+      window.removeEventListener("drop", reset);
+    };
+  }, []);
 
   const allSelected = entries.length > 0 && entries.every((e) => selected.has(e.name));
 
@@ -567,7 +600,24 @@ export function Files({
                 <PanelLeftClose />
               </Button>
             </div>
-            <div className="min-h-0 flex-1 overflow-auto px-1.5 pb-2">
+            <div
+              className="min-h-0 flex-1 overflow-auto px-1.5 pb-2"
+              // Between the tree's folders: the folder that's open, rather
+              // than the browser opening the file and leaving the page.
+              {...(canDrop && {
+                onDragOver: (ev: DragEvent) => {
+                  if (!isFileDrag(ev)) return;
+                  ev.preventDefault();
+                  setDragging(true);
+                  setDropTarget(null);
+                },
+                onDrop: (ev: DragEvent) => {
+                  if (!isFileDrag(ev)) return;
+                  ev.preventDefault();
+                  dropInto(path, ev.dataTransfer.files);
+                },
+              })}
+            >
               <ContextMenu onOpenChange={setMenuOpen}>
                 <ContextMenuTrigger
                   render={<div />}
@@ -581,6 +631,14 @@ export function Files({
                     api={api}
                     current={path}
                     openFile={file}
+                    {...(canDrop && {
+                      dropTarget: dragging ? dropTarget : undefined,
+                      onDragTarget: (p: string) => {
+                        setDragging(true);
+                        setDropTarget(p);
+                      },
+                      onDropFiles: dropInto,
+                    })}
                     menuFor={menuOpen ? menuFor : undefined}
                     onFolder={(p) => go({ path: p })}
                     onFile={(p, e) => openEntry(parent(p), e)}
@@ -641,12 +699,14 @@ export function Files({
         <main
           className="relative flex min-w-0 flex-1 flex-col"
           onDragOver={(e) => {
-            if (!canWrite || file || !transfers) return;
+            if (!canDrop || file || !isFileDrag(e)) return;
             e.preventDefault();
             setDragging(true);
+            // Not over a folder row (those stop the event): the open folder.
+            setDropTarget(null);
           }}
           onDragLeave={(e) => {
-            if (e.currentTarget === e.target) setDragging(false);
+            if (e.currentTarget === e.target) endDrag();
           }}
           onDrop={onDrop}
         >
@@ -810,7 +870,28 @@ export function Files({
                               e.denied ? "opacity-50" : "hover:bg-muted/50",
                               selected.has(e.name) && "bg-muted",
                               outlined(e.name) && "outline-2 -outline-offset-2 outline-primary/60",
+                              dragging &&
+                                dropTarget === join(path, e.name) &&
+                                "bg-primary/10 outline-2 -outline-offset-2 outline-primary",
                             )}
+                            {...(canDrop &&
+                              kind(e) === "dir" &&
+                              !e.denied && {
+                                // A folder row takes files dropped on it (#440).
+                                onDragOver: (ev: DragEvent) => {
+                                  if (!isFileDrag(ev)) return;
+                                  ev.preventDefault();
+                                  ev.stopPropagation();
+                                  setDragging(true);
+                                  setDropTarget(join(path, e.name));
+                                },
+                                onDrop: (ev: DragEvent) => {
+                                  if (!isFileDrag(ev)) return;
+                                  ev.preventDefault();
+                                  ev.stopPropagation();
+                                  dropInto(join(path, e.name), ev.dataTransfer.files);
+                                },
+                              })}
                             onClick={(ev) => rowClick(e, ev)}
                             onDoubleClick={() => !settings.singleClick && openEntry(path, e)}
                             onContextMenu={() => rowMenu(e)}
@@ -886,8 +967,12 @@ export function Files({
                 </ContextMenuContent>
               </ContextMenu>
               {dragging && (
-                <div className="pointer-events-none absolute inset-2 flex items-center justify-center rounded-lg border-2 border-dashed border-primary bg-background/80 text-sm font-medium">
-                  Drop to upload to /{path}
+                // A frame and a label, not a cover: the folder row under the
+                // pointer stays visible, highlighted.
+                <div className="pointer-events-none absolute inset-2 flex items-end justify-center rounded-lg border-2 border-dashed border-primary pb-4">
+                  <span className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow">
+                    Drop to upload to /{dropTarget ?? path}
+                  </span>
                 </div>
               )}
             </>

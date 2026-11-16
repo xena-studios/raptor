@@ -1,6 +1,6 @@
 import { cn } from "cn";
 import { ChevronDown, ChevronRight, Folder, FolderOpen, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { type DragEvent, useRef, useState } from "react";
 
 import { join, parent } from "@/lib/files";
 import { type Entry, kind, sorted, type useFilesApi, useListing } from "./data";
@@ -12,6 +12,22 @@ type Api = ReturnType<typeof useFilesApi>;
 // Right-clicks in the tree: what the menu is about, and what it's open for
 // now (that row is outlined).
 type Menu = { menuFor?: MenuTarget; onMenu: (t: MenuTarget) => void };
+
+// Files dragged in from the computer (#440): the folder they'd go into
+// (highlighted), and what to do with them. Unset: no dropping here.
+export type Drop = {
+  dropTarget?: string | null;
+  onDragTarget?: (path: string) => void;
+  onDropFiles?: (dir: string, files: FileList) => void;
+};
+
+// isFileDrag: files from the computer, not text or a link.
+export function isFileDrag(ev: DragEvent): boolean {
+  return [...ev.dataTransfer.types].includes("Files");
+}
+
+// How long a closed folder must be hovered while dragging to open.
+const openAfterMs = 700;
 
 const outline = "outline-2 -outline-offset-2 outline-primary/60";
 
@@ -32,6 +48,9 @@ export function Tree({
   onFile,
   menuFor,
   onMenu,
+  dropTarget,
+  onDragTarget,
+  onDropFiles,
 }: {
   api: Api;
   rootName?: string;
@@ -39,7 +58,8 @@ export function Tree({
   openFile?: string;
   onFolder: (path: string) => void;
   onFile: (path: string, e: Entry) => void;
-} & Menu) {
+} & Menu &
+  Drop) {
   return (
     <ul className="py-1 text-sm">
       <Node
@@ -53,6 +73,9 @@ export function Tree({
         onFile={onFile}
         menuFor={menuFor}
         onMenu={onMenu}
+        dropTarget={dropTarget}
+        onDragTarget={onDragTarget}
+        onDropFiles={onDropFiles}
       />
     </ul>
   );
@@ -74,6 +97,9 @@ function Node({
   menuFor,
   onMenu,
   entry,
+  dropTarget,
+  onDragTarget,
+  onDropFiles,
 }: {
   api: Api;
   name: string;
@@ -85,7 +111,8 @@ function Node({
   onFile: (path: string, e: Entry) => void;
   // The folder's own entry in its parent (none for the root).
   entry?: Entry;
-} & Menu) {
+} & Menu &
+  Drop) {
   // Open if the user opened it, or it's on the way to where they are.
   const [toggled, setToggled] = useState<boolean>();
   const open = toggled ?? onTheWay(path, current);
@@ -95,6 +122,34 @@ function Node({
   // Right-clicking the folder is about it (the root: the server's files).
   const folderMenu = () =>
     onMenu(entry ? { dir: parent(path), items: [entry] } : { dir: "", items: null });
+  // Dragging files over a closed folder opens it after a moment, to drop
+  // deeper.
+  const opening = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const drop = onDropFiles
+    ? {
+        onDragOver: (ev: DragEvent) => {
+          if (!isFileDrag(ev)) return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          onDragTarget?.(path);
+          if (!open && !opening.current) {
+            opening.current = setTimeout(() => setToggled(true), openAfterMs);
+          }
+        },
+        onDragLeave: () => {
+          clearTimeout(opening.current);
+          opening.current = undefined;
+        },
+        onDrop: (ev: DragEvent) => {
+          if (!isFileDrag(ev)) return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          clearTimeout(opening.current);
+          opening.current = undefined;
+          onDropFiles(path, ev.dataTransfer.files);
+        },
+      }
+    : {};
 
   return (
     <li>
@@ -104,8 +159,10 @@ function Node({
           active && "bg-muted font-medium",
           entry && isFor(menuFor, parent(path), entry.name) && outline,
           !entry && menuFor?.from === "tree" && menuFor.items === null && outline,
+          dropTarget === path && "bg-primary/10 outline-2 -outline-offset-2 outline-primary",
         )}
         style={pad}
+        {...drop}
       >
         <button
           type="button"
@@ -165,6 +222,9 @@ function Node({
                   menuFor={menuFor}
                   onMenu={onMenu}
                   entry={e}
+                  dropTarget={dropTarget}
+                  onDragTarget={onDragTarget}
+                  onDropFiles={onDropFiles}
                 />
               );
             }
