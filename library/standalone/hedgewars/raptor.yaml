@@ -1,0 +1,16 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/hedgewars/egg-hedgewars.json
+license: MIT
+credits:
+  - "Written for Raptor from Hedgewars' server (https://hedgewars.org, GPL-2.0), with Debian's hedgewars package"
+  - "Icon: Hedgewars' icon, from Debian's hedgewars package (GPL-2.0)"
+certified: true
+arch: [amd64, arm64]
+# Needs /etc/protocols in the Debian image (netbase, #400): the server looks
+# up "tcp" at start. No backup hooks: it keeps no saved state; rooms last
+# while players are in them.
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 3m

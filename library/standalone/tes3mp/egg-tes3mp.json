@@ -1,0 +1,81 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "TES3MP",
+    "author": "support@raptorpanel.net",
+    "description": "Morrowind multiplayer: players with Morrowind and the TES3MP client explore Vvardenfell together. The server needs no game files, and runs on ARM through Box64.",
+    "features": [],
+    "docker_images": {
+        "Box64": "ghcr.io/xena-studios/yolks:box64@sha256:a8f7c0aab43e795694a44fdc2fbd3f38f1d7915739f8792bfd51889a6bf75e96"
+    },
+    "file_denylist": [],
+    "startup": "export LD_LIBRARY_PATH=./lib BOX64_LD_LIBRARY_PATH=./lib; if command -v box64 >/dev/null; then BOX64_LOG=0 exec box64 ./tes3mp-server.x86_64; else exec ./tes3mp-server.x86_64; fi",
+    "config": {
+        "files": "{\"tes3mp-server-default.cfg\": {\"parser\": \"ini\", \"find\": {\"General.port\": \"{{server.build.default.port}}\", \"General.localAddress\": \"0.0.0.0\", \"General.hostname\": \"{{server.build.env.SERVER_NAME}}\", \"General.maximumPlayers\": \"{{server.build.env.MAX_PLAYERS}}\", \"General.password\": \"{{server.build.env.SERVER_PASSWORD}}\", \"MasterServer.enabled\": \"{{server.build.env.PUBLIC}}\"}}}",
+        "startup": "{\"done\": \"Called \\\"OnServerPostInit\\\"\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# TES3MP. Downloads the chosen TES3MP release's Linux server from its GitHub\n# releases, with LuaJIT (which it needs and doesn't bring) from Debian.\n# The server needs no Morrowind files. Your settings\n# (tes3mp-server-default.cfg) and the world, players and cells in\n# server/data are never touched; the server's scripts in server/scripts are\n# replaced only when the version changes, after a copy of yours is kept.\nset -euo pipefail\ncd /mnt/server\nrepo=TES3MP/TES3MP\nua=\"raptor-installer (+https://raptorpanel.net)\"\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\nrm -rf \"$build\" && mkdir -p \"$build/root\"\ntrap 'rm -rf \"$build\"' EXIT\n\n# Debian 13's packages, checked against Debian's signed package list.\ndebian_index() { # <cpu>: Debian's list of packages for that CPU (amd64, arm64)\n    local f=\"main/binary-$1/Packages.xz\" sum\n    curl -fsSL --retry 3 -o \"$build/InRelease\" https://deb.debian.org/debian/dists/trixie/InRelease ||\n        fail \"Debian's archive can't be reached right now. Reinstall to try again.\"\n    gpgv --keyring /usr/share/keyrings/debian-archive-keyring.gpg --output \"$build/Release\" \"$build/InRelease\" 2>/dev/null ||\n        fail \"Debian's package list isn't signed by Debian. Reinstall to try again.\"\n    sum=$(awk -v f=\"$f\" 'length($1) == 64 && $3 == f { print $1 }' \"$build/Release\")\n    curl -fsSL --retry 3 -o \"$build/Packages.xz\" \"https://deb.debian.org/debian/dists/trixie/$f\" ||\n        fail \"Debian's archive can't be reached right now. Reinstall to try again.\"\n    [ -n \"$sum\" ] && [ \"$(sha256sum \"$build/Packages.xz\" | cut -d' ' -f1)\" = \"$sum\" ] ||\n        fail \"Debian's package list didn't match its checksum. Reinstall to try again.\"\n    xz -d \"$build/Packages.xz\"\n}\ndebian_version() { # <package>: its version in the list\n    awk -v p=\"$1\" '/^Package: / { n = $2 } n == p && /^Version: / { print $2; exit }' \"$build/Packages\"\n}\ndebian_unpack() { # <package>...: downloads each, checks it, and unpacks it into $build/root\n    local p file sum\n    for p in \"$@\"; do\n        read -r file sum < <(awk -v p=\"$p\" '/^Package: / { n = $2 } n == p && /^Filename: / { f = $2 } n == p && /^SHA256: / { s = $2 }\n            /^$/ { if (n == p && f != \"\") { print f, s; exit } n = \"\" }' \"$build/Packages\") || true\n        [ -n \"${file:-}\" ] || fail \"Debian has no package $p for this CPU.\"\n        curl -fsSL --retry 3 -o \"$build/$p.deb\" \"https://deb.debian.org/debian/$file\" ||\n            fail \"The download of $p from Debian failed. Reinstall to try again.\"\n        [ \"$(sha256sum \"$build/$p.deb\" | cut -d' ' -f1)\" = \"$sum\" ] || fail \"$p from Debian didn't match its checksum. Reinstall to try again.\"\n        dpkg-deb -x \"$build/$p.deb\" \"$build/root\"\n    done\n}\n\nwant=\"${VERSION:-latest}\"\nif [ \"$want\" = latest ]; then\n    # The newest release with a server (later tags are client-only builds).\n    tags=$(curl -fsS --retry 3 -A \"$ua\" \"https://github.com/$repo/releases\" | grep -oE \"/$repo/releases/tag/tes3mp-[0-9.]+\\\"\" | sed 's|.*/tag/||; s|\"||' | sort -urV) ||\n        fail \"GitHub can't be reached right now. Reinstall to try again.\"\nelse\n    tags=\"tes3mp-${want#tes3mp-}\"\nfi\ntag= asset=\nfor t in $tags; do\n    a=$(gh-release assets \"$repo\" \"$t\" 2>/dev/null | awk '$1 ~ /^tes3mp-server-GNU\\+Linux-x86_64-release-.*\\.tar\\.gz$/ { print $1; exit }') || true\n    if [ -n \"$a\" ]; then tag=$t asset=$a; break; fi\ndone\n[ -n \"$tag\" ] || fail \"TES3MP has no release $want with a Linux server. Set Version to latest, or to a release such as 0.8.1.\"\nversion=${tag#tes3mp-}\n\ndebian_index amd64\nlj=$(debian_version libluajit-5.1-2)\nif [ -x tes3mp-server.x86_64 ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$version $lj\" ]; then\n    echo \"TES3MP $version is already installed.\"\nelse\n    echo \"Downloading the TES3MP $version server\"\n    gh-release download \"$repo\" \"$tag\" \"$asset\" \"$build/server.tar.gz\" || fail \"The download failed. Reinstall to try again.\"\n    tar --warning=no-alone-zero-block -xzf \"$build/server.tar.gz\" -C \"$build\" || fail \"The download was damaged. Reinstall to try again.\"\n    new=\"$build/TES3MP-server\"\n    [ -f \"$new/tes3mp-server.x86_64\" ] || fail \"TES3MP $version's download has no server in it. Choose another version.\"\n    echo \"Downloading LuaJIT $lj from Debian\"\n    debian_unpack libluajit-5.1-2\n    cp -a \"$build\"/root/usr/lib/x86_64-linux-gnu/libluajit-5.1.so.2* \"$new/lib/\"\n\n    old=$(cut -d' ' -f1 .raptor-version 2>/dev/null) || true\n    if [ -d server/scripts ] && [ \"$old\" != \"$version\" ]; then\n        keep=\"server/scripts-${old:-old}-$(date +%Y%m%d%H%M%S)\"\n        mv server/scripts \"$keep\"\n        rm -rf server/lib\n        echo \"Your scripts from TES3MP ${old:-an earlier version} are kept in $keep: copy your changes to config.lua and customScripts.lua over.\"\n    fi\n    mkdir -p server\n    for d in scripts lib; do [ -d \"server/$d\" ] || cp -a \"$new/server/$d\" \"server/$d\"; done\n    [ -d server/data ] || cp -a \"$new/server/data\" server/data\n    cp -n \"$new\"/server/*.md \"$new/server/LICENSE\" server/ 2>/dev/null || true\n    [ -f tes3mp-server-default.cfg ] || cp \"$new/tes3mp-server-default.cfg\" .\n    rm -rf lib resources\n    mv \"$new/lib\" lib\n    mv \"$new/resources\" resources\n    cp -f \"$new\"/{tes3mp-server.x86_64,defaults.bin,LICENSE,AUTHORS.md,tes3mp-credits.md,tes3mp-package-info.txt} .\n    echo \"$version $lj\" > .raptor-version\nfi\necho \"Installed TES3MP $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The TES3MP release, such as 0.8.1, or latest for the newest. Players need the same version. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|[0-9][0-9.]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server browser.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A TES3MP server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:60",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can join at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "64",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:256",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The password players join with. Empty, anyone can join.",
+            "env_variable": "SERVER_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:60",
+            "field_type": "text"
+        },
+        {
+            "name": "Public",
+            "description": "true lists the server in the in-game server browser, false keeps it off the list.",
+            "env_variable": "PUBLIC",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        }
+    ]
+}

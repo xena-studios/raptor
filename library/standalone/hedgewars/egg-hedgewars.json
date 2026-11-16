@@ -1,0 +1,30 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "Hedgewars",
+    "author": "support@raptorpanel.net",
+    "description": "The turn-based artillery game with hedgehogs. Runs a Hedgewars lobby server: players add its address in the game's network menu, then make rooms and play together.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:acaff2a4019b6c7501dd3923b87e75c9c963d53fe82bb2bb4d2273e0565c7467"
+    },
+    "file_denylist": [],
+    "startup": "export LD_LIBRARY_PATH=./lib; exec ./hedgewars-server --port={{SERVER_PORT}} --dedicated=True",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Listening on port\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Hedgewars. Installs Hedgewars' lobby server (hedgewars-server) from Debian\n# 13's hedgewars package (Hedgewars publishes only its source), checked\n# against Debian's signed package list, for this node's CPU. Only the\n# server is kept, not the game.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\nbuild=/mnt/server/.raptor-build\nrm -rf \"$build\" && mkdir -p \"$build/root\"\ntrap 'rm -rf \"$build\"' EXIT\n\n# Debian 13's packages, checked against Debian's signed package list.\ndebian_index() { # <cpu>: Debian's list of packages for that CPU (amd64, arm64)\n    local f=\"main/binary-$1/Packages.xz\" sum\n    curl -fsSL --retry 3 -o \"$build/InRelease\" https://deb.debian.org/debian/dists/trixie/InRelease ||\n        fail \"Debian's archive can't be reached right now. Reinstall to try again.\"\n    gpgv --keyring /usr/share/keyrings/debian-archive-keyring.gpg --output \"$build/Release\" \"$build/InRelease\" 2>/dev/null ||\n        fail \"Debian's package list isn't signed by Debian. Reinstall to try again.\"\n    sum=$(awk -v f=\"$f\" 'length($1) == 64 && $3 == f { print $1 }' \"$build/Release\")\n    curl -fsSL --retry 3 -o \"$build/Packages.xz\" \"https://deb.debian.org/debian/dists/trixie/$f\" ||\n        fail \"Debian's archive can't be reached right now. Reinstall to try again.\"\n    [ -n \"$sum\" ] && [ \"$(sha256sum \"$build/Packages.xz\" | cut -d' ' -f1)\" = \"$sum\" ] ||\n        fail \"Debian's package list didn't match its checksum. Reinstall to try again.\"\n    xz -d \"$build/Packages.xz\"\n}\ndebian_version() { # <package>: its version in the list\n    awk -v p=\"$1\" '/^Package: / { n = $2 } n == p && /^Version: / { print $2; exit }' \"$build/Packages\"\n}\ndebian_unpack() { # <package>...: downloads each, checks it, and unpacks it into $build/root\n    local p file sum\n    for p in \"$@\"; do\n        read -r file sum < <(awk -v p=\"$p\" '/^Package: / { n = $2 } n == p && /^Filename: / { f = $2 } n == p && /^SHA256: / { s = $2 }\n            /^$/ { if (n == p && f != \"\") { print f, s; exit } n = \"\" }' \"$build/Packages\") || true\n        [ -n \"${file:-}\" ] || fail \"Debian has no package $p for this CPU.\"\n        curl -fsSL --retry 3 -o \"$build/$p.deb\" \"https://deb.debian.org/debian/$file\" ||\n            fail \"The download of $p from Debian failed. Reinstall to try again.\"\n        [ \"$(sha256sum \"$build/$p.deb\" | cut -d' ' -f1)\" = \"$sum\" ] || fail \"$p from Debian didn't match its checksum. Reinstall to try again.\"\n        dpkg-deb -x \"$build/$p.deb\" \"$build/root\"\n    done\n}\n\ncpu=$(dpkg --print-architecture)\ndebian_index \"$cpu\"\nversion=\"$(debian_version hedgewars) $(debian_version libnuma1)\"\nv=${version%%-*}\nif [ -x hedgewars-server ] && [ \"$(cat .raptor-version 2>/dev/null)\" = \"$version\" ]; then\n    echo \"The Hedgewars $v server is already installed.\"\nelse\n    echo \"Downloading Hedgewars $v from Debian\"\n    debian_unpack hedgewars libnuma1\n    r=\"$build/root\"\n    mkdir -p lib\n    cp -a \"$r\"/usr/lib/*-linux-gnu/libnuma.so.1* lib/\n    mv -f \"$r/usr/lib/hedgewars/bin/hedgewars-server\" hedgewars-server\n    echo \"$version\" > .raptor-version\nfi\necho \"Installed the Hedgewars $v server.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:4c3ce4e2ae74b633f162b8692b0e804a5db1d69487d09435db5f908c0c53d6ab",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": []
+}

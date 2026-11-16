@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/tes3mp/egg-tes3mp.json
+license: MIT
+credits:
+  - "Written for Raptor from TES3MP's own server package (https://github.com/TES3MP/TES3MP, GPL-3.0)"
+  - "Icon: TES3MP's avatar, from https://github.com/TES3MP"
+certified: true
+# x86 only; ARM nodes run it through Box64 (the Box64 image).
+arch: [amd64, arm64]
+# No backup hooks: the server writes players, cells and the world to
+# server/data as they change, and has no save command.
+test:
+  tier: fast
+  memory_mib: 256
+  variables:
+    PUBLIC: "false"
+  done_timeout: 3m

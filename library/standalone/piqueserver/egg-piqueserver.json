@@ -1,0 +1,102 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "piqueserver",
+    "author": "support@raptorpanel.net",
+    "description": "A server for Ace of Spades 0.75, the voxel shooter, for OpenSpades and BetterSpades players. Runs capture the flag or territory control with piqueserver's scripts, on maps of your own or generated ones.",
+    "features": [],
+    "docker_images": {
+        "Python 3.12": "ghcr.io/xena-studios/yolks:python_3.12@sha256:7cebda1186da0e0830d7947537d488e8d0f039249a70391c907ceac92fb0ce76",
+        "Python 3.11": "ghcr.io/xena-studios/yolks:python_3.11@sha256:a199c5f18a7ef25e50f59300d8c2ddb302697e63c085b54e4200af5b9b6ee2ab"
+    },
+    "file_denylist": [],
+    "startup": "v=\"$(cat .piqueserver-version) $(python3 --version)\"; if [ \"$v\" != \"$(cat .venv/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing piqueserver $(cat .piqueserver-version)\"; { python3 -m venv --clear .venv && .venv/bin/pip install -q --no-cache-dir --disable-pip-version-check \"piqueserver==$(cat .piqueserver-version)\" && echo \"$v\" > .venv/.raptor-installed; } || exit 1; fi; [ -f config/config.toml ] || .venv/bin/piqueserver --copy-config -d config || exit 1; m=false; [ \"{{PUBLIC}}\" = 1 ] && m=true; u=false; [ \"{{UPDATE_CHECK}}\" = 1 ] && u=true; pw=; [ -z \"{{ADMIN_PASSWORD}}\" ] || pw=\", \\\"passwords\\\": {\\\"admin\\\": [\\\"{{ADMIN_PASSWORD}}\\\"]}\"; exec .venv/bin/piqueserver -d config -j \"{\\\"port\\\": {{SERVER_PORT}}, \\\"name\\\": \\\"{{SERVER_NAME}}\\\", \\\"max_players\\\": {{MAX_PLAYERS}}, \\\"game_mode\\\": \\\"{{GAME_MODE}}\\\", \\\"master\\\": $m, \\\"release_notifications\\\": $u$pw}\"",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Map loaded successfully\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# piqueserver: checks the chosen version on PyPI. piqueserver itself is\n# installed when the server starts, into its own Python environment\n# (.venv), for the Python version it runs. Your settings, maps and scripts\n# in config/ are never touched.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\n\nwant=\"${VERSION:-latest}\"\nif [ \"$want\" = latest ]; then\n    url=https://pypi.org/pypi/piqueserver/json\nelse\n    url=\"https://pypi.org/pypi/piqueserver/$want/json\"\nfi\ncode=$(curl -sSL -o \"$work/pq.json\" -w '%{http_code}' \"$url\") || fail \"PyPI can't be reached right now. Reinstall to try again.\"\n[ \"$code\" = 404 ] && fail \"piqueserver has no version $want. Set Version to latest, or to a release such as 1.4.2.\"\n[ \"$code\" = 200 ] || fail \"PyPI can't be reached right now (HTTP $code). Reinstall to try again.\"\nversion=$(jq -r .info.version \"$work/pq.json\")\necho \"$version\" > .piqueserver-version\necho \"Installed piqueserver $version. It's set up when the server starts.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The piqueserver release, such as 1.4.2, or latest for the newest. Reinstall the server after changing it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|[0-9][0-9A-Za-z.]*)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name players see in the server list.",
+            "env_variable": "SERVER_NAME",
+            "default_value": "A piqueserver server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:60|regex:/^[^\"\\\\]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "How many players can join at once.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "32",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Game mode",
+            "description": "ctf (capture the flag), tc (territory control), or a game mode of your own in config/game_modes, without .py.",
+            "env_variable": "GAME_MODE",
+            "default_value": "ctf",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:60|regex:/^[A-Za-z0-9_.]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The password for /login in the game, which gives a player the admin commands. Empty, nobody can log in as admin.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:60|regex:/^[^\"\\\\]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Public",
+            "description": "List the server on the public server list.",
+            "env_variable": "PUBLIC",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Check for updates",
+            "description": "Ask GitHub for a newer piqueserver at start and tell players with admin rights about it.",
+            "env_variable": "UPDATE_CHECK",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}

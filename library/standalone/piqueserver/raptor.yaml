@@ -1,0 +1,21 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/piqueserver/egg-piqueserver.json
+license: MIT
+credits:
+  - "Written for Raptor from piqueserver's docs (https://github.com/piqueserver/piqueserver, GPL-3.0)"
+  - "Icon: piqueserver's avatar, from https://github.com/piqueserver"
+certified: true
+# pyenet, which piqueserver needs, has no ARM build and the Python images
+# have no compiler to build one.
+arch: [amd64]
+# No backup hooks: maps aren't saved unless the savemap script is on, and
+# it saves at shutdown.
+test:
+  tier: fast
+  memory_mib: 512
+  variables:
+    PUBLIC: "0"
+  done_timeout: 5m
+  command: "help"
+  expect: "Game mode: ctf"

@@ -1,0 +1,20 @@
+source:
+  repo: xena-studios/raptor
+  path: library/standalone/armagetron-advanced/egg-armagetron-advanced.json
+license: MIT
+credits:
+  - "Written for Raptor from Armagetron Advanced's docs (https://www.armagetronad.org, GPL-2.0), with Debian's armagetronad-dedicated package"
+  - "Icon: Armagetron Advanced's icon, from https://gitlab.com/armagetronad/armagetronad (GPL-2.0)"
+certified: true
+arch: [amd64, arm64]
+# No backup hooks: there's no world to save; scores and the ladder in var/
+# are written as they change. No players query: Armagetron answers its own
+# protocol, not A2S or Minecraft status.
+test:
+  tier: fast
+  memory_mib: 256
+  variables:
+    PUBLIC: "0"
+  done_timeout: 3m
+  command: "PLAYERS"
+  expect: "Listed 0 players"
