@@ -298,7 +298,7 @@ x-raptor:
 
 ## Server icon and MOTD
 
-Minecraft Java servers (an egg whose `players.query` is `minecraft`) that have a `server.properties` get **In the server list** on Settings (#425, `web/src/components/server-list-look.tsx`): the icon and MOTD players see, previewed as the client draws them. The icon is any image, cropped square and drawn to a 64×64 PNG in the browser, written as `server-icon.png` (or removed); the MOTD has colour and style buttons that insert § codes, and is written to `server.properties` the way Minecraft writes it (non-ASCII as `\uXXXX`, the line rewritten in place, `web/src/lib/minecraft-text.ts`). Both go through `files.write` (and `files.delete`), so they need that permission. Proxies (no `server.properties`) don't get it; their MOTD is in their own config. It moves to the Game tab with the settings form (#424, #436).
+Minecraft Java servers (an egg whose `players.query` is `minecraft`) that have a `server.properties` get **In the server list** on the Game tab (#425, `web/src/components/server-list-look.tsx`): the icon and MOTD players see, previewed as the client draws them. The icon is any image, cropped square and drawn to a 64×64 PNG in the browser, written as `server-icon.png` (or removed); the MOTD has colour and style buttons that insert § codes, and is written to `server.properties` the way Minecraft writes it (non-ASCII as `\uXXXX`, the line rewritten in place, `web/src/lib/minecraft-text.ts`). Both go through `files.write` (and `files.delete`), so they need that permission. Proxies (no `server.properties`) don't get it; their MOTD is in their own config. It's on the Game tab with the settings form (#424).
 
 ## Web dashboards
 
