@@ -1,0 +1,72 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "The Lounge",
+    "author": "support@raptorpanel.net",
+    "description": "The Lounge is a web IRC client that stays connected while you're away, keeping your channels and history. The egg runs it in private mode: people sign in with an account.",
+    "features": [],
+    "docker_images": {
+        "Node.js 24": "ghcr.io/xena-studios/yolks:nodejs_24@sha256:d0378084b323d05e146b21d85cd8243b660ecf9dc17ccf967d09ec0347896307",
+        "Node.js 22": "ghcr.io/xena-studios/yolks:nodejs_22@sha256:78b7b07924320324d3181eb51d83df41d42774d988e1e084b246dcb0e4c58405"
+    },
+    "file_denylist": [],
+    "startup": "h=$( (node --version; cat app/package.json) | sha256sum | cut -d\" \" -f1); if [ \"$h\" != \"$(cat app/node_modules/.raptor-installed 2>/dev/null)\" ]; then echo \"Installing The Lounge\"; (cd app && npm install --omit=dev --no-audit --no-fund --no-update-notifier --no-progress --loglevel=error) && npm cache clean --force --no-update-notifier --loglevel=error && echo \"$h\" > app/node_modules/.raptor-installed || exit 1; fi; export THELOUNGE_HOME=/home/container/data; lounge=app/node_modules/thelounge; grep -q RAPTOR_UPDATE_CHECK $lounge/dist/server/server.js || sed -i 's|changelog_1.default.checkForUpdates(manager);|if (process.env.RAPTOR_UPDATE_CHECK === \"1\") changelog_1.default.checkForUpdates(manager);|' $lounge/dist/server/server.js; export RAPTOR_UPDATE_CHECK=\"${UPDATE_CHECK}\"; if [ -n \"${LOUNGE_PASSWORD:-}\" ] && [ ! -f \"data/users/${LOUNGE_USER}.json\" ]; then mkdir -p data/users && node $lounge/index.js add \"${LOUNGE_USER}\" --password \"${LOUNGE_PASSWORD}\" --save-logs || exit 1; fi; exec node $lounge/index.js start -c host=0.0.0.0 -c port={{SERVER_PORT}} -c public=false",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Available at\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# The Lounge: picks the version from npm's registry and writes it to\n# app/package.json; the server installs it (and its dependencies, for the\n# Node.js version it runs) when it next starts. Users, settings and logs\n# (data/) are never touched.\nset -euo pipefail\ncd /mnt/server\nfail() { echo \"$1\"; exit 1; }\npkg=thelounge\n\nmeta=$(curl -fsSL --retry 3 -A \"raptor-installer (+https://raptorpanel.net)\" -H \"Accept: application/vnd.npm.install-v1+json\" \"https://registry.npmjs.org/$pkg\") ||\n    fail \"npm's registry can't be reached right now. Reinstall to try again.\"\nlatest=$(jq -r '.\"dist-tags\".latest' <<<\"$meta\")\nwant=\"${VERSION:-latest}\"\nwant=\"${want#v}\"\n[ \"$want\" = latest ] && want=\"$latest\"\njq -e --arg v \"$want\" '.versions[$v]' <<<\"$meta\" >/dev/null ||\n    fail \"The Lounge has no version $want. Set Version to latest, or to a release such as $latest, then reinstall.\"\n\nmkdir -p app data\nif [ -f app/package.json ] && [ \"$(jq -r \".dependencies.$pkg\" app/package.json)\" = \"$want\" ]; then\n    echo \"The Lounge $want is already chosen.\"\nelse\n    jq -n --arg v \"$want\" '{name: \"raptor-thelounge\", private: true, dependencies: {thelounge: $v}}' > app/package.json.new\n    mv -f app/package.json.new app/package.json\nfi\necho \"Installed The Lounge $want; it's set up when the server starts.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "The Lounge version to install, such as 4.5.2, or latest. Reinstall to change it.",
+            "env_variable": "VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:20|regex:/^(latest|v?\\d+\\.\\d+\\.\\d+(-[a-z0-9.]+)?)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Username",
+            "description": "The account created at the first start, when Password is set.",
+            "env_variable": "LOUNGE_USER",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32|regex:/^[A-Za-z0-9_.-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Password",
+            "description": "The first account's password. Change it later in The Lounge's settings; this only sets it when the account is created.",
+            "env_variable": "LOUNGE_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|min:8|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Update check",
+            "description": "Set it to 1 to let The Lounge ask GitHub for new releases every day.",
+            "env_variable": "UPDATE_CHECK",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}

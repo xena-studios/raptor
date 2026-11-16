@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/voice/prosody/egg-prosody.json
+license: MIT
+credits:
+  - "Written for Raptor from Prosody's own documentation (https://prosody.im, MIT) and Debian's prosody package"
+  - "Icon: the Prosody logo, from https://prosody.im/prosody.svg"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 256
+  done_timeout: 3m
+  variables:
+    ADMIN_PASSWORD: raptor-test-password

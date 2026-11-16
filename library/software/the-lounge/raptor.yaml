@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/the-lounge/egg-the-lounge.json
+license: MIT
+credits:
+  - "Written for Raptor from The Lounge's own documentation (https://thelounge.chat, MIT)"
+  - "Icon: The Lounge logo, from https://github.com/thelounge (MIT)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 8m
+  variables:
+    LOUNGE_PASSWORD: raptor-test-password

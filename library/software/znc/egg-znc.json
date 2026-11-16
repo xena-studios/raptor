@@ -1,0 +1,51 @@
+{
+    "_comment": "Raptor's egg library (library/README.md). Written for Raptor.",
+    "meta": {
+        "version": "RPTR_v1"
+    },
+    "exported_at": "2026-11-16T00:00:00+00:00",
+    "name": "ZNC",
+    "author": "support@raptorpanel.net",
+    "description": "ZNC is an IRC bouncer: it stays connected to your IRC networks and replays what you missed when you come back. The egg runs IRC and the web admin on the server's port.",
+    "features": [],
+    "docker_images": {
+        "Debian": "ghcr.io/xena-studios/yolks:debian@sha256:e0bf4e23ca25baba554fbdc8b23f6806d529c76a195e1be37da9204bdf01f3c7"
+    },
+    "file_denylist": [],
+    "startup": "sed -i \"/^<Listener listener0>/,/^<\\/Listener>/s/^\\tPort = .*/\\tPort = {{SERVER_PORT}}/\" data/configs/znc.conf || exit 1; export LD_LIBRARY_PATH=/home/container/pkgs/usr/lib/$(uname -m)-linux-gnu; exec ./pkgs/usr/bin/znc --foreground --datadir /home/container/data",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Running in foreground\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# ZNC: installs ZNC from Debian 13's packages (with security updates,\n# checked against Debian's signing keys) into pkgs/, and writes a first\n# znc.conf. Your settings, users, networks and logs (data/) are never\n# touched; reinstall to update.\nset -euo pipefail\ncd /mnt/server\nwork=/mnt/server/.raptor-build\nrm -rf \"$work\" && mkdir -p \"$work\"\ntrap 'rm -rf \"$work\"' EXIT\nfail() { echo \"$1\"; exit 1; }\n# Debian 13's packages (with its security updates), fetched and checked by\n# apt against Debian's signing keys, and unpacked into $1 (replaced only\n# once the new one is complete). The runtime image is Debian 13 too.\ndebian_packages() {\n    local dest=$1; shift\n    local a=\"$work/apt\"\n    mkdir -p \"$a/lists/partial\" \"$a/cache/archives/partial\" \"$a/dl\" \"$a/prefs\"\n    cat > \"$a/sources.list\" <<SRC\ndeb http://deb.debian.org/debian trixie main\ndeb http://deb.debian.org/debian trixie-updates main\ndeb http://security.debian.org/debian-security trixie-security main\nSRC\n    local opts=(-q -o Dir::Etc::SourceList=\"$a/sources.list\" -o Dir::Etc::SourceParts=/nonexistent\n        -o Dir::Etc::Preferences=/nonexistent -o Dir::Etc::PreferencesParts=\"$a/prefs\"\n        -o Dir::State::Lists=\"$a/lists\" -o Dir::Cache=\"$a/cache\" -o Dir::State::status=/dev/null\n        -o Debug::NoLocking=1 -o APT::Sandbox::User=root)\n    apt-get \"${opts[@]}\" update > \"$a/update.log\" 2>&1 || { tail -n 5 \"$a/update.log\"; fail \"Debian's package servers can't be reached right now. Reinstall to try again.\"; }\n    (cd \"$a/dl\" && apt-get \"${opts[@]}\" download \"$@\" > \"$a/download.log\" 2>&1) || { tail -n 5 \"$a/download.log\"; fail \"Debian's packages couldn't be downloaded. Reinstall to try again.\"; }\n    rm -rf \"$dest.new\" && mkdir -p \"$dest.new\"\n    local f\n    for f in \"$a\"/dl/*.deb; do dpkg-deb -x \"$f\" \"$dest.new\"; done\n    (cd \"$a/dl\" && ls *.deb) > \"$dest.new/.raptor-packages\"\n    rm -rf \"$dest\" && mv \"$dest.new\" \"$dest\"\n}\n\ncase \"$(uname -m)\" in\n    x86_64) triplet=x86_64-linux-gnu ;;\n    aarch64) triplet=aarch64-linux-gnu ;;\n    *) fail \"ZNC isn't packaged for this CPU ($(uname -m)).\" ;;\nesac\n\nif [ ! -f data/configs/znc.conf ] && [ -z \"${ADMIN_PASSWORD:-}\" ]; then\n    fail \"Set Admin password, then reinstall: ZNC needs a user to sign in as.\"\nfi\n\necho \"Downloading ZNC from Debian 13\"\ndebian_packages pkgs znc libargon2-1 libsasl2-2 libsasl2-modules-db libdb5.3t64 libboost-locale1.83.0 libboost-thread1.83.0\nversion=$(sed -n 's/^znc_\\([^_]*\\)_.*/\\1/p' pkgs/.raptor-packages)\n[ -x pkgs/usr/bin/znc ] || fail \"Debian's ZNC package didn't have ZNC where it should. Report this to Raptor.\"\n\n# ZNC looks for modules and web skins in its data folder too: Debian's go\n# there (replacing the last install's), next to any of your own.\nmkdir -p data/modules data/webskins data/configs\nif [ -f data/modules/.raptor-modules ]; then\n    while IFS= read -r m; do [ -n \"$m\" ] && rm -rf -- \"data/modules/$m\"; done < data/modules/.raptor-modules\nfi\n(cd pkgs/usr/lib/znc && ls) > data/modules/.raptor-modules\n(cd pkgs/usr/share/znc/modules && ls) >> data/modules/.raptor-modules\ncp -r pkgs/usr/lib/znc/. pkgs/usr/share/znc/modules/. data/modules/\nrm -rf data/webskins/_default_ data/webskins/dark-clouds data/webskins/forest data/webskins/ice\ncp -r pkgs/usr/share/znc/webskins/. data/webskins/\n\n# A first znc.conf: one listener on the server's port (IRC and the web\n# admin), and the admin user, whose password is hashed here.\nif [ ! -f data/configs/znc.conf ]; then\n    user=\"${ADMIN_USER:-admin}\"\n    salt=$(head -c 30 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 20)\n    hash=$(printf '%s%s' \"$ADMIN_PASSWORD\" \"$salt\" | sha256sum | cut -d' ' -f1)\n    (umask 077; cat > data/configs/znc.conf <<CONF\n// ZNC's settings: https://wiki.znc.in/Configuration\n// Edit them in the web admin (it saves this file), or here while ZNC is\n// stopped. Raptor sets listener0's port to the server's at every start.\nVersion = ${version%%[-+]*}\n\n<Listener listener0>\n\tAllowIRC = true\n\tAllowWeb = true\n\tIPv4 = true\n\tIPv6 = false\n\tPort = ${SERVER_PORT:-6697}\n\tSSL = false\n\tURIPrefix = /\n</Listener>\n\nLoadModule = webadmin\n\n<User ${user}>\n\tAdmin = true\n\tNick = ${user}\n\tAltNick = ${user}_\n\tIdent = ${user}\n\tRealName = ${user}\n\tBuffer = 500\n\tLoadModule = chansaver\n\tLoadModule = controlpanel\n\n\t<Pass password>\n\t\tMethod = SHA256\n\t\tHash = ${hash}\n\t\tSalt = ${salt}\n\t</Pass>\n</User>\nCONF\n)\n    echo \"Wrote a first znc.conf with the user $user.\"\nfi\necho \"Installed ZNC $version.\"\n",
+            "container": "ghcr.io/xena-studios/yolks:installer@sha256:a62ffeda1b58ff4e92b83706e58e0f93b13bd46ac5ff079b4a229fe181185686",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Admin username",
+            "description": "The user created in the first znc.conf, who can sign in to the web admin.",
+            "env_variable": "ADMIN_USER",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:32|regex:/^[A-Za-z][A-Za-z0-9_-]*$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin password",
+            "description": "The user's password, used when the first znc.conf is written. Change it later in the web admin.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|min:8|max:100",
+            "field_type": "text"
+        }
+    ]
+}

@@ -1,0 +1,15 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/jupyterlab/egg-jupyterlab.json
+license: MIT
+credits:
+  - "Written for Raptor from JupyterLab's own documentation (https://jupyter.org, BSD-3-Clause)"
+  - "Icon: the Jupyter logo, from https://github.com/jupyter (BSD-3-Clause)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: fast
+  memory_mib: 1024
+  done_timeout: 8m
+  variables:
+    JUPYTER_PASSWORD: raptor-test-password

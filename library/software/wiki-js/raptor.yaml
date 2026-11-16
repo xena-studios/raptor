@@ -1,0 +1,18 @@
+source:
+  repo: xena-studios/raptor
+  path: library/software/wiki-js/egg-wiki-js.json
+license: MIT
+credits:
+  - "Written for Raptor from Wiki.js's own documentation (https://js.wiki, AGPL-3.0)"
+  - "Icon: the Wiki.js logo shipped with Wiki.js (assets/_assets/logo-wikijs.svg, AGPL-3.0)"
+certified: true
+arch: [amd64, arm64]
+test:
+  tier: manual
+  reason: "Wiki.js 3 needs a PostgreSQL database, which the conformance runner doesn't provide. Tested by hand against PostgreSQL 17."
+  memory_mib: 1024
+  done_timeout: 8m
+  variables:
+    DB_HOST: localhost
+    DB_PASS: raptor-test-password
+    ADMIN_PASS: raptor-test-password
