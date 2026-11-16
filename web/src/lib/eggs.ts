@@ -143,12 +143,24 @@ export const addonKinds: Record<
     dir: "oxide/plugins",
     capability: "addons-umod",
   },
+  factorio: {
+    label: "Factorio mod portal",
+    tab: "Mods",
+    noun: "mod",
+    description:
+      "Find, install, and update Factorio mods from its mod portal, with what they need. Downloads use the factorio.com account in the server's settings.",
+    loaders: ["factorio"],
+    dflt: ["factorio"],
+    dir: "mods",
+    capability: "addons-factorio",
+  },
 };
 
 // addonSources are where a kind's add-ons can come from, the default
 // first.
 export function addonSources(kind: string, loaders: string[]): string[] {
   if (kind === "umod") return ["umod"];
+  if (kind === "factorio") return ["factorio"];
   return onHangar(kind, loaders) ? ["modrinth", "hangar"] : ["modrinth"];
 }
 
@@ -174,6 +186,7 @@ export const sourceNames: Record<string, string> = {
   modrinth: "Modrinth",
   hangar: "Hangar",
   umod: "uMod",
+  factorio: "the Factorio mod portal",
 };
 
 const loaderNames: Record<string, string> = {

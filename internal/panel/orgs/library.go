@@ -334,7 +334,11 @@ func toSpec(p *panelv1.EggSpec) *spec.Spec {
 		if s.Addons == nil {
 			s.Addons = map[string]eggs.Addon{}
 		}
-		s.Addons[a.GetKind()] = eggs.Addon{Loaders: a.GetLoaders(), Dir: a.GetDir(), Version: a.GetVersion(), DirVariable: a.GetDirVariable(), Dirs: a.GetDirs()}
+		ad := eggs.Addon{Loaders: a.GetLoaders(), Dir: a.GetDir(), Version: a.GetVersion(), DirVariable: a.GetDirVariable(), Dirs: a.GetDirs()}
+		if a.GetAuthUsername() != "" || a.GetAuthToken() != "" {
+			ad.Auth = &eggs.AddonAuth{Username: a.GetAuthUsername(), Token: a.GetAuthToken()}
+		}
+		s.Addons[a.GetKind()] = ad
 	}
 	for _, f := range p.GetFiles() {
 		cf := spec.ConfigFile{Path: f.GetPath(), Parser: f.GetParser()}
@@ -367,7 +371,11 @@ func specProto(s *spec.Spec) *panelv1.EggSpec {
 	}
 	for _, kind := range slices.Sorted(maps.Keys(s.Addons)) {
 		a := s.Addons[kind]
-		p.Addons = append(p.Addons, &panelv1.EggAddon{Kind: kind, Loaders: a.Loaders, Dir: a.Dir, Version: a.Version, DirVariable: a.DirVariable, Dirs: a.Dirs})
+		ea := &panelv1.EggAddon{Kind: kind, Loaders: a.Loaders, Dir: a.Dir, Version: a.Version, DirVariable: a.DirVariable, Dirs: a.Dirs}
+		if a.Auth != nil {
+			ea.AuthUsername, ea.AuthToken = a.Auth.Username, a.Auth.Token
+		}
+		p.Addons = append(p.Addons, ea)
 	}
 	for _, f := range s.Files {
 		cf := &panelv1.EggConfigFile{Path: f.Path, Parser: f.Parser}

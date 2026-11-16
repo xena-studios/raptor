@@ -227,6 +227,9 @@ const (
 	// CapAddonsUMod: the umod add-on kind (Rust's plugins from umod.org,
 	// checked by SHA-1), and add-on folders chosen by a variable.
 	CapAddonsUMod = "addons-umod"
+	// CapAddonsFactorio: the factorio add-on kind (Factorio's mod portal,
+	// checked by SHA-1), with the server's account added to downloads.
+	CapAddonsFactorio = "addons-factorio"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
@@ -234,7 +237,7 @@ var nodeCapabilities = []string{
 	CapSFTPUsername, CapFilesPull, CapChangeEgg, CapFilesImport, CapNetworks, CapNetworkRules, CapDatabases, CapDatabaseBrowser,
 	CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal, CapDatabaseDocuments, CapDatabaseAlerts,
 	CapDatabaseSettings, CapDatabaseQueryStream, CapDatabaseInstanceBrowser, CapDatabaseRedisExternal,
-	CapDatabaseUsage, CapDatabaseShared, CapDatabaseInstanceBackups, CapRaptorEggs, CapAddonsUMod,
+	CapDatabaseUsage, CapDatabaseShared, CapDatabaseInstanceBackups, CapRaptorEggs, CapAddonsUMod, CapAddonsFactorio,
 }
 
 // NewHello starts a handshake for a node.

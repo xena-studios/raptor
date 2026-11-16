@@ -174,7 +174,7 @@ function Addons({
   );
   // uMod has no lookup by hash: its plugins are named by file, and
   // compared by SHA-1.
-  const umod = kind === "umod";
+  const umod = kind === "umod" || kind === "factorio";
   const names = umod
     ? Object.fromEntries(files.flatMap((f) => (f.sha512 ? [[f.sha512, f.name]] : [])))
     : {};
@@ -675,14 +675,22 @@ function InstallDialog({
   // What else it needs (Modrinth lists dependencies; Hangar's aren't read).
   const deps = useQuery(
     AddonService.method.resolveAddonDependencies,
-    { orgId, versionId: v?.id ?? "", loaders, gameVersion: version, installed },
-    { enabled: project.source === "modrinth" && !!v?.id },
+    {
+      orgId,
+      versionId: v?.id ?? "",
+      loaders,
+      gameVersion: version,
+      installed,
+      source: project.source,
+    },
+    { enabled: (project.source === "modrinth" || project.source === "factorio") && !!v?.id },
   );
   const [optional, setOptional] = useState<Set<string>>(new Set());
   const [alone, setAlone] = useState(false);
   const required = alone ? [] : (deps.data?.required ?? []);
   const blocked = (deps.data?.incompatible.length ?? 0) > 0;
-  const waiting = project.source === "modrinth" && !!v?.id && deps.isPending;
+  const waiting =
+    (project.source === "modrinth" || project.source === "factorio") && !!v?.id && deps.isPending;
   return (
     <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
       <DialogContent>
@@ -902,6 +910,7 @@ function NeedsDialog({
     loaders,
     gameVersion: version,
     installed,
+    source: addon.project?.source === "factorio" ? "factorio" : "",
   });
   const [busy, setBusy] = useState(false);
   const required = deps.data?.required ?? [];

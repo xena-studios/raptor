@@ -4,8 +4,12 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strings"
+
+	"connectrpc.com/connect"
 
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
+	"github.com/xena-studios/raptor/internal/panel/factorio"
 	"github.com/xena-studios/raptor/internal/panel/modrinth"
 )
 
@@ -17,6 +21,9 @@ const maxResolved = 25
 func (s *Addons) ResolveAddonDependencies(ctx context.Context, req *panelv1.ResolveAddonDependenciesRequest) (*panelv1.ResolveAddonDependenciesResponse, error) {
 	if err := s.check(ctx, req.GetOrgId(), "", req.GetLoaders(), req.GetGameVersion()); err != nil {
 		return nil, err
+	}
+	if req.GetSource() == sourceFactorio {
+		return s.resolveFactorio(ctx, req)
 	}
 	if !projectRef.MatchString(req.GetVersionId()) {
 		return nil, invalid(errors.New("that isn't a version"))
@@ -205,6 +212,87 @@ func (r *resolver) result() (*panelv1.ResolveAddonDependenciesResponse, error) {
 			continue
 		}
 		out.Unavailable = append(out.Unavailable, named(id))
+	}
+	return out, nil
+}
+
+// resolveFactorio is ResolveAddonDependencies for Factorio's mod portal:
+// the version is "mod@version", and dependencies are named by mod, each
+// at its newest release for the server's Factorio version.
+func (s *Addons) resolveFactorio(ctx context.Context, req *panelv1.ResolveAddonDependenciesRequest) (*panelv1.ResolveAddonDependenciesResponse, error) {
+	mod, version, ok := strings.Cut(req.GetVersionId(), "@")
+	if !ok || !factorio.ValidName(mod) || version == "" {
+		return nil, invalid(errors.New("that isn't a version"))
+	}
+	for _, p := range req.GetInstalled() {
+		if !factorio.ValidName(p) {
+			return nil, invalid(errors.New("that isn't a mod"))
+		}
+	}
+	major := factorio.Major(req.GetGameVersion())
+	root, err := s.Factorio.Get(ctx, mod)
+	if err != nil {
+		return nil, modrinthError(err)
+	}
+	var top factorio.Release
+	for _, r := range root.Releases {
+		if r.Version == version {
+			top = r
+		}
+	}
+	if top.Version == "" {
+		return nil, connect.NewError(connect.CodeNotFound, factorio.ErrNotFound)
+	}
+	installed := req.GetInstalled()
+	seen := map[string]bool{mod: true}
+	out := &panelv1.ResolveAddonDependenciesResponse{}
+	var walk func(r factorio.Release, by string, first bool) error
+	walk = func(r factorio.Release, by string, first bool) error {
+		for _, d := range factorio.Dependencies(r) {
+			switch {
+			case d.Type == "incompatible":
+				if slices.Contains(installed, d.Name) {
+					out.Incompatible = append(out.Incompatible, &panelv1.AddonProject{Id: d.Name, Title: d.Name, Source: sourceFactorio})
+				}
+				continue
+			case d.Type == "optional" && !first, seen[d.Name], slices.Contains(installed, d.Name):
+				continue
+			}
+			if len(seen) >= maxResolved {
+				return nil
+			}
+			seen[d.Name] = true
+			m, err := s.Factorio.Get(ctx, d.Name)
+			if errors.Is(err, factorio.ErrNotFound) {
+				if d.Type == "required" {
+					out.Unavailable = append(out.Unavailable, &panelv1.AddonProject{Id: d.Name, Title: d.Name, Source: sourceFactorio})
+				}
+				continue
+			}
+			if err != nil {
+				return modrinthError(err)
+			}
+			rels := m.ReleasesFor(major)
+			if len(rels) == 0 {
+				if d.Type == "required" {
+					out.Unavailable = append(out.Unavailable, factorioProject(m.Mod))
+				}
+				continue
+			}
+			picked := &panelv1.ResolvedAddon{Project: factorioProject(m.Mod), Version: factorioVersion(m.Name, rels[0]), NeededBy: by}
+			if d.Type == "optional" {
+				out.Optional = append(out.Optional, picked)
+				continue
+			}
+			if err := walk(rels[0], m.Name, false); err != nil {
+				return err
+			}
+			out.Required = append(out.Required, picked)
+		}
+		return nil
+	}
+	if err := walk(top, mod, true); err != nil {
+		return nil, err
 	}
 	return out, nil
 }

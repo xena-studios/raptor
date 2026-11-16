@@ -327,8 +327,12 @@ type EggAddon struct {
 	Version string `protobuf:"bytes,4,opt,name=version,proto3" json:"version,omitempty"`
 	// A variable whose value picks the folder (dirs: value to folder), for
 	// software that keeps add-ons in different places; dir otherwise.
-	DirVariable   string            `protobuf:"bytes,5,opt,name=dir_variable,json=dirVariable,proto3" json:"dir_variable,omitempty"`
-	Dirs          map[string]string `protobuf:"bytes,6,rep,name=dirs,proto3" json:"dirs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	DirVariable string            `protobuf:"bytes,5,opt,name=dir_variable,json=dirVariable,proto3" json:"dir_variable,omitempty"`
+	Dirs        map[string]string `protobuf:"bytes,6,rep,name=dirs,proto3" json:"dirs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// The variables holding an account's username and token, for sources
+	// whose downloads need one (Factorio's mod portal); empty: none.
+	AuthUsername  string `protobuf:"bytes,7,opt,name=auth_username,json=authUsername,proto3" json:"auth_username,omitempty"`
+	AuthToken     string `protobuf:"bytes,8,opt,name=auth_token,json=authToken,proto3" json:"auth_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -403,6 +407,20 @@ func (x *EggAddon) GetDirs() map[string]string {
 		return x.Dirs
 	}
 	return nil
+}
+
+func (x *EggAddon) GetAuthUsername() string {
+	if x != nil {
+		return x.AuthUsername
+	}
+	return ""
+}
+
+func (x *EggAddon) GetAuthToken() string {
+	if x != nil {
+		return x.AuthToken
+	}
+	return ""
 }
 
 type EggStartup struct {
@@ -2817,14 +2835,17 @@ const file_raptor_panel_v1_egg_proto_rawDesc = "" +
 	"\x04arch\x18\x10 \x03(\tR\x04arch\x12#\n" +
 	"\rplayers_query\x18\x11 \x01(\tR\fplayersQuery\x12!\n" +
 	"\fplayers_port\x18\x12 \x01(\tR\vplayersPort\x121\n" +
-	"\x06addons\x18\x13 \x03(\v2\x19.raptor.panel.v1.EggAddonR\x06addons\"\xf9\x01\n" +
+	"\x06addons\x18\x13 \x03(\v2\x19.raptor.panel.v1.EggAddonR\x06addons\"\xbd\x02\n" +
 	"\bEggAddon\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x18\n" +
 	"\aloaders\x18\x02 \x03(\tR\aloaders\x12\x10\n" +
 	"\x03dir\x18\x03 \x01(\tR\x03dir\x12\x18\n" +
 	"\aversion\x18\x04 \x01(\tR\aversion\x12!\n" +
 	"\fdir_variable\x18\x05 \x01(\tR\vdirVariable\x127\n" +
-	"\x04dirs\x18\x06 \x03(\v2#.raptor.panel.v1.EggAddon.DirsEntryR\x04dirs\x1a7\n" +
+	"\x04dirs\x18\x06 \x03(\v2#.raptor.panel.v1.EggAddon.DirsEntryR\x04dirs\x12#\n" +
+	"\rauth_username\x18\a \x01(\tR\fauthUsername\x12\x1d\n" +
+	"\n" +
+	"auth_token\x18\b \x01(\tR\tauthToken\x1a7\n" +
 	"\tDirsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\":\n" +
