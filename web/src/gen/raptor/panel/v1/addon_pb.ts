@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/addon.proto.
  */
 export const file_raptor_panel_v1_addon: GenFile = /*@__PURE__*/
-  fileDesc("ChtyYXB0b3IvcGFuZWwvdjEvYWRkb24ucHJvdG8SD3JhcHRvci5wYW5lbC52MSKeAQoMQWRkb25Qcm9qZWN0EgoKAmlkGAEgASgJEgwKBHNsdWcYAiABKAkSDQoFdGl0bGUYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkSEAoIaWNvbl91cmwYBSABKAkSEQoJZG93bmxvYWRzGAYgASgDEg4KBmF1dGhvchgHIAEoCRILCgN1cmwYCCABKAkSDgoGc291cmNlGAkgASgJIlgKCUFkZG9uRmlsZRILCgN1cmwYASABKAkSEAoIZmlsZW5hbWUYAiABKAkSDAoEc2l6ZRgDIAEoAxIOCgZzaGE1MTIYBCABKAkSDgoGc2hhMjU2GAUgASgJItgBCgxBZGRvblZlcnNpb24SCgoCaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEhYKDnZlcnNpb25fbnVtYmVyGAQgASgJEhUKDWdhbWVfdmVyc2lvbnMYBSADKAkSDwoHbG9hZGVycxgGIAMoCRIwCgxwdWJsaXNoZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEigKBGZpbGUYCCABKAsyGi5yYXB0b3IucGFuZWwudjEuQWRkb25GaWxlIokBChNTZWFyY2hBZGRvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIMCgRraW5kGAIgASgJEg8KB2xvYWRlcnMYAyADKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJEg0KBXF1ZXJ5GAUgASgJEg4KBm9mZnNldBgGIAEoBRIOCgZzb3VyY2UYByABKAkiVgoUU2VhcmNoQWRkb25zUmVzcG9uc2USLwoIcHJvamVjdHMYASADKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25Qcm9qZWN0Eg0KBXRvdGFsGAIgASgFInUKGExpc3RBZGRvblZlcnNpb25zUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIPCgdsb2FkZXJzGAMgAygJEhQKDGdhbWVfdmVyc2lvbhgEIAEoCRIOCgZzb3VyY2UYBSABKAkiTAoZTGlzdEFkZG9uVmVyc2lvbnNSZXNwb25zZRIvCgh2ZXJzaW9ucxgBIAMoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblZlcnNpb24i0QEKFUlkZW50aWZ5QWRkb25zUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDgoGaGFzaGVzGAIgAygJEg8KB2xvYWRlcnMYAyADKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJEkIKBnNoYTI1NhgFIAMoCzIyLnJhcHRvci5wYW5lbC52MS5JZGVudGlmeUFkZG9uc1JlcXVlc3QuU2hhMjU2RW50cnkaLQoLU2hhMjU2RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKwAQoPSWRlbnRpZmllZEFkZG9uEg4KBnNoYTUxMhgBIAEoCRIuCgdwcm9qZWN0GAIgASgLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uUHJvamVjdBIuCgd2ZXJzaW9uGAMgASgLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uVmVyc2lvbhItCgZsYXRlc3QYBCABKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25WZXJzaW9uIkoKFklkZW50aWZ5QWRkb25zUmVzcG9uc2USMAoGYWRkb25zGAEgAygLMiAucmFwdG9yLnBhbmVsLnYxLklkZW50aWZpZWRBZGRvbiI5ChpMb29rdXBXb3Jrc2hvcEl0ZW1zUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCwoDaWRzGAIgAygJIrIBCgxXb3Jrc2hvcEl0ZW0SCgoCaWQYASABKAkSDgoGYXBwX2lkGAIgASgDEg0KBXRpdGxlGAMgASgJEhMKC3ByZXZpZXdfdXJsGAQgASgJEgwKBHNpemUYBSABKAMSLgoKdXBkYXRlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEgoKY29sbGVjdGlvbhgHIAEoCBIQCghjaGlsZHJlbhgIIAMoCSJLChtMb29rdXBXb3Jrc2hvcEl0ZW1zUmVzcG9uc2USLAoFaXRlbXMYASADKAsyHS5yYXB0b3IucGFuZWwudjEuV29ya3Nob3BJdGVtMsADCgxBZGRvblNlcnZpY2USYAoMU2VhcmNoQWRkb25zEiQucmFwdG9yLnBhbmVsLnYxLlNlYXJjaEFkZG9uc1JlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuU2VhcmNoQWRkb25zUmVzcG9uc2UiA5ACARJvChFMaXN0QWRkb25WZXJzaW9ucxIpLnJhcHRvci5wYW5lbC52MS5MaXN0QWRkb25WZXJzaW9uc1JlcXVlc3QaKi5yYXB0b3IucGFuZWwudjEuTGlzdEFkZG9uVmVyc2lvbnNSZXNwb25zZSIDkAIBEmYKDklkZW50aWZ5QWRkb25zEiYucmFwdG9yLnBhbmVsLnYxLklkZW50aWZ5QWRkb25zUmVxdWVzdBonLnJhcHRvci5wYW5lbC52MS5JZGVudGlmeUFkZG9uc1Jlc3BvbnNlIgOQAgESdQoTTG9va3VwV29ya3Nob3BJdGVtcxIrLnJhcHRvci5wYW5lbC52MS5Mb29rdXBXb3Jrc2hvcEl0ZW1zUmVxdWVzdBosLnJhcHRvci5wYW5lbC52MS5Mb29rdXBXb3Jrc2hvcEl0ZW1zUmVzcG9uc2UiA5ACAULKAQoTY29tLnJhcHRvci5wYW5lbC52MUIKQWRkb25Qcm90b1ABWklnaXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci9wYW5lbC92MTtwYW5lbHYxogIDUlBYqgIPUmFwdG9yLlBhbmVsLlYxygIPUmFwdG9yXFBhbmVsXFYx4gIbUmFwdG9yXFBhbmVsXFYxXEdQQk1ldGFkYXRh6gIRUmFwdG9yOjpQYW5lbDo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
+  fileDesc("ChtyYXB0b3IvcGFuZWwvdjEvYWRkb24ucHJvdG8SD3JhcHRvci5wYW5lbC52MSLIAQoMQWRkb25Qcm9qZWN0EgoKAmlkGAEgASgJEgwKBHNsdWcYAiABKAkSDQoFdGl0bGUYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkSEAoIaWNvbl91cmwYBSABKAkSEQoJZG93bmxvYWRzGAYgASgDEg4KBmF1dGhvchgHIAEoCRILCgN1cmwYCCABKAkSDgoGc291cmNlGAkgASgJEhMKC3NlcnZlcl9zaWRlGAogASgJEhMKC2NsaWVudF9zaWRlGAsgASgJIkcKD0FkZG9uRGVwZW5kZW5jeRISCgpwcm9qZWN0X2lkGAEgASgJEhIKCnZlcnNpb25faWQYAiABKAkSDAoEdHlwZRgDIAEoCSJYCglBZGRvbkZpbGUSCwoDdXJsGAEgASgJEhAKCGZpbGVuYW1lGAIgASgJEgwKBHNpemUYAyABKAMSDgoGc2hhNTEyGAQgASgJEg4KBnNoYTI1NhgFIAEoCSKQAgoMQWRkb25WZXJzaW9uEgoKAmlkGAEgASgJEhIKCnByb2plY3RfaWQYAiABKAkSDAoEbmFtZRgDIAEoCRIWCg52ZXJzaW9uX251bWJlchgEIAEoCRIVCg1nYW1lX3ZlcnNpb25zGAUgAygJEg8KB2xvYWRlcnMYBiADKAkSMAoMcHVibGlzaGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIoCgRmaWxlGAggASgLMhoucmFwdG9yLnBhbmVsLnYxLkFkZG9uRmlsZRI2CgxkZXBlbmRlbmNpZXMYCSADKAsyIC5yYXB0b3IucGFuZWwudjEuQWRkb25EZXBlbmRlbmN5IqYBChNTZWFyY2hBZGRvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIMCgRraW5kGAIgASgJEg8KB2xvYWRlcnMYAyADKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJEg0KBXF1ZXJ5GAUgASgJEg4KBm9mZnNldBgGIAEoBRIOCgZzb3VyY2UYByABKAkSGwoTaW5jbHVkZV9jbGllbnRfb25seRgIIAEoCCJWChRTZWFyY2hBZGRvbnNSZXNwb25zZRIvCghwcm9qZWN0cxgBIAMoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblByb2plY3QSDQoFdG90YWwYAiABKAUidQoYTGlzdEFkZG9uVmVyc2lvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEg8KB2xvYWRlcnMYAyADKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJEg4KBnNvdXJjZRgFIAEoCSJMChlMaXN0QWRkb25WZXJzaW9uc1Jlc3BvbnNlEi8KCHZlcnNpb25zGAEgAygLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uVmVyc2lvbiLRAQoVSWRlbnRpZnlBZGRvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIOCgZoYXNoZXMYAiADKAkSDwoHbG9hZGVycxgDIAMoCRIUCgxnYW1lX3ZlcnNpb24YBCABKAkSQgoGc2hhMjU2GAUgAygLMjIucmFwdG9yLnBhbmVsLnYxLklkZW50aWZ5QWRkb25zUmVxdWVzdC5TaGEyNTZFbnRyeRotCgtTaGEyNTZFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIrABCg9JZGVudGlmaWVkQWRkb24SDgoGc2hhNTEyGAEgASgJEi4KB3Byb2plY3QYAiABKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25Qcm9qZWN0Ei4KB3ZlcnNpb24YAyABKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25WZXJzaW9uEi0KBmxhdGVzdBgEIAEoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblZlcnNpb24iSgoWSWRlbnRpZnlBZGRvbnNSZXNwb25zZRIwCgZhZGRvbnMYASADKAsyIC5yYXB0b3IucGFuZWwudjEuSWRlbnRpZmllZEFkZG9uIjkKGkxvb2t1cFdvcmtzaG9wSXRlbXNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRILCgNpZHMYAiADKAkisgEKDFdvcmtzaG9wSXRlbRIKCgJpZBgBIAEoCRIOCgZhcHBfaWQYAiABKAMSDQoFdGl0bGUYAyABKAkSEwoLcHJldmlld191cmwYBCABKAkSDAoEc2l6ZRgFIAEoAxIuCgp1cGRhdGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBISCgpjb2xsZWN0aW9uGAcgASgIEhAKCGNoaWxkcmVuGAggAygJIksKG0xvb2t1cFdvcmtzaG9wSXRlbXNSZXNwb25zZRIsCgVpdGVtcxgBIAMoCzIdLnJhcHRvci5wYW5lbC52MS5Xb3Jrc2hvcEl0ZW0ifwofUmVzb2x2ZUFkZG9uRGVwZW5kZW5jaWVzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSEgoKdmVyc2lvbl9pZBgCIAEoCRIPCgdsb2FkZXJzGAMgAygJEhQKDGdhbWVfdmVyc2lvbhgEIAEoCRIRCglpbnN0YWxsZWQYBSADKAkiggEKDVJlc29sdmVkQWRkb24SLgoHcHJvamVjdBgBIAEoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblByb2plY3QSLgoHdmVyc2lvbhgCIAEoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblZlcnNpb24SEQoJbmVlZGVkX2J5GAMgASgJIu8BCiBSZXNvbHZlQWRkb25EZXBlbmRlbmNpZXNSZXNwb25zZRIwCghyZXF1aXJlZBgBIAMoCzIeLnJhcHRvci5wYW5lbC52MS5SZXNvbHZlZEFkZG9uEjAKCG9wdGlvbmFsGAIgAygLMh4ucmFwdG9yLnBhbmVsLnYxLlJlc29sdmVkQWRkb24SMwoMaW5jb21wYXRpYmxlGAMgAygLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uUHJvamVjdBIyCgt1bmF2YWlsYWJsZRgEIAMoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblByb2plY3QyxwQKDEFkZG9uU2VydmljZRJgCgxTZWFyY2hBZGRvbnMSJC5yYXB0b3IucGFuZWwudjEuU2VhcmNoQWRkb25zUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5TZWFyY2hBZGRvbnNSZXNwb25zZSIDkAIBEm8KEUxpc3RBZGRvblZlcnNpb25zEikucmFwdG9yLnBhbmVsLnYxLkxpc3RBZGRvblZlcnNpb25zUmVxdWVzdBoqLnJhcHRvci5wYW5lbC52MS5MaXN0QWRkb25WZXJzaW9uc1Jlc3BvbnNlIgOQAgESZgoOSWRlbnRpZnlBZGRvbnMSJi5yYXB0b3IucGFuZWwudjEuSWRlbnRpZnlBZGRvbnNSZXF1ZXN0GicucmFwdG9yLnBhbmVsLnYxLklkZW50aWZ5QWRkb25zUmVzcG9uc2UiA5ACARJ1ChNMb29rdXBXb3Jrc2hvcEl0ZW1zEisucmFwdG9yLnBhbmVsLnYxLkxvb2t1cFdvcmtzaG9wSXRlbXNSZXF1ZXN0GiwucmFwdG9yLnBhbmVsLnYxLkxvb2t1cFdvcmtzaG9wSXRlbXNSZXNwb25zZSIDkAIBEoQBChhSZXNvbHZlQWRkb25EZXBlbmRlbmNpZXMSMC5yYXB0b3IucGFuZWwudjEuUmVzb2x2ZUFkZG9uRGVwZW5kZW5jaWVzUmVxdWVzdBoxLnJhcHRvci5wYW5lbC52MS5SZXNvbHZlQWRkb25EZXBlbmRlbmNpZXNSZXNwb25zZSIDkAIBQsoBChNjb20ucmFwdG9yLnBhbmVsLnYxQgpBZGRvblByb3RvUAFaSWdpdGh1Yi5jb20veGVuYS1zdHVkaW9zL3JhcHRvci9pbnRlcm5hbC9nZW4vcHJvdG8vcmFwdG9yL3BhbmVsL3YxO3BhbmVsdjGiAgNSUFiqAg9SYXB0b3IuUGFuZWwuVjHKAg9SYXB0b3JcUGFuZWxcVjHiAhtSYXB0b3JcUGFuZWxcVjFcR1BCTWV0YWRhdGHqAhFSYXB0b3I6OlBhbmVsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message raptor.panel.v1.AddonProject
@@ -66,6 +66,19 @@ export type AddonProject = Message<"raptor.panel.v1.AddonProject"> & {
    * @generated from field: string source = 9;
    */
   source: string;
+
+  /**
+   * Modrinth's mods: whether it runs on a server ("required", "optional",
+   * or "unsupported": client-only), and on the client.
+   *
+   * @generated from field: string server_side = 10;
+   */
+  serverSide: string;
+
+  /**
+   * @generated from field: string client_side = 11;
+   */
+  clientSide: string;
 };
 
 /**
@@ -74,6 +87,37 @@ export type AddonProject = Message<"raptor.panel.v1.AddonProject"> & {
  */
 export const AddonProjectSchema: GenMessage<AddonProject> = /*@__PURE__*/
   messageDesc(file_raptor_panel_v1_addon, 0);
+
+/**
+ * @generated from message raptor.panel.v1.AddonDependency
+ */
+export type AddonDependency = Message<"raptor.panel.v1.AddonDependency"> & {
+  /**
+   * @generated from field: string project_id = 1;
+   */
+  projectId: string;
+
+  /**
+   * A specific version, if it names one.
+   *
+   * @generated from field: string version_id = 2;
+   */
+  versionId: string;
+
+  /**
+   * "required", "optional", "incompatible", or "embedded".
+   *
+   * @generated from field: string type = 3;
+   */
+  type: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.AddonDependency.
+ * Use `create(AddonDependencySchema)` to create a new message.
+ */
+export const AddonDependencySchema: GenMessage<AddonDependency> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 1);
 
 /**
  * @generated from message raptor.panel.v1.AddonFile
@@ -112,7 +156,7 @@ export type AddonFile = Message<"raptor.panel.v1.AddonFile"> & {
  * Use `create(AddonFileSchema)` to create a new message.
  */
 export const AddonFileSchema: GenMessage<AddonFile> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 1);
+  messageDesc(file_raptor_panel_v1_addon, 2);
 
 /**
  * @generated from message raptor.panel.v1.AddonVersion
@@ -159,6 +203,13 @@ export type AddonVersion = Message<"raptor.panel.v1.AddonVersion"> & {
    * @generated from field: raptor.panel.v1.AddonFile file = 8;
    */
   file?: AddonFile | undefined;
+
+  /**
+   * Modrinth's: what else it needs, may use, or can't run beside.
+   *
+   * @generated from field: repeated raptor.panel.v1.AddonDependency dependencies = 9;
+   */
+  dependencies: AddonDependency[];
 };
 
 /**
@@ -166,7 +217,7 @@ export type AddonVersion = Message<"raptor.panel.v1.AddonVersion"> & {
  * Use `create(AddonVersionSchema)` to create a new message.
  */
 export const AddonVersionSchema: GenMessage<AddonVersion> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 2);
+  messageDesc(file_raptor_panel_v1_addon, 3);
 
 /**
  * @generated from message raptor.panel.v1.SearchAddonsRequest
@@ -212,6 +263,14 @@ export type SearchAddonsRequest = Message<"raptor.panel.v1.SearchAddonsRequest">
    * @generated from field: string source = 7;
    */
   source: string;
+
+  /**
+   * Mods only: include client-only ones (left out by default, since they
+   * don't run on a server).
+   *
+   * @generated from field: bool include_client_only = 8;
+   */
+  includeClientOnly: boolean;
 };
 
 /**
@@ -219,7 +278,7 @@ export type SearchAddonsRequest = Message<"raptor.panel.v1.SearchAddonsRequest">
  * Use `create(SearchAddonsRequestSchema)` to create a new message.
  */
 export const SearchAddonsRequestSchema: GenMessage<SearchAddonsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 3);
+  messageDesc(file_raptor_panel_v1_addon, 4);
 
 /**
  * @generated from message raptor.panel.v1.SearchAddonsResponse
@@ -241,7 +300,7 @@ export type SearchAddonsResponse = Message<"raptor.panel.v1.SearchAddonsResponse
  * Use `create(SearchAddonsResponseSchema)` to create a new message.
  */
 export const SearchAddonsResponseSchema: GenMessage<SearchAddonsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 4);
+  messageDesc(file_raptor_panel_v1_addon, 5);
 
 /**
  * @generated from message raptor.panel.v1.ListAddonVersionsRequest
@@ -280,7 +339,7 @@ export type ListAddonVersionsRequest = Message<"raptor.panel.v1.ListAddonVersion
  * Use `create(ListAddonVersionsRequestSchema)` to create a new message.
  */
 export const ListAddonVersionsRequestSchema: GenMessage<ListAddonVersionsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 5);
+  messageDesc(file_raptor_panel_v1_addon, 6);
 
 /**
  * @generated from message raptor.panel.v1.ListAddonVersionsResponse
@@ -297,7 +356,7 @@ export type ListAddonVersionsResponse = Message<"raptor.panel.v1.ListAddonVersio
  * Use `create(ListAddonVersionsResponseSchema)` to create a new message.
  */
 export const ListAddonVersionsResponseSchema: GenMessage<ListAddonVersionsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 6);
+  messageDesc(file_raptor_panel_v1_addon, 7);
 
 /**
  * @generated from message raptor.panel.v1.IdentifyAddonsRequest
@@ -339,7 +398,7 @@ export type IdentifyAddonsRequest = Message<"raptor.panel.v1.IdentifyAddonsReque
  * Use `create(IdentifyAddonsRequestSchema)` to create a new message.
  */
 export const IdentifyAddonsRequestSchema: GenMessage<IdentifyAddonsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 7);
+  messageDesc(file_raptor_panel_v1_addon, 8);
 
 /**
  * @generated from message raptor.panel.v1.IdentifiedAddon
@@ -374,7 +433,7 @@ export type IdentifiedAddon = Message<"raptor.panel.v1.IdentifiedAddon"> & {
  * Use `create(IdentifiedAddonSchema)` to create a new message.
  */
 export const IdentifiedAddonSchema: GenMessage<IdentifiedAddon> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 8);
+  messageDesc(file_raptor_panel_v1_addon, 9);
 
 /**
  * @generated from message raptor.panel.v1.IdentifyAddonsResponse
@@ -393,7 +452,7 @@ export type IdentifyAddonsResponse = Message<"raptor.panel.v1.IdentifyAddonsResp
  * Use `create(IdentifyAddonsResponseSchema)` to create a new message.
  */
 export const IdentifyAddonsResponseSchema: GenMessage<IdentifyAddonsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 9);
+  messageDesc(file_raptor_panel_v1_addon, 10);
 
 /**
  * @generated from message raptor.panel.v1.LookupWorkshopItemsRequest
@@ -417,7 +476,7 @@ export type LookupWorkshopItemsRequest = Message<"raptor.panel.v1.LookupWorkshop
  * Use `create(LookupWorkshopItemsRequestSchema)` to create a new message.
  */
 export const LookupWorkshopItemsRequestSchema: GenMessage<LookupWorkshopItemsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 10);
+  messageDesc(file_raptor_panel_v1_addon, 11);
 
 /**
  * @generated from message raptor.panel.v1.WorkshopItem
@@ -477,7 +536,7 @@ export type WorkshopItem = Message<"raptor.panel.v1.WorkshopItem"> & {
  * Use `create(WorkshopItemSchema)` to create a new message.
  */
 export const WorkshopItemSchema: GenMessage<WorkshopItem> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 11);
+  messageDesc(file_raptor_panel_v1_addon, 12);
 
 /**
  * @generated from message raptor.panel.v1.LookupWorkshopItemsResponse
@@ -496,7 +555,119 @@ export type LookupWorkshopItemsResponse = Message<"raptor.panel.v1.LookupWorksho
  * Use `create(LookupWorkshopItemsResponseSchema)` to create a new message.
  */
 export const LookupWorkshopItemsResponseSchema: GenMessage<LookupWorkshopItemsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 12);
+  messageDesc(file_raptor_panel_v1_addon, 13);
+
+/**
+ * @generated from message raptor.panel.v1.ResolveAddonDependenciesRequest
+ */
+export type ResolveAddonDependenciesRequest = Message<"raptor.panel.v1.ResolveAddonDependenciesRequest"> & {
+  /**
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * The Modrinth version to install.
+   *
+   * @generated from field: string version_id = 2;
+   */
+  versionId: string;
+
+  /**
+   * @generated from field: repeated string loaders = 3;
+   */
+  loaders: string[];
+
+  /**
+   * @generated from field: string game_version = 4;
+   */
+  gameVersion: string;
+
+  /**
+   * Projects already on the server (Modrinth IDs), left out of what's
+   * needed and checked against incompatible ones.
+   *
+   * @generated from field: repeated string installed = 5;
+   */
+  installed: string[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.ResolveAddonDependenciesRequest.
+ * Use `create(ResolveAddonDependenciesRequestSchema)` to create a new message.
+ */
+export const ResolveAddonDependenciesRequestSchema: GenMessage<ResolveAddonDependenciesRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 14);
+
+/**
+ * @generated from message raptor.panel.v1.ResolvedAddon
+ */
+export type ResolvedAddon = Message<"raptor.panel.v1.ResolvedAddon"> & {
+  /**
+   * @generated from field: raptor.panel.v1.AddonProject project = 1;
+   */
+  project?: AddonProject | undefined;
+
+  /**
+   * @generated from field: raptor.panel.v1.AddonVersion version = 2;
+   */
+  version?: AddonVersion | undefined;
+
+  /**
+   * The project that needs it, for "needed by".
+   *
+   * @generated from field: string needed_by = 3;
+   */
+  neededBy: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ResolvedAddon.
+ * Use `create(ResolvedAddonSchema)` to create a new message.
+ */
+export const ResolvedAddonSchema: GenMessage<ResolvedAddon> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 15);
+
+/**
+ * @generated from message raptor.panel.v1.ResolveAddonDependenciesResponse
+ */
+export type ResolveAddonDependenciesResponse = Message<"raptor.panel.v1.ResolveAddonDependenciesResponse"> & {
+  /**
+   * To install with it, dependencies first.
+   *
+   * @generated from field: repeated raptor.panel.v1.ResolvedAddon required = 1;
+   */
+  required: ResolvedAddon[];
+
+  /**
+   * Its optional dependencies (only its own, not theirs).
+   *
+   * @generated from field: repeated raptor.panel.v1.ResolvedAddon optional = 2;
+   */
+  optional: ResolvedAddon[];
+
+  /**
+   * Installed projects it can't run beside.
+   *
+   * @generated from field: repeated raptor.panel.v1.AddonProject incompatible = 3;
+   */
+  incompatible: AddonProject[];
+
+  /**
+   * Required dependencies with no version for these loaders and game
+   * version, or outside Modrinth (a file name only: project.title).
+   *
+   * @generated from field: repeated raptor.panel.v1.AddonProject unavailable = 4;
+   */
+  unavailable: AddonProject[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.ResolveAddonDependenciesResponse.
+ * Use `create(ResolveAddonDependenciesResponseSchema)` to create a new message.
+ */
+export const ResolveAddonDependenciesResponseSchema: GenMessage<ResolveAddonDependenciesResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 16);
 
 /**
  * AddonService finds plugins and mods on Modrinth, and plugins on Hangar,
@@ -554,6 +725,20 @@ export const AddonService: GenService<{
     methodKind: "unary";
     input: typeof LookupWorkshopItemsRequestSchema;
     output: typeof LookupWorkshopItemsResponseSchema;
+  },
+  /**
+   * ResolveAddonDependencies says what else a Modrinth version needs
+   * installed (#434): its required dependencies and theirs, each at the
+   * newest version for the loaders and game version, and its optional
+   * ones, leaving out projects already installed. It also names installed
+   * projects it can't run beside.
+   *
+   * @generated from rpc raptor.panel.v1.AddonService.ResolveAddonDependencies
+   */
+  resolveAddonDependencies: {
+    methodKind: "unary";
+    input: typeof ResolveAddonDependenciesRequestSchema;
+    output: typeof ResolveAddonDependenciesResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_raptor_panel_v1_addon, 0);

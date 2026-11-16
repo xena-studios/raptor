@@ -19,8 +19,9 @@ Minecraft servers get a **Plugins**, **Mods**, or **Datapacks** tab, depending o
 
 On the tab:
 
-- **Search** shows what works with your server's Minecraft version (or any version, when it's set to `latest`).
-- **Install** a version: the machine downloads it straight from Modrinth's or Hangar's servers and checks it against the hash they publish, so a file swapped on the way is refused.
+- **Search** shows what works with your server's Minecraft version (or any version, when it's set to `latest`). Mods that only run on players' computers (shaders, minimaps, HUDs) are left out, since on a server they crash it or do nothing; **Show client-only mods** brings them back.
+- **Install** a version: the machine downloads it straight from Modrinth's or Hangar's servers and checks it against the hash they publish, so a file swapped on the way is refused. If it needs other mods or plugins (most Fabric mods need Fabric API), the dialog lists them and installs them first; optional ones it works with can be ticked. If it can't run beside something you have installed, it says so before installing. To install it alone, tick **Install only this**.
+- An installed add-on missing something it needs shows **Needs another add-on**, with a button to install what's missing. Removing an add-on that others need asks first.
 - **Installed** lists what's there, named from Modrinth or Hangar. Each one says whether it's **up to date** for your server's game version, or has an **update available** with a button to install it. The top of the list counts the updates, and **Update all** installs every one after showing you each change. Files neither knows show as added by hand.
 - **Remove** moves a file to the server's [trash](/servers/files/#the-trash).
 

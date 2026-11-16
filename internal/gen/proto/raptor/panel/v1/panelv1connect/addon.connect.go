@@ -45,6 +45,9 @@ const (
 	// AddonServiceLookupWorkshopItemsProcedure is the fully-qualified name of the AddonService's
 	// LookupWorkshopItems RPC.
 	AddonServiceLookupWorkshopItemsProcedure = "/raptor.panel.v1.AddonService/LookupWorkshopItems"
+	// AddonServiceResolveAddonDependenciesProcedure is the fully-qualified name of the AddonService's
+	// ResolveAddonDependencies RPC.
+	AddonServiceResolveAddonDependenciesProcedure = "/raptor.panel.v1.AddonService/ResolveAddonDependencies"
 )
 
 // AddonServiceClient is a client for the raptor.panel.v1.AddonService service.
@@ -63,6 +66,12 @@ type AddonServiceClient interface {
 	// by ID, for games whose egg takes them (docs/EGGS.md#steam-workshop).
 	// The game downloads them itself; this only names them.
 	LookupWorkshopItems(context.Context, *v1.LookupWorkshopItemsRequest) (*v1.LookupWorkshopItemsResponse, error)
+	// ResolveAddonDependencies says what else a Modrinth version needs
+	// installed (#434): its required dependencies and theirs, each at the
+	// newest version for the loaders and game version, and its optional
+	// ones, leaving out projects already installed. It also names installed
+	// projects it can't run beside.
+	ResolveAddonDependencies(context.Context, *v1.ResolveAddonDependenciesRequest) (*v1.ResolveAddonDependenciesResponse, error)
 }
 
 // NewAddonServiceClient constructs a client for the raptor.panel.v1.AddonService service. By
@@ -104,15 +113,23 @@ func NewAddonServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		resolveAddonDependencies: connect.NewClient[v1.ResolveAddonDependenciesRequest, v1.ResolveAddonDependenciesResponse](
+			httpClient,
+			baseURL+AddonServiceResolveAddonDependenciesProcedure,
+			connect.WithSchema(addonServiceMethods.ByName("ResolveAddonDependencies")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // addonServiceClient implements AddonServiceClient.
 type addonServiceClient struct {
-	searchAddons        *connect.Client[v1.SearchAddonsRequest, v1.SearchAddonsResponse]
-	listAddonVersions   *connect.Client[v1.ListAddonVersionsRequest, v1.ListAddonVersionsResponse]
-	identifyAddons      *connect.Client[v1.IdentifyAddonsRequest, v1.IdentifyAddonsResponse]
-	lookupWorkshopItems *connect.Client[v1.LookupWorkshopItemsRequest, v1.LookupWorkshopItemsResponse]
+	searchAddons             *connect.Client[v1.SearchAddonsRequest, v1.SearchAddonsResponse]
+	listAddonVersions        *connect.Client[v1.ListAddonVersionsRequest, v1.ListAddonVersionsResponse]
+	identifyAddons           *connect.Client[v1.IdentifyAddonsRequest, v1.IdentifyAddonsResponse]
+	lookupWorkshopItems      *connect.Client[v1.LookupWorkshopItemsRequest, v1.LookupWorkshopItemsResponse]
+	resolveAddonDependencies *connect.Client[v1.ResolveAddonDependenciesRequest, v1.ResolveAddonDependenciesResponse]
 }
 
 // SearchAddons calls raptor.panel.v1.AddonService.SearchAddons.
@@ -151,6 +168,15 @@ func (c *addonServiceClient) LookupWorkshopItems(ctx context.Context, req *v1.Lo
 	return nil, err
 }
 
+// ResolveAddonDependencies calls raptor.panel.v1.AddonService.ResolveAddonDependencies.
+func (c *addonServiceClient) ResolveAddonDependencies(ctx context.Context, req *v1.ResolveAddonDependenciesRequest) (*v1.ResolveAddonDependenciesResponse, error) {
+	response, err := c.resolveAddonDependencies.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // AddonServiceHandler is an implementation of the raptor.panel.v1.AddonService service.
 type AddonServiceHandler interface {
 	// SearchAddons searches a source for a kind's projects that run on the
@@ -167,6 +193,12 @@ type AddonServiceHandler interface {
 	// by ID, for games whose egg takes them (docs/EGGS.md#steam-workshop).
 	// The game downloads them itself; this only names them.
 	LookupWorkshopItems(context.Context, *v1.LookupWorkshopItemsRequest) (*v1.LookupWorkshopItemsResponse, error)
+	// ResolveAddonDependencies says what else a Modrinth version needs
+	// installed (#434): its required dependencies and theirs, each at the
+	// newest version for the loaders and game version, and its optional
+	// ones, leaving out projects already installed. It also names installed
+	// projects it can't run beside.
+	ResolveAddonDependencies(context.Context, *v1.ResolveAddonDependenciesRequest) (*v1.ResolveAddonDependenciesResponse, error)
 }
 
 // NewAddonServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -204,6 +236,13 @@ func NewAddonServiceHandler(svc AddonServiceHandler, opts ...connect.HandlerOpti
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	addonServiceResolveAddonDependenciesHandler := connect.NewUnaryHandlerSimple(
+		AddonServiceResolveAddonDependenciesProcedure,
+		svc.ResolveAddonDependencies,
+		connect.WithSchema(addonServiceMethods.ByName("ResolveAddonDependencies")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.panel.v1.AddonService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AddonServiceSearchAddonsProcedure:
@@ -214,6 +253,8 @@ func NewAddonServiceHandler(svc AddonServiceHandler, opts ...connect.HandlerOpti
 			addonServiceIdentifyAddonsHandler.ServeHTTP(w, r)
 		case AddonServiceLookupWorkshopItemsProcedure:
 			addonServiceLookupWorkshopItemsHandler.ServeHTTP(w, r)
+		case AddonServiceResolveAddonDependenciesProcedure:
+			addonServiceResolveAddonDependenciesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -237,4 +278,8 @@ func (UnimplementedAddonServiceHandler) IdentifyAddons(context.Context, *v1.Iden
 
 func (UnimplementedAddonServiceHandler) LookupWorkshopItems(context.Context, *v1.LookupWorkshopItemsRequest) (*v1.LookupWorkshopItemsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AddonService.LookupWorkshopItems is not implemented"))
+}
+
+func (UnimplementedAddonServiceHandler) ResolveAddonDependencies(context.Context, *v1.ResolveAddonDependenciesRequest) (*v1.ResolveAddonDependenciesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AddonService.ResolveAddonDependencies is not implemented"))
 }
