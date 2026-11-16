@@ -105,6 +105,9 @@ type eggInfo struct {
 	// Workshop is where the game takes Steam Workshop items
 	// (docs/EGGS.md#steam-workshop).
 	Workshop *eggWorkshop `json:"workshop,omitempty"`
+	// Reforger is where Arma Reforger takes Bohemia Workshop mods
+	// (docs/EGGS.md#arma-reforger-mods).
+	Reforger *eggReforger `json:"reforger,omitempty"`
 	// Web is a web dashboard the server serves (#428).
 	Web *eggWeb `json:"web,omitempty"`
 	// Modpack names the variables that pick a modpack (#413).
@@ -143,6 +146,10 @@ type eggWorkshopFile struct {
 	Separator string   `json:"separator,omitempty"`
 	ModsKey   string   `json:"mods_key,omitempty"`
 	Overrides []string `json:"overrides,omitempty"`
+}
+
+type eggReforger struct {
+	Config string `json:"config"`
 }
 
 type eggAddon struct {
@@ -197,6 +204,9 @@ func describeEgg(s *server.Server) *eggInfo {
 		if f := w.File; f != nil {
 			out.Workshop.File = &eggWorkshopFile{Path: f.Path, Format: f.Format, Key: f.Key, Separator: f.Separator, ModsKey: f.ModsKey, Overrides: f.Overrides}
 		}
+	}
+	if r := e.Raptor.Reforger; r != nil {
+		out.Reforger = &eggReforger{Config: r.Config}
 	}
 	for _, i := range e.Images {
 		out.Images = append(out.Images, eggImage{Name: i.Name, Ref: i.Ref})

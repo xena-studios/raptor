@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net/url"
 	"regexp"
 	"slices"
@@ -26,6 +27,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/modpacks"
 	"github.com/xena-studios/raptor/internal/panel/modrinth"
 	"github.com/xena-studios/raptor/internal/panel/mojang"
+	"github.com/xena-studios/raptor/internal/panel/reforger"
 	"github.com/xena-studios/raptor/internal/panel/steam"
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/panel/umod"
@@ -38,6 +40,8 @@ type Addons struct {
 	Modrinth *modrinth.Client
 	Hangar   *hangar.Client
 	Steam    *steam.Client
+	// Reforger is the Arma Reforger Workshop.
+	Reforger *reforger.Client
 	UMod     *umod.Client
 	Factorio *factorio.Client
 	Modpacks *modpacks.Client
@@ -130,6 +134,8 @@ func modrinthError(err error) error {
 		return connect.NewError(connect.CodeUnavailable, hangar.ErrUnavailable)
 	case errors.Is(err, steam.ErrUnavailable):
 		return connect.NewError(connect.CodeUnavailable, steam.ErrUnavailable)
+	case errors.Is(err, reforger.ErrUnavailable):
+		return connect.NewError(connect.CodeUnavailable, reforger.ErrUnavailable)
 	case errors.Is(err, mojang.ErrNotFound):
 		return connect.NewError(connect.CodeNotFound, err)
 	case errors.Is(err, mojang.ErrUnavailable):
@@ -678,6 +684,77 @@ func (s *Addons) LookupWorkshopItems(ctx context.Context, req *panelv1.LookupWor
 		})
 	}
 	return out, nil
+}
+
+// LookupReforgerMods names Arma Reforger Workshop mods.
+func (s *Addons) LookupReforgerMods(ctx context.Context, req *panelv1.LookupReforgerModsRequest) (*panelv1.LookupReforgerModsResponse, error) {
+	if err := s.allow(ctx, req.GetOrgId()); err != nil {
+		return nil, err
+	}
+	ids := req.GetIds()
+	if len(ids) > reforger.MaxMods {
+		return nil, invalid(fmt.Errorf("at most %d mods at a time", reforger.MaxMods))
+	}
+	for _, id := range ids {
+		if !reforger.ID.MatchString(id) {
+			return nil, invalid(errors.New("a mod's ID is the 16 letters and digits in its Workshop link"))
+		}
+	}
+	mods, err := s.Reforger.Lookup(ctx, ids)
+	if err != nil {
+		return nil, modrinthError(err)
+	}
+	out := &panelv1.LookupReforgerModsResponse{}
+	for _, id := range ids {
+		m, ok := mods[id]
+		if !ok {
+			continue
+		}
+		delete(mods, id) // once, if it's asked for twice
+		out.Mods = append(out.Mods, reforgerMod(m))
+	}
+	return out, nil
+}
+
+// SearchReforgerMods searches the Arma Reforger Workshop.
+func (s *Addons) SearchReforgerMods(ctx context.Context, req *panelv1.SearchReforgerModsRequest) (*panelv1.SearchReforgerModsResponse, error) {
+	if err := s.allow(ctx, req.GetOrgId()); err != nil {
+		return nil, err
+	}
+	q := strings.TrimSpace(req.GetQuery())
+	if q == "" || len(q) > 100 {
+		return nil, invalid(errors.New("search for 1 to 100 characters"))
+	}
+	pg := max(int(req.GetPage()), 1)
+	if pg > 100 {
+		return nil, invalid(errors.New("at most 100 pages"))
+	}
+	mods, total, err := s.Reforger.Search(ctx, q, pg)
+	if err != nil {
+		return nil, modrinthError(err)
+	}
+	out := &panelv1.SearchReforgerModsResponse{Total: int32(min(total, math.MaxInt32))} //nolint:gosec // capped
+	for _, m := range mods {
+		out.Mods = append(out.Mods, reforgerMod(m))
+	}
+	return out, nil
+}
+
+func reforgerMod(m reforger.Mod) *panelv1.ReforgerMod {
+	out := &panelv1.ReforgerMod{
+		Id: m.ID, Name: m.Name, Author: m.Author, Summary: m.Summary, Version: m.Version,
+		Size: m.Size, PreviewUrl: m.Preview,
+	}
+	if !m.Updated.IsZero() {
+		out.UpdatedAt = timestamppb.New(m.Updated)
+	}
+	for _, d := range m.Dependencies {
+		out.Dependencies = append(out.Dependencies, &panelv1.ReforgerModRef{Id: d.ID, Name: d.Name})
+	}
+	for _, sc := range m.Scenarios {
+		out.Scenarios = append(out.Scenarios, &panelv1.ReforgerScenario{Id: sc.ID, Name: sc.Name})
+	}
+	return out
 }
 
 // identifyOnFactorio names Factorio mods by their files' names

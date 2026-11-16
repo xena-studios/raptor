@@ -8,8 +8,8 @@ import { can } from "@/lib/org-data";
 import type { ServerConfig } from "@/lib/servers";
 
 // AddonSection is one part of a server's Add-ons tab (#436): an add-on
-// kind's page (Plugins, Mods, Datapacks), the Workshop, or CS2's
-// Frameworks.
+// kind's page (Plugins, Mods, Datapacks), Arma Reforger's mods, the
+// Workshop, or CS2's Frameworks.
 export type AddonSection = { key: string; label: string };
 
 // useAddonSections is what a server's Add-ons tab holds, in order, for
@@ -49,6 +49,8 @@ export function useAddonSections(
       /^minecraft\/(bedrock|endstone)$/.test(server?.eggSource ?? "") ||
       /^Minecraft: (Bedrock|Endstone)$/.test(server?.eggName ?? "");
     if (bedrock && can(server, "files.read")) out.push({ key: "bedrock", label: "Packs" });
+    if (cfg?.egg?.reforger && can(server, "files.read"))
+      out.push({ key: "reforger", label: "Mods" });
     // A Workshop in a config file (#408) is read with files.read.
     const ws = cfg?.egg?.workshop;
     if (ws && can(server, ws.file ? "files.read" : "startup"))

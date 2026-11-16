@@ -139,6 +139,7 @@ func TestRaptorSettings(t *testing.T) {
 	e.Players.Query = "minecraft"
 	e.Addons = map[string]eggs.Addon{"plugins": {Loaders: []string{"paper"}, Dir: "plugins"}}
 	e.Workshop = &eggs.Workshop{AppID: 4000, Variable: "MESSAGE", Collection: true}
+	e.Reforger = &eggs.Reforger{Config: "config.json"}
 	b := eggs.JavaMinecraftBackup
 	e.Backup = &b
 	if err := e.validate(); err != nil {
@@ -157,6 +158,9 @@ func TestRaptorSettings(t *testing.T) {
 	}
 	if w := egg.Raptor.Workshop; w == nil || *w != *e.Workshop {
 		t.Errorf("workshop %+v", w)
+	}
+	if r := egg.Raptor.Reforger; r == nil || r.Config != "config.json" {
+		t.Errorf("reforger %+v", r)
 	}
 	got := egg.Backup()
 	if !slices.Equal(got.Pre, b.Pre) || !slices.Equal(got.Post, b.Post) || got.WaitFor != b.WaitFor || got.WaitTimeout() != 5*time.Minute {

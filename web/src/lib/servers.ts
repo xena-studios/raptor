@@ -206,6 +206,9 @@ export type ServerConfig = {
     >;
     // Where the game takes Steam Workshop items (docs/EGGS.md#steam-workshop).
     workshop?: Workshop;
+    // Where Arma Reforger takes Bohemia Workshop mods: its JSON config
+    // (docs/EGGS.md#arma-reforger-mods).
+    reforger?: { config: string };
     // A web dashboard the server serves (#428): its name, the variable
     // with its port (none: the primary port), and one that turns it on.
     web?: { name: string; port?: string; enabled?: string };

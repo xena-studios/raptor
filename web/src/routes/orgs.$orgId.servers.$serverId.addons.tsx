@@ -42,6 +42,15 @@ function AddonsLayout() {
               >
                 {s.label}
               </Link>
+            ) : s.key === "reforger" ? (
+              <Link
+                key={s.key}
+                to="/orgs/$orgId/servers/$serverId/addons/reforger"
+                params={params}
+                className={pill}
+              >
+                {s.label}
+              </Link>
             ) : s.key === "workshop" ? (
               <Link
                 key={s.key}

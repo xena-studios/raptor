@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/addon.proto.
  */
 export const file_raptor_panel_v1_addon: GenFile = /*@__PURE__*/
-  fileDesc("ChtyYXB0b3IvcGFuZWwvdjEvYWRkb24ucHJvdG8SD3JhcHRvci5wYW5lbC52MSIpChdMaXN0QWRkb25Tb3VyY2VzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkiKwoYTGlzdEFkZG9uU291cmNlc1Jlc3BvbnNlEg8KB3NvdXJjZXMYASADKAkiyAEKDEFkZG9uUHJvamVjdBIKCgJpZBgBIAEoCRIMCgRzbHVnGAIgASgJEg0KBXRpdGxlGAMgASgJEhMKC2Rlc2NyaXB0aW9uGAQgASgJEhAKCGljb25fdXJsGAUgASgJEhEKCWRvd25sb2FkcxgGIAEoAxIOCgZhdXRob3IYByABKAkSCwoDdXJsGAggASgJEg4KBnNvdXJjZRgJIAEoCRITCgtzZXJ2ZXJfc2lkZRgKIAEoCRITCgtjbGllbnRfc2lkZRgLIAEoCSJHCg9BZGRvbkRlcGVuZGVuY3kSEgoKcHJvamVjdF9pZBgBIAEoCRISCgp2ZXJzaW9uX2lkGAIgASgJEgwKBHR5cGUYAyABKAkiegoJQWRkb25GaWxlEgsKA3VybBgBIAEoCRIQCghmaWxlbmFtZRgCIAEoCRIMCgRzaXplGAMgASgDEg4KBnNoYTUxMhgEIAEoCRIOCgZzaGEyNTYYBSABKAkSDAoEc2hhMRgGIAEoCRISCgptYW51YWxfdXJsGAcgASgJIpACCgxBZGRvblZlcnNpb24SCgoCaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEhYKDnZlcnNpb25fbnVtYmVyGAQgASgJEhUKDWdhbWVfdmVyc2lvbnMYBSADKAkSDwoHbG9hZGVycxgGIAMoCRIwCgxwdWJsaXNoZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEigKBGZpbGUYCCABKAsyGi5yYXB0b3IucGFuZWwudjEuQWRkb25GaWxlEjYKDGRlcGVuZGVuY2llcxgJIAMoCzIgLnJhcHRvci5wYW5lbC52MS5BZGRvbkRlcGVuZGVuY3kipgEKE1NlYXJjaEFkZG9uc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgwKBGtpbmQYAiABKAkSDwoHbG9hZGVycxgDIAMoCRIUCgxnYW1lX3ZlcnNpb24YBCABKAkSDQoFcXVlcnkYBSABKAkSDgoGb2Zmc2V0GAYgASgFEg4KBnNvdXJjZRgHIAEoCRIbChNpbmNsdWRlX2NsaWVudF9vbmx5GAggASgIIlYKFFNlYXJjaEFkZG9uc1Jlc3BvbnNlEi8KCHByb2plY3RzGAEgAygLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uUHJvamVjdBINCgV0b3RhbBgCIAEoBSKDAQoYTGlzdEFkZG9uVmVyc2lvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEg8KB2xvYWRlcnMYAyADKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJEg4KBnNvdXJjZRgFIAEoCRIMCgRraW5kGAYgASgJIkwKGUxpc3RBZGRvblZlcnNpb25zUmVzcG9uc2USLwoIdmVyc2lvbnMYASADKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25WZXJzaW9uIq0EChVJZGVudGlmeUFkZG9uc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg4KBmhhc2hlcxgCIAMoCRIPCgdsb2FkZXJzGAMgAygJEhQKDGdhbWVfdmVyc2lvbhgEIAEoCRJCCgZzaGEyNTYYBSADKAsyMi5yYXB0b3IucGFuZWwudjEuSWRlbnRpZnlBZGRvbnNSZXF1ZXN0LlNoYTI1NkVudHJ5EkAKBW5hbWVzGAYgAygLMjEucmFwdG9yLnBhbmVsLnYxLklkZW50aWZ5QWRkb25zUmVxdWVzdC5OYW1lc0VudHJ5Ej4KBHNoYTEYByADKAsyMC5yYXB0b3IucGFuZWwudjEuSWRlbnRpZnlBZGRvbnNSZXF1ZXN0LlNoYTFFbnRyeRJKCgpjdXJzZWZvcmdlGAggAygLMjYucmFwdG9yLnBhbmVsLnYxLklkZW50aWZ5QWRkb25zUmVxdWVzdC5DdXJzZWZvcmdlRW50cnkaLQoLU2hhMjU2RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARosCgpOYW1lc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEaKwoJU2hhMUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEaMQoPQ3Vyc2Vmb3JnZUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoDToCOAEisAEKD0lkZW50aWZpZWRBZGRvbhIOCgZzaGE1MTIYASABKAkSLgoHcHJvamVjdBgCIAEoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblByb2plY3QSLgoHdmVyc2lvbhgDIAEoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblZlcnNpb24SLQoGbGF0ZXN0GAQgASgLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uVmVyc2lvbiJKChZJZGVudGlmeUFkZG9uc1Jlc3BvbnNlEjAKBmFkZG9ucxgBIAMoCzIgLnJhcHRvci5wYW5lbC52MS5JZGVudGlmaWVkQWRkb24iOQoaTG9va3VwV29ya3Nob3BJdGVtc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgsKA2lkcxgCIAMoCSKyAQoMV29ya3Nob3BJdGVtEgoKAmlkGAEgASgJEg4KBmFwcF9pZBgCIAEoAxINCgV0aXRsZRgDIAEoCRITCgtwcmV2aWV3X3VybBgEIAEoCRIMCgRzaXplGAUgASgDEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmNvbGxlY3Rpb24YByABKAgSEAoIY2hpbGRyZW4YCCADKAkiSwobTG9va3VwV29ya3Nob3BJdGVtc1Jlc3BvbnNlEiwKBWl0ZW1zGAEgAygLMh0ucmFwdG9yLnBhbmVsLnYxLldvcmtzaG9wSXRlbSKPAQofUmVzb2x2ZUFkZG9uRGVwZW5kZW5jaWVzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSEgoKdmVyc2lvbl9pZBgCIAEoCRIPCgdsb2FkZXJzGAMgAygJEhQKDGdhbWVfdmVyc2lvbhgEIAEoCRIRCglpbnN0YWxsZWQYBSADKAkSDgoGc291cmNlGAYgASgJIoIBCg1SZXNvbHZlZEFkZG9uEi4KB3Byb2plY3QYASABKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25Qcm9qZWN0Ei4KB3ZlcnNpb24YAiABKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25WZXJzaW9uEhEKCW5lZWRlZF9ieRgDIAEoCSLvAQogUmVzb2x2ZUFkZG9uRGVwZW5kZW5jaWVzUmVzcG9uc2USMAoIcmVxdWlyZWQYASADKAsyHi5yYXB0b3IucGFuZWwudjEuUmVzb2x2ZWRBZGRvbhIwCghvcHRpb25hbBgCIAMoCzIeLnJhcHRvci5wYW5lbC52MS5SZXNvbHZlZEFkZG9uEjMKDGluY29tcGF0aWJsZRgDIAMoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblByb2plY3QSMgoLdW5hdmFpbGFibGUYBCADKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25Qcm9qZWN0IjkKF0xpc3RHYW1lVmVyc2lvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIOCgZzb3VyY2UYAiABKAkiKQoLR2FtZVZlcnNpb24SCgoCaWQYASABKAkSDgoGc3RhYmxlGAIgASgIIkoKGExpc3RHYW1lVmVyc2lvbnNSZXNwb25zZRIuCgh2ZXJzaW9ucxgBIAMoCzIcLnJhcHRvci5wYW5lbC52MS5HYW1lVmVyc2lvbiJNChxMb29rdXBNaW5lY3JhZnRQbGF5ZXJSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIMCgRuYW1lGAIgASgJEg8KB29mZmxpbmUYAyABKAgiOwodTG9va3VwTWluZWNyYWZ0UGxheWVyUmVzcG9uc2USDAoEbmFtZRgBIAEoCRIMCgR1dWlkGAIgASgJMqAHCgxBZGRvblNlcnZpY2USYAoMU2VhcmNoQWRkb25zEiQucmFwdG9yLnBhbmVsLnYxLlNlYXJjaEFkZG9uc1JlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuU2VhcmNoQWRkb25zUmVzcG9uc2UiA5ACARJvChFMaXN0QWRkb25WZXJzaW9ucxIpLnJhcHRvci5wYW5lbC52MS5MaXN0QWRkb25WZXJzaW9uc1JlcXVlc3QaKi5yYXB0b3IucGFuZWwudjEuTGlzdEFkZG9uVmVyc2lvbnNSZXNwb25zZSIDkAIBEmYKDklkZW50aWZ5QWRkb25zEiYucmFwdG9yLnBhbmVsLnYxLklkZW50aWZ5QWRkb25zUmVxdWVzdBonLnJhcHRvci5wYW5lbC52MS5JZGVudGlmeUFkZG9uc1Jlc3BvbnNlIgOQAgESdQoTTG9va3VwV29ya3Nob3BJdGVtcxIrLnJhcHRvci5wYW5lbC52MS5Mb29rdXBXb3Jrc2hvcEl0ZW1zUmVxdWVzdBosLnJhcHRvci5wYW5lbC52MS5Mb29rdXBXb3Jrc2hvcEl0ZW1zUmVzcG9uc2UiA5ACARKEAQoYUmVzb2x2ZUFkZG9uRGVwZW5kZW5jaWVzEjAucmFwdG9yLnBhbmVsLnYxLlJlc29sdmVBZGRvbkRlcGVuZGVuY2llc1JlcXVlc3QaMS5yYXB0b3IucGFuZWwudjEuUmVzb2x2ZUFkZG9uRGVwZW5kZW5jaWVzUmVzcG9uc2UiA5ACARJ7ChVMb29rdXBNaW5lY3JhZnRQbGF5ZXISLS5yYXB0b3IucGFuZWwudjEuTG9va3VwTWluZWNyYWZ0UGxheWVyUmVxdWVzdBouLnJhcHRvci5wYW5lbC52MS5Mb29rdXBNaW5lY3JhZnRQbGF5ZXJSZXNwb25zZSIDkAIBEmwKEExpc3RHYW1lVmVyc2lvbnMSKC5yYXB0b3IucGFuZWwudjEuTGlzdEdhbWVWZXJzaW9uc1JlcXVlc3QaKS5yYXB0b3IucGFuZWwudjEuTGlzdEdhbWVWZXJzaW9uc1Jlc3BvbnNlIgOQAgESbAoQTGlzdEFkZG9uU291cmNlcxIoLnJhcHRvci5wYW5lbC52MS5MaXN0QWRkb25Tb3VyY2VzUmVxdWVzdBopLnJhcHRvci5wYW5lbC52MS5MaXN0QWRkb25Tb3VyY2VzUmVzcG9uc2UiA5ACAULKAQoTY29tLnJhcHRvci5wYW5lbC52MUIKQWRkb25Qcm90b1ABWklnaXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci9wYW5lbC92MTtwYW5lbHYxogIDUlBYqgIPUmFwdG9yLlBhbmVsLlYxygIPUmFwdG9yXFBhbmVsXFYx4gIbUmFwdG9yXFBhbmVsXFYxXEdQQk1ldGFkYXRh6gIRUmFwdG9yOjpQYW5lbDo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
+  fileDesc("ChtyYXB0b3IvcGFuZWwvdjEvYWRkb24ucHJvdG8SD3JhcHRvci5wYW5lbC52MSIpChdMaXN0QWRkb25Tb3VyY2VzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkiKwoYTGlzdEFkZG9uU291cmNlc1Jlc3BvbnNlEg8KB3NvdXJjZXMYASADKAkiyAEKDEFkZG9uUHJvamVjdBIKCgJpZBgBIAEoCRIMCgRzbHVnGAIgASgJEg0KBXRpdGxlGAMgASgJEhMKC2Rlc2NyaXB0aW9uGAQgASgJEhAKCGljb25fdXJsGAUgASgJEhEKCWRvd25sb2FkcxgGIAEoAxIOCgZhdXRob3IYByABKAkSCwoDdXJsGAggASgJEg4KBnNvdXJjZRgJIAEoCRITCgtzZXJ2ZXJfc2lkZRgKIAEoCRITCgtjbGllbnRfc2lkZRgLIAEoCSJHCg9BZGRvbkRlcGVuZGVuY3kSEgoKcHJvamVjdF9pZBgBIAEoCRISCgp2ZXJzaW9uX2lkGAIgASgJEgwKBHR5cGUYAyABKAkiegoJQWRkb25GaWxlEgsKA3VybBgBIAEoCRIQCghmaWxlbmFtZRgCIAEoCRIMCgRzaXplGAMgASgDEg4KBnNoYTUxMhgEIAEoCRIOCgZzaGEyNTYYBSABKAkSDAoEc2hhMRgGIAEoCRISCgptYW51YWxfdXJsGAcgASgJIpACCgxBZGRvblZlcnNpb24SCgoCaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEhYKDnZlcnNpb25fbnVtYmVyGAQgASgJEhUKDWdhbWVfdmVyc2lvbnMYBSADKAkSDwoHbG9hZGVycxgGIAMoCRIwCgxwdWJsaXNoZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEigKBGZpbGUYCCABKAsyGi5yYXB0b3IucGFuZWwudjEuQWRkb25GaWxlEjYKDGRlcGVuZGVuY2llcxgJIAMoCzIgLnJhcHRvci5wYW5lbC52MS5BZGRvbkRlcGVuZGVuY3kipgEKE1NlYXJjaEFkZG9uc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgwKBGtpbmQYAiABKAkSDwoHbG9hZGVycxgDIAMoCRIUCgxnYW1lX3ZlcnNpb24YBCABKAkSDQoFcXVlcnkYBSABKAkSDgoGb2Zmc2V0GAYgASgFEg4KBnNvdXJjZRgHIAEoCRIbChNpbmNsdWRlX2NsaWVudF9vbmx5GAggASgIIlYKFFNlYXJjaEFkZG9uc1Jlc3BvbnNlEi8KCHByb2plY3RzGAEgAygLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uUHJvamVjdBINCgV0b3RhbBgCIAEoBSKDAQoYTGlzdEFkZG9uVmVyc2lvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEg8KB2xvYWRlcnMYAyADKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJEg4KBnNvdXJjZRgFIAEoCRIMCgRraW5kGAYgASgJIkwKGUxpc3RBZGRvblZlcnNpb25zUmVzcG9uc2USLwoIdmVyc2lvbnMYASADKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25WZXJzaW9uIq0EChVJZGVudGlmeUFkZG9uc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg4KBmhhc2hlcxgCIAMoCRIPCgdsb2FkZXJzGAMgAygJEhQKDGdhbWVfdmVyc2lvbhgEIAEoCRJCCgZzaGEyNTYYBSADKAsyMi5yYXB0b3IucGFuZWwudjEuSWRlbnRpZnlBZGRvbnNSZXF1ZXN0LlNoYTI1NkVudHJ5EkAKBW5hbWVzGAYgAygLMjEucmFwdG9yLnBhbmVsLnYxLklkZW50aWZ5QWRkb25zUmVxdWVzdC5OYW1lc0VudHJ5Ej4KBHNoYTEYByADKAsyMC5yYXB0b3IucGFuZWwudjEuSWRlbnRpZnlBZGRvbnNSZXF1ZXN0LlNoYTFFbnRyeRJKCgpjdXJzZWZvcmdlGAggAygLMjYucmFwdG9yLnBhbmVsLnYxLklkZW50aWZ5QWRkb25zUmVxdWVzdC5DdXJzZWZvcmdlRW50cnkaLQoLU2hhMjU2RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARosCgpOYW1lc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEaKwoJU2hhMUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEaMQoPQ3Vyc2Vmb3JnZUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoDToCOAEisAEKD0lkZW50aWZpZWRBZGRvbhIOCgZzaGE1MTIYASABKAkSLgoHcHJvamVjdBgCIAEoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblByb2plY3QSLgoHdmVyc2lvbhgDIAEoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblZlcnNpb24SLQoGbGF0ZXN0GAQgASgLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uVmVyc2lvbiJKChZJZGVudGlmeUFkZG9uc1Jlc3BvbnNlEjAKBmFkZG9ucxgBIAMoCzIgLnJhcHRvci5wYW5lbC52MS5JZGVudGlmaWVkQWRkb24iOQoaTG9va3VwV29ya3Nob3BJdGVtc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgsKA2lkcxgCIAMoCSKyAQoMV29ya3Nob3BJdGVtEgoKAmlkGAEgASgJEg4KBmFwcF9pZBgCIAEoAxINCgV0aXRsZRgDIAEoCRITCgtwcmV2aWV3X3VybBgEIAEoCRIMCgRzaXplGAUgASgDEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmNvbGxlY3Rpb24YByABKAgSEAoIY2hpbGRyZW4YCCADKAkiSwobTG9va3VwV29ya3Nob3BJdGVtc1Jlc3BvbnNlEiwKBWl0ZW1zGAEgAygLMh0ucmFwdG9yLnBhbmVsLnYxLldvcmtzaG9wSXRlbSI4ChlMb29rdXBSZWZvcmdlck1vZHNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRILCgNpZHMYAiADKAkimQIKC1JlZm9yZ2VyTW9kEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDgoGYXV0aG9yGAMgASgJEg8KB3N1bW1hcnkYBCABKAkSDwoHdmVyc2lvbhgFIAEoCRIMCgRzaXplGAYgASgDEhMKC3ByZXZpZXdfdXJsGAcgASgJEi4KCnVwZGF0ZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjUKDGRlcGVuZGVuY2llcxgJIAMoCzIfLnJhcHRvci5wYW5lbC52MS5SZWZvcmdlck1vZFJlZhI0CglzY2VuYXJpb3MYCiADKAsyIS5yYXB0b3IucGFuZWwudjEuUmVmb3JnZXJTY2VuYXJpbyIqCg5SZWZvcmdlck1vZFJlZhIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJIiwKEFJlZm9yZ2VyU2NlbmFyaW8SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCSJIChpMb29rdXBSZWZvcmdlck1vZHNSZXNwb25zZRIqCgRtb2RzGAEgAygLMhwucmFwdG9yLnBhbmVsLnYxLlJlZm9yZ2VyTW9kIkgKGVNlYXJjaFJlZm9yZ2VyTW9kc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg0KBXF1ZXJ5GAIgASgJEgwKBHBhZ2UYAyABKAUiVwoaU2VhcmNoUmVmb3JnZXJNb2RzUmVzcG9uc2USKgoEbW9kcxgBIAMoCzIcLnJhcHRvci5wYW5lbC52MS5SZWZvcmdlck1vZBINCgV0b3RhbBgCIAEoBSKPAQofUmVzb2x2ZUFkZG9uRGVwZW5kZW5jaWVzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSEgoKdmVyc2lvbl9pZBgCIAEoCRIPCgdsb2FkZXJzGAMgAygJEhQKDGdhbWVfdmVyc2lvbhgEIAEoCRIRCglpbnN0YWxsZWQYBSADKAkSDgoGc291cmNlGAYgASgJIoIBCg1SZXNvbHZlZEFkZG9uEi4KB3Byb2plY3QYASABKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25Qcm9qZWN0Ei4KB3ZlcnNpb24YAiABKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25WZXJzaW9uEhEKCW5lZWRlZF9ieRgDIAEoCSLvAQogUmVzb2x2ZUFkZG9uRGVwZW5kZW5jaWVzUmVzcG9uc2USMAoIcmVxdWlyZWQYASADKAsyHi5yYXB0b3IucGFuZWwudjEuUmVzb2x2ZWRBZGRvbhIwCghvcHRpb25hbBgCIAMoCzIeLnJhcHRvci5wYW5lbC52MS5SZXNvbHZlZEFkZG9uEjMKDGluY29tcGF0aWJsZRgDIAMoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblByb2plY3QSMgoLdW5hdmFpbGFibGUYBCADKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25Qcm9qZWN0IjkKF0xpc3RHYW1lVmVyc2lvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIOCgZzb3VyY2UYAiABKAkiKQoLR2FtZVZlcnNpb24SCgoCaWQYASABKAkSDgoGc3RhYmxlGAIgASgIIkoKGExpc3RHYW1lVmVyc2lvbnNSZXNwb25zZRIuCgh2ZXJzaW9ucxgBIAMoCzIcLnJhcHRvci5wYW5lbC52MS5HYW1lVmVyc2lvbiJNChxMb29rdXBNaW5lY3JhZnRQbGF5ZXJSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIMCgRuYW1lGAIgASgJEg8KB29mZmxpbmUYAyABKAgiOwodTG9va3VwTWluZWNyYWZ0UGxheWVyUmVzcG9uc2USDAoEbmFtZRgBIAEoCRIMCgR1dWlkGAIgASgJMogJCgxBZGRvblNlcnZpY2USYAoMU2VhcmNoQWRkb25zEiQucmFwdG9yLnBhbmVsLnYxLlNlYXJjaEFkZG9uc1JlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuU2VhcmNoQWRkb25zUmVzcG9uc2UiA5ACARJvChFMaXN0QWRkb25WZXJzaW9ucxIpLnJhcHRvci5wYW5lbC52MS5MaXN0QWRkb25WZXJzaW9uc1JlcXVlc3QaKi5yYXB0b3IucGFuZWwudjEuTGlzdEFkZG9uVmVyc2lvbnNSZXNwb25zZSIDkAIBEmYKDklkZW50aWZ5QWRkb25zEiYucmFwdG9yLnBhbmVsLnYxLklkZW50aWZ5QWRkb25zUmVxdWVzdBonLnJhcHRvci5wYW5lbC52MS5JZGVudGlmeUFkZG9uc1Jlc3BvbnNlIgOQAgESdQoTTG9va3VwV29ya3Nob3BJdGVtcxIrLnJhcHRvci5wYW5lbC52MS5Mb29rdXBXb3Jrc2hvcEl0ZW1zUmVxdWVzdBosLnJhcHRvci5wYW5lbC52MS5Mb29rdXBXb3Jrc2hvcEl0ZW1zUmVzcG9uc2UiA5ACARJyChJMb29rdXBSZWZvcmdlck1vZHMSKi5yYXB0b3IucGFuZWwudjEuTG9va3VwUmVmb3JnZXJNb2RzUmVxdWVzdBorLnJhcHRvci5wYW5lbC52MS5Mb29rdXBSZWZvcmdlck1vZHNSZXNwb25zZSIDkAIBEnIKElNlYXJjaFJlZm9yZ2VyTW9kcxIqLnJhcHRvci5wYW5lbC52MS5TZWFyY2hSZWZvcmdlck1vZHNSZXF1ZXN0GisucmFwdG9yLnBhbmVsLnYxLlNlYXJjaFJlZm9yZ2VyTW9kc1Jlc3BvbnNlIgOQAgEShAEKGFJlc29sdmVBZGRvbkRlcGVuZGVuY2llcxIwLnJhcHRvci5wYW5lbC52MS5SZXNvbHZlQWRkb25EZXBlbmRlbmNpZXNSZXF1ZXN0GjEucmFwdG9yLnBhbmVsLnYxLlJlc29sdmVBZGRvbkRlcGVuZGVuY2llc1Jlc3BvbnNlIgOQAgESewoVTG9va3VwTWluZWNyYWZ0UGxheWVyEi0ucmFwdG9yLnBhbmVsLnYxLkxvb2t1cE1pbmVjcmFmdFBsYXllclJlcXVlc3QaLi5yYXB0b3IucGFuZWwudjEuTG9va3VwTWluZWNyYWZ0UGxheWVyUmVzcG9uc2UiA5ACARJsChBMaXN0R2FtZVZlcnNpb25zEigucmFwdG9yLnBhbmVsLnYxLkxpc3RHYW1lVmVyc2lvbnNSZXF1ZXN0GikucmFwdG9yLnBhbmVsLnYxLkxpc3RHYW1lVmVyc2lvbnNSZXNwb25zZSIDkAIBEmwKEExpc3RBZGRvblNvdXJjZXMSKC5yYXB0b3IucGFuZWwudjEuTGlzdEFkZG9uU291cmNlc1JlcXVlc3QaKS5yYXB0b3IucGFuZWwudjEuTGlzdEFkZG9uU291cmNlc1Jlc3BvbnNlIgOQAgFCygEKE2NvbS5yYXB0b3IucGFuZWwudjFCCkFkZG9uUHJvdG9QAVpJZ2l0aHViLmNvbS94ZW5hLXN0dWRpb3MvcmFwdG9yL2ludGVybmFsL2dlbi9wcm90by9yYXB0b3IvcGFuZWwvdjE7cGFuZWx2MaICA1JQWKoCD1JhcHRvci5QYW5lbC5WMcoCD1JhcHRvclxQYW5lbFxWMeICG1JhcHRvclxQYW5lbFxWMVxHUEJNZXRhZGF0YeoCEVJhcHRvcjo6UGFuZWw6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message raptor.panel.v1.ListAddonSourcesRequest
@@ -640,6 +640,220 @@ export const LookupWorkshopItemsResponseSchema: GenMessage<LookupWorkshopItemsRe
   messageDesc(file_raptor_panel_v1_addon, 15);
 
 /**
+ * @generated from message raptor.panel.v1.LookupReforgerModsRequest
+ */
+export type LookupReforgerModsRequest = Message<"raptor.panel.v1.LookupReforgerModsRequest"> & {
+  /**
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * Mod IDs (16 hexadecimal digits), at most 100.
+   *
+   * @generated from field: repeated string ids = 2;
+   */
+  ids: string[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.LookupReforgerModsRequest.
+ * Use `create(LookupReforgerModsRequestSchema)` to create a new message.
+ */
+export const LookupReforgerModsRequestSchema: GenMessage<LookupReforgerModsRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 16);
+
+/**
+ * @generated from message raptor.panel.v1.ReforgerMod
+ */
+export type ReforgerMod = Message<"raptor.panel.v1.ReforgerMod"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string author = 3;
+   */
+  author: string;
+
+  /**
+   * @generated from field: string summary = 4;
+   */
+  summary: string;
+
+  /**
+   * Its newest version.
+   *
+   * @generated from field: string version = 5;
+   */
+  version: string;
+
+  /**
+   * The newest version's, in bytes.
+   *
+   * @generated from field: int64 size = 6;
+   */
+  size: bigint;
+
+  /**
+   * Its picture, on ar-gcp-cdn.bistudio.com; empty if none.
+   *
+   * @generated from field: string preview_url = 7;
+   */
+  previewUrl: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 8;
+   */
+  updatedAt?: Timestamp | undefined;
+
+  /**
+   * The mods it needs (not filled in by a search).
+   *
+   * @generated from field: repeated raptor.panel.v1.ReforgerModRef dependencies = 9;
+   */
+  dependencies: ReforgerModRef[];
+
+  /**
+   * The scenarios it adds (not filled in by a search).
+   *
+   * @generated from field: repeated raptor.panel.v1.ReforgerScenario scenarios = 10;
+   */
+  scenarios: ReforgerScenario[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.ReforgerMod.
+ * Use `create(ReforgerModSchema)` to create a new message.
+ */
+export const ReforgerModSchema: GenMessage<ReforgerMod> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 17);
+
+/**
+ * @generated from message raptor.panel.v1.ReforgerModRef
+ */
+export type ReforgerModRef = Message<"raptor.panel.v1.ReforgerModRef"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ReforgerModRef.
+ * Use `create(ReforgerModRefSchema)` to create a new message.
+ */
+export const ReforgerModRefSchema: GenMessage<ReforgerModRef> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 18);
+
+/**
+ * @generated from message raptor.panel.v1.ReforgerScenario
+ */
+export type ReforgerScenario = Message<"raptor.panel.v1.ReforgerScenario"> & {
+  /**
+   * What the server's game.scenarioId takes.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ReforgerScenario.
+ * Use `create(ReforgerScenarioSchema)` to create a new message.
+ */
+export const ReforgerScenarioSchema: GenMessage<ReforgerScenario> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 19);
+
+/**
+ * @generated from message raptor.panel.v1.LookupReforgerModsResponse
+ */
+export type LookupReforgerModsResponse = Message<"raptor.panel.v1.LookupReforgerModsResponse"> & {
+  /**
+   * IDs the Workshop doesn't have, or that are private, are left out.
+   *
+   * @generated from field: repeated raptor.panel.v1.ReforgerMod mods = 1;
+   */
+  mods: ReforgerMod[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.LookupReforgerModsResponse.
+ * Use `create(LookupReforgerModsResponseSchema)` to create a new message.
+ */
+export const LookupReforgerModsResponseSchema: GenMessage<LookupReforgerModsResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 20);
+
+/**
+ * @generated from message raptor.panel.v1.SearchReforgerModsRequest
+ */
+export type SearchReforgerModsRequest = Message<"raptor.panel.v1.SearchReforgerModsRequest"> & {
+  /**
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * @generated from field: string query = 2;
+   */
+  query: string;
+
+  /**
+   * From 1.
+   *
+   * @generated from field: int32 page = 3;
+   */
+  page: number;
+};
+
+/**
+ * Describes the message raptor.panel.v1.SearchReforgerModsRequest.
+ * Use `create(SearchReforgerModsRequestSchema)` to create a new message.
+ */
+export const SearchReforgerModsRequestSchema: GenMessage<SearchReforgerModsRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 21);
+
+/**
+ * @generated from message raptor.panel.v1.SearchReforgerModsResponse
+ */
+export type SearchReforgerModsResponse = Message<"raptor.panel.v1.SearchReforgerModsResponse"> & {
+  /**
+   * @generated from field: repeated raptor.panel.v1.ReforgerMod mods = 1;
+   */
+  mods: ReforgerMod[];
+
+  /**
+   * How many match in all.
+   *
+   * @generated from field: int32 total = 2;
+   */
+  total: number;
+};
+
+/**
+ * Describes the message raptor.panel.v1.SearchReforgerModsResponse.
+ * Use `create(SearchReforgerModsResponseSchema)` to create a new message.
+ */
+export const SearchReforgerModsResponseSchema: GenMessage<SearchReforgerModsResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 22);
+
+/**
  * @generated from message raptor.panel.v1.ResolveAddonDependenciesRequest
  */
 export type ResolveAddonDependenciesRequest = Message<"raptor.panel.v1.ResolveAddonDependenciesRequest"> & {
@@ -687,7 +901,7 @@ export type ResolveAddonDependenciesRequest = Message<"raptor.panel.v1.ResolveAd
  * Use `create(ResolveAddonDependenciesRequestSchema)` to create a new message.
  */
 export const ResolveAddonDependenciesRequestSchema: GenMessage<ResolveAddonDependenciesRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 16);
+  messageDesc(file_raptor_panel_v1_addon, 23);
 
 /**
  * @generated from message raptor.panel.v1.ResolvedAddon
@@ -716,7 +930,7 @@ export type ResolvedAddon = Message<"raptor.panel.v1.ResolvedAddon"> & {
  * Use `create(ResolvedAddonSchema)` to create a new message.
  */
 export const ResolvedAddonSchema: GenMessage<ResolvedAddon> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 17);
+  messageDesc(file_raptor_panel_v1_addon, 24);
 
 /**
  * @generated from message raptor.panel.v1.ResolveAddonDependenciesResponse
@@ -757,7 +971,7 @@ export type ResolveAddonDependenciesResponse = Message<"raptor.panel.v1.ResolveA
  * Use `create(ResolveAddonDependenciesResponseSchema)` to create a new message.
  */
 export const ResolveAddonDependenciesResponseSchema: GenMessage<ResolveAddonDependenciesResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 18);
+  messageDesc(file_raptor_panel_v1_addon, 25);
 
 /**
  * @generated from message raptor.panel.v1.ListGameVersionsRequest
@@ -779,7 +993,7 @@ export type ListGameVersionsRequest = Message<"raptor.panel.v1.ListGameVersionsR
  * Use `create(ListGameVersionsRequestSchema)` to create a new message.
  */
 export const ListGameVersionsRequestSchema: GenMessage<ListGameVersionsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 19);
+  messageDesc(file_raptor_panel_v1_addon, 26);
 
 /**
  * @generated from message raptor.panel.v1.GameVersion
@@ -803,7 +1017,7 @@ export type GameVersion = Message<"raptor.panel.v1.GameVersion"> & {
  * Use `create(GameVersionSchema)` to create a new message.
  */
 export const GameVersionSchema: GenMessage<GameVersion> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 20);
+  messageDesc(file_raptor_panel_v1_addon, 27);
 
 /**
  * @generated from message raptor.panel.v1.ListGameVersionsResponse
@@ -822,7 +1036,7 @@ export type ListGameVersionsResponse = Message<"raptor.panel.v1.ListGameVersions
  * Use `create(ListGameVersionsResponseSchema)` to create a new message.
  */
 export const ListGameVersionsResponseSchema: GenMessage<ListGameVersionsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 21);
+  messageDesc(file_raptor_panel_v1_addon, 28);
 
 /**
  * @generated from message raptor.panel.v1.LookupMinecraftPlayerRequest
@@ -849,7 +1063,7 @@ export type LookupMinecraftPlayerRequest = Message<"raptor.panel.v1.LookupMinecr
  * Use `create(LookupMinecraftPlayerRequestSchema)` to create a new message.
  */
 export const LookupMinecraftPlayerRequestSchema: GenMessage<LookupMinecraftPlayerRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 22);
+  messageDesc(file_raptor_panel_v1_addon, 29);
 
 /**
  * @generated from message raptor.panel.v1.LookupMinecraftPlayerResponse
@@ -871,7 +1085,7 @@ export type LookupMinecraftPlayerResponse = Message<"raptor.panel.v1.LookupMinec
  * Use `create(LookupMinecraftPlayerResponseSchema)` to create a new message.
  */
 export const LookupMinecraftPlayerResponseSchema: GenMessage<LookupMinecraftPlayerResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 23);
+  messageDesc(file_raptor_panel_v1_addon, 30);
 
 /**
  * AddonService finds plugins and mods on Modrinth, and plugins on Hangar,
@@ -929,6 +1143,28 @@ export const AddonService: GenService<{
     methodKind: "unary";
     input: typeof LookupWorkshopItemsRequestSchema;
     output: typeof LookupWorkshopItemsResponseSchema;
+  },
+  /**
+   * LookupReforgerMods says what Arma Reforger Workshop mods are, by ID,
+   * for games whose egg takes them (docs/EGGS.md#arma-reforger-mods). The
+   * game downloads them itself; this only names them.
+   *
+   * @generated from rpc raptor.panel.v1.AddonService.LookupReforgerMods
+   */
+  lookupReforgerMods: {
+    methodKind: "unary";
+    input: typeof LookupReforgerModsRequestSchema;
+    output: typeof LookupReforgerModsResponseSchema;
+  },
+  /**
+   * SearchReforgerMods searches the Arma Reforger Workshop.
+   *
+   * @generated from rpc raptor.panel.v1.AddonService.SearchReforgerMods
+   */
+  searchReforgerMods: {
+    methodKind: "unary";
+    input: typeof SearchReforgerModsRequestSchema;
+    output: typeof SearchReforgerModsResponseSchema;
   },
   /**
    * ResolveAddonDependencies says what else a Modrinth version needs

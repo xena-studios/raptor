@@ -45,6 +45,12 @@ const (
 	// AddonServiceLookupWorkshopItemsProcedure is the fully-qualified name of the AddonService's
 	// LookupWorkshopItems RPC.
 	AddonServiceLookupWorkshopItemsProcedure = "/raptor.panel.v1.AddonService/LookupWorkshopItems"
+	// AddonServiceLookupReforgerModsProcedure is the fully-qualified name of the AddonService's
+	// LookupReforgerMods RPC.
+	AddonServiceLookupReforgerModsProcedure = "/raptor.panel.v1.AddonService/LookupReforgerMods"
+	// AddonServiceSearchReforgerModsProcedure is the fully-qualified name of the AddonService's
+	// SearchReforgerMods RPC.
+	AddonServiceSearchReforgerModsProcedure = "/raptor.panel.v1.AddonService/SearchReforgerMods"
 	// AddonServiceResolveAddonDependenciesProcedure is the fully-qualified name of the AddonService's
 	// ResolveAddonDependencies RPC.
 	AddonServiceResolveAddonDependenciesProcedure = "/raptor.panel.v1.AddonService/ResolveAddonDependencies"
@@ -75,6 +81,12 @@ type AddonServiceClient interface {
 	// by ID, for games whose egg takes them (docs/EGGS.md#steam-workshop).
 	// The game downloads them itself; this only names them.
 	LookupWorkshopItems(context.Context, *v1.LookupWorkshopItemsRequest) (*v1.LookupWorkshopItemsResponse, error)
+	// LookupReforgerMods says what Arma Reforger Workshop mods are, by ID,
+	// for games whose egg takes them (docs/EGGS.md#arma-reforger-mods). The
+	// game downloads them itself; this only names them.
+	LookupReforgerMods(context.Context, *v1.LookupReforgerModsRequest) (*v1.LookupReforgerModsResponse, error)
+	// SearchReforgerMods searches the Arma Reforger Workshop.
+	SearchReforgerMods(context.Context, *v1.SearchReforgerModsRequest) (*v1.SearchReforgerModsResponse, error)
 	// ResolveAddonDependencies says what else a Modrinth version needs
 	// installed (#434): its required dependencies and theirs, each at the
 	// newest version for the loaders and game version, and its optional
@@ -134,6 +146,20 @@ func NewAddonServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		lookupReforgerMods: connect.NewClient[v1.LookupReforgerModsRequest, v1.LookupReforgerModsResponse](
+			httpClient,
+			baseURL+AddonServiceLookupReforgerModsProcedure,
+			connect.WithSchema(addonServiceMethods.ByName("LookupReforgerMods")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		searchReforgerMods: connect.NewClient[v1.SearchReforgerModsRequest, v1.SearchReforgerModsResponse](
+			httpClient,
+			baseURL+AddonServiceSearchReforgerModsProcedure,
+			connect.WithSchema(addonServiceMethods.ByName("SearchReforgerMods")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 		resolveAddonDependencies: connect.NewClient[v1.ResolveAddonDependenciesRequest, v1.ResolveAddonDependenciesResponse](
 			httpClient,
 			baseURL+AddonServiceResolveAddonDependenciesProcedure,
@@ -171,6 +197,8 @@ type addonServiceClient struct {
 	listAddonVersions        *connect.Client[v1.ListAddonVersionsRequest, v1.ListAddonVersionsResponse]
 	identifyAddons           *connect.Client[v1.IdentifyAddonsRequest, v1.IdentifyAddonsResponse]
 	lookupWorkshopItems      *connect.Client[v1.LookupWorkshopItemsRequest, v1.LookupWorkshopItemsResponse]
+	lookupReforgerMods       *connect.Client[v1.LookupReforgerModsRequest, v1.LookupReforgerModsResponse]
+	searchReforgerMods       *connect.Client[v1.SearchReforgerModsRequest, v1.SearchReforgerModsResponse]
 	resolveAddonDependencies *connect.Client[v1.ResolveAddonDependenciesRequest, v1.ResolveAddonDependenciesResponse]
 	lookupMinecraftPlayer    *connect.Client[v1.LookupMinecraftPlayerRequest, v1.LookupMinecraftPlayerResponse]
 	listGameVersions         *connect.Client[v1.ListGameVersionsRequest, v1.ListGameVersionsResponse]
@@ -207,6 +235,24 @@ func (c *addonServiceClient) IdentifyAddons(ctx context.Context, req *v1.Identif
 // LookupWorkshopItems calls raptor.panel.v1.AddonService.LookupWorkshopItems.
 func (c *addonServiceClient) LookupWorkshopItems(ctx context.Context, req *v1.LookupWorkshopItemsRequest) (*v1.LookupWorkshopItemsResponse, error) {
 	response, err := c.lookupWorkshopItems.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// LookupReforgerMods calls raptor.panel.v1.AddonService.LookupReforgerMods.
+func (c *addonServiceClient) LookupReforgerMods(ctx context.Context, req *v1.LookupReforgerModsRequest) (*v1.LookupReforgerModsResponse, error) {
+	response, err := c.lookupReforgerMods.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// SearchReforgerMods calls raptor.panel.v1.AddonService.SearchReforgerMods.
+func (c *addonServiceClient) SearchReforgerMods(ctx context.Context, req *v1.SearchReforgerModsRequest) (*v1.SearchReforgerModsResponse, error) {
+	response, err := c.searchReforgerMods.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -265,6 +311,12 @@ type AddonServiceHandler interface {
 	// by ID, for games whose egg takes them (docs/EGGS.md#steam-workshop).
 	// The game downloads them itself; this only names them.
 	LookupWorkshopItems(context.Context, *v1.LookupWorkshopItemsRequest) (*v1.LookupWorkshopItemsResponse, error)
+	// LookupReforgerMods says what Arma Reforger Workshop mods are, by ID,
+	// for games whose egg takes them (docs/EGGS.md#arma-reforger-mods). The
+	// game downloads them itself; this only names them.
+	LookupReforgerMods(context.Context, *v1.LookupReforgerModsRequest) (*v1.LookupReforgerModsResponse, error)
+	// SearchReforgerMods searches the Arma Reforger Workshop.
+	SearchReforgerMods(context.Context, *v1.SearchReforgerModsRequest) (*v1.SearchReforgerModsResponse, error)
 	// ResolveAddonDependencies says what else a Modrinth version needs
 	// installed (#434): its required dependencies and theirs, each at the
 	// newest version for the loaders and game version, and its optional
@@ -320,6 +372,20 @@ func NewAddonServiceHandler(svc AddonServiceHandler, opts ...connect.HandlerOpti
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	addonServiceLookupReforgerModsHandler := connect.NewUnaryHandlerSimple(
+		AddonServiceLookupReforgerModsProcedure,
+		svc.LookupReforgerMods,
+		connect.WithSchema(addonServiceMethods.ByName("LookupReforgerMods")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	addonServiceSearchReforgerModsHandler := connect.NewUnaryHandlerSimple(
+		AddonServiceSearchReforgerModsProcedure,
+		svc.SearchReforgerMods,
+		connect.WithSchema(addonServiceMethods.ByName("SearchReforgerMods")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	addonServiceResolveAddonDependenciesHandler := connect.NewUnaryHandlerSimple(
 		AddonServiceResolveAddonDependenciesProcedure,
 		svc.ResolveAddonDependencies,
@@ -358,6 +424,10 @@ func NewAddonServiceHandler(svc AddonServiceHandler, opts ...connect.HandlerOpti
 			addonServiceIdentifyAddonsHandler.ServeHTTP(w, r)
 		case AddonServiceLookupWorkshopItemsProcedure:
 			addonServiceLookupWorkshopItemsHandler.ServeHTTP(w, r)
+		case AddonServiceLookupReforgerModsProcedure:
+			addonServiceLookupReforgerModsHandler.ServeHTTP(w, r)
+		case AddonServiceSearchReforgerModsProcedure:
+			addonServiceSearchReforgerModsHandler.ServeHTTP(w, r)
 		case AddonServiceResolveAddonDependenciesProcedure:
 			addonServiceResolveAddonDependenciesHandler.ServeHTTP(w, r)
 		case AddonServiceLookupMinecraftPlayerProcedure:
@@ -389,6 +459,14 @@ func (UnimplementedAddonServiceHandler) IdentifyAddons(context.Context, *v1.Iden
 
 func (UnimplementedAddonServiceHandler) LookupWorkshopItems(context.Context, *v1.LookupWorkshopItemsRequest) (*v1.LookupWorkshopItemsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AddonService.LookupWorkshopItems is not implemented"))
+}
+
+func (UnimplementedAddonServiceHandler) LookupReforgerMods(context.Context, *v1.LookupReforgerModsRequest) (*v1.LookupReforgerModsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AddonService.LookupReforgerMods is not implemented"))
+}
+
+func (UnimplementedAddonServiceHandler) SearchReforgerMods(context.Context, *v1.SearchReforgerModsRequest) (*v1.SearchReforgerModsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AddonService.SearchReforgerMods is not implemented"))
 }
 
 func (UnimplementedAddonServiceHandler) ResolveAddonDependencies(context.Context, *v1.ResolveAddonDependenciesRequest) (*v1.ResolveAddonDependenciesResponse, error) {

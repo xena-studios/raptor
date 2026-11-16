@@ -1,6 +1,7 @@
 ---
 title: Plugins, mods, and the Workshop
 description: Install Minecraft plugins, mods, and datapacks from Modrinth and Hangar, Steam Workshop items, and Counter-Strike 2's plugin frameworks, from the app.
+description: Install Minecraft plugins, mods, and datapacks from Modrinth and Hangar, Steam Workshop items, and Arma Reforger mods, from the app.
 sidebar:
   order: 6
 ---
@@ -113,3 +114,13 @@ Project Zomboid, Don't Starve Together, and Unturned read their Workshop items f
 - **Project Zomboid** (`.cache/Server/<server name>.ini`): two lists. **Workshop items** are what the game downloads, and **Mods to load** are the mod IDs inside them, which aren't the same numbers. Once the game has downloaded an item, its mod IDs show as buttons to add, so a new item takes one restart before its mods can be picked. You can also type a mod ID from the item's Steam page. Start the server once first, because the game makes the file on its first start.
 - **Don't Starve Together**: the items go in `mods/dedicated_server_mods_setup.lua` (which downloads them) and in each shard's `modoverrides.lua` (which turns them on). A mod's settings in `modoverrides.lua` are kept, and removing an item removes its entry. Leave **Validate** off: a validated update puts back the game's own setup file.
 - **Unturned** (`Servers/<server ID>/WorkshopDownloadConfig.json`, `File_IDs`): start the server once first, because the game makes the file on its first start.
+## Arma Reforger mods
+
+Arma Reforger servers get a **Mods** section in Add-ons for mods from the [Arma Reforger Workshop](https://reforger.armaplatform.com/workshop).
+
+- **Search** the Workshop, or paste a mod's link or ID (the 16 letters and digits in its link). Adding a mod adds the mods it needs too.
+- Each mod shows its newest version. **Pin** one to keep it on the version it's on; unpinned mods always get the newest.
+- If the Workshop doesn't know an ID (an unlisted mod), type its name and add it anyway.
+- **Save** writes the list to the server's `config.json` (its `game.mods`); everything else in the file stays as it is. Restart the server: it downloads the mods itself when it starts.
+
+It needs the **Files** permissions, since it edits a file. To change the file by hand, use **Edit config.json as text**.
