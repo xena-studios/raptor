@@ -9,7 +9,7 @@ Servers whose game supports them get a page to find and install add-ons, without
 
 ## Plugins, mods, and datapacks
 
-Minecraft servers get a **Plugins**, **Mods**, or **Datapacks** tab, depending on what they run:
+Servers whose game takes add-ons get an **Add-ons** tab, next to Files. It has a section for each kind the game takes (switch between them at its top). Minecraft servers get **Plugins**, **Mods**, or **Datapacks**, depending on what they run:
 
 | Tab | For | From |
 |---|---|---|
@@ -31,7 +31,7 @@ SpigotMC isn't offered: its downloads often go to other sites without a hash, so
 
 ## Steam Workshop
 
-Games that load Steam Workshop items themselves get a **Workshop** tab: Garry's Mod (a collection), Counter-Strike 2 (a map collection), ARK (mods), Conan Exiles (mods, loaded in the order you list them), and Squad (items).
+Games that load Steam Workshop items themselves get a **Workshop** section in Add-ons: Garry's Mod (a collection), Counter-Strike 2 (a map collection), ARK (mods), Conan Exiles (mods, loaded in the order you list them), and Squad (items).
 
 - Paste a Workshop link or ID: Raptor shows what it is, and refuses items for another game.
 - For games that take a list, a collection's link adds its items.
