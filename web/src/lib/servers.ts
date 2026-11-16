@@ -196,6 +196,9 @@ export type ServerConfig = {
     addons?: Record<string, { loaders: string[]; dir: string; version?: string }>;
     // Where the game takes Steam Workshop items (docs/EGGS.md#steam-workshop).
     workshop?: Workshop;
+    // A web dashboard the server serves (#428): its name, the variable
+    // with its port (none: the primary port), and one that turns it on.
+    web?: { name: string; port?: string; enabled?: string };
     // How the game answers player queries ("minecraft": Java edition).
     players?: string;
   };
@@ -477,4 +480,31 @@ export function eggVersionInfo(
   const current = versions.find((v) => v.sha256 === hash)?.version;
   const newest = versions.find((v) => v.version === latest);
   return { current, latest, outdated: !!newest && newest.sha256 !== hash };
+}
+
+// webLink is where a server's web dashboard is (txAdmin, Grafana; the
+// egg's web, #428), or undefined when it has none or it's off. port is
+// set but reachable false when the port isn't one of the server's, so
+// players' traffic (and the owner's browser) can't get to it yet.
+export function webLink(
+  cfg: ServerConfig,
+  host: string,
+): { name: string; url: string; port: number; reachable: boolean } | undefined {
+  const w = cfg.egg?.web;
+  if (!w) return undefined;
+  const vars = cfg.variables ?? {};
+  if (w.enabled && !["1", "true"].includes((vars[w.enabled] ?? "").trim().toLowerCase())) {
+    return undefined;
+  }
+  const primary = (cfg.allocations.find((a) => a.primary) ?? cfg.allocations[0])?.port;
+  const port = w.port ? Number((vars[w.port] ?? "").trim()) : primary;
+  if (!port || !Number.isInteger(port) || port < 1 || port > 65535) return undefined;
+  // The shown address's host, without a port it may have.
+  const h = host.replace(/^\[([^\]]+)\](:\d+)?$/, "[$1]").replace(/^([^:[\]]+):\d+$/, "$1");
+  return {
+    name: w.name,
+    url: `http://${h}:${port}/`,
+    port,
+    reachable: cfg.allocations.some((a) => a.port === port),
+  };
 }

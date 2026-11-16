@@ -9,6 +9,8 @@ import { PopoutButton } from "@/components/popout";
 import { ServerGraphs, ServerLastHour, ServerStats } from "@/components/server-stats";
 import { RangePicker } from "@/components/stats";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { WebDashboard } from "@/components/web-dashboard";
+import { nodeHostname } from "@/lib/addresses";
 import { message } from "@/lib/errors";
 import { useIds } from "@/lib/ids";
 import { type MetricRange, useMetrics } from "@/lib/metrics";
@@ -115,6 +117,12 @@ function Overview() {
                   ["Game", server.eggName || "—"],
                   ["Node", node?.name ?? "—"],
                 ]}
+              />
+              <WebDashboard
+                orgId={orgId}
+                nodeId={nodeId}
+                serverId={serverId}
+                host={server.displayAddress || (node ? nodeHostname(node) : "")}
               />
             </CardContent>
           </Card>

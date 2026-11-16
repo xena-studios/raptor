@@ -19,6 +19,8 @@ The tiles at the top update every 10 seconds:
 
 Below the console, **Resources** charts CPU, memory, disk, network, and players over the last hour, 6 hours, day, or week. The machine keeps a minute-by-minute history for a day and 15-minute points for a week.
 
+Servers with a web page of their own (FiveM's txAdmin when it's on, Grafana, code-server, Uptime Kuma, and other apps) get an **Open …** button under Details. If its port isn't one of the server's ports yet, it says to add it on **Network** first.
+
 ## The console
 
 The console shows the server's output live, starting with its last 1,000 lines. Type a command in the box below it and press Enter: it goes to the game exactly as typed.

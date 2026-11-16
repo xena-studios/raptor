@@ -7,6 +7,9 @@ credits:
   - "Icon: the Uptime Kuma logo, from https://github.com/louislam/uptime-kuma (MIT)"
 certified: true
 arch: [amd64, arm64]
+# The app links to its web page (#428).
+web:
+  name: Uptime Kuma
 test:
   tier: fast
   memory_mib: 1024

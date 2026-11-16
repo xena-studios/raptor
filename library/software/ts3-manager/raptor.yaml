@@ -7,6 +7,9 @@ credits:
   - "Icon: the TS3 Manager logo, from https://github.com/joni1802/ts3-manager (MIT)"
 certified: true
 arch: [amd64]
+# The app links to its web page (#428).
+web:
+  name: TS3 Manager
 test:
   tier: fast
   memory_mib: 256

@@ -66,6 +66,9 @@ type Meta struct {
 	// Workshop says where the game takes Steam Workshop items (the egg's
 	// x-raptor.workshop, docs/EGGS.md#steam-workshop), added like Players.
 	Workshop *eggs.Workshop `yaml:"workshop"`
+	// Web is a web dashboard the server serves (the egg's x-raptor.web),
+	// for the app's link to it.
+	Web *eggs.Web `yaml:"web"`
 	// Backup is what's sent to the game's console around a backup (the
 	// egg's x-raptor.backup, docs/EGGS.md#backup-hooks), added like
 	// Players: save-off and save-all flush, then save-on, for Minecraft.
@@ -254,6 +257,9 @@ func (e *Entry) validate() error {
 	if err := eggs.CheckAddons(e.Addons); err != nil {
 		return err
 	}
+	if err := eggs.CheckWeb(e.Web, egg.Variables); err != nil {
+		return err
+	}
 	if err := eggs.CheckWorkshop(e.Workshop, egg.Variables); err != nil {
 		return err
 	}
@@ -360,6 +366,17 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 			set(n, "apply", str(w.Apply))
 		}
 		set(ext, "workshop", n)
+	}
+	if w := e.Web; w != nil {
+		n := &yaml.Node{Kind: yaml.MappingNode}
+		set(n, "name", str(w.Name))
+		if w.Port != "" {
+			set(n, "port", str(w.Port))
+		}
+		if w.Enabled != "" {
+			set(n, "enabled", str(w.Enabled))
+		}
+		set(ext, "web", n)
 	}
 	if b := e.Backup; b != nil {
 		n := &yaml.Node{Kind: yaml.MappingNode}

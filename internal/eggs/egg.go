@@ -38,7 +38,7 @@ func IsRaptor(format string) bool { return strings.HasPrefix(format, "RPTR_") }
 
 // RaptorKeys are Raptor's settings: top-level fields in Raptor's eggs, and
 // the keys of "x-raptor" in other formats.
-var RaptorKeys = []string{"arch", "category", "library", "install", "backup", "health", "players", "addons", "workshop"}
+var RaptorKeys = []string{"arch", "category", "library", "install", "backup", "health", "players", "addons", "workshop", "web"}
 
 // Egg is the normalized form of every supported egg format.
 type Egg struct {
@@ -155,6 +155,36 @@ type Extension struct {
 	// Workshop turns on Steam Workshop items for games that download them
 	// themselves (docs/EGGS.md#steam-workshop); nil if the egg has none.
 	Workshop *Workshop `yaml:"workshop"`
+	// Web is a web dashboard the server serves (txAdmin, Grafana), so the
+	// app can link to it (#428); nil if it has none.
+	Web *Web `yaml:"web"`
+}
+
+// Web is a web page a server serves on one of its ports.
+type Web struct {
+	// Name is what it's called ("txAdmin", "Grafana").
+	Name string `yaml:"name"`
+	// Port is the variable holding its port; empty: the primary port. An
+	// empty value means it's off.
+	Port string `yaml:"port"`
+	// Enabled is a variable that turns it on ("1" or "true"); empty: on.
+	Enabled string `yaml:"enabled"`
+}
+
+// CheckWeb validates x-raptor.web against the egg's variables.
+func CheckWeb(w *Web, vars []Variable) error {
+	if w == nil {
+		return nil
+	}
+	if strings.TrimSpace(w.Name) == "" || len(w.Name) > 40 {
+		return errors.New("egg: x-raptor.web.name: name the page, like txAdmin")
+	}
+	for key, v := range map[string]string{"port": w.Port, "enabled": w.Enabled} {
+		if v != "" && !slices.ContainsFunc(vars, func(x Variable) bool { return x.Env == v }) {
+			return fmt.Errorf("egg: x-raptor.web.%s %q: not one of the egg's variables", key, v)
+		}
+	}
+	return nil
 }
 
 // BackupHooks are console commands sent around a backup of a running
@@ -513,6 +543,9 @@ func (e *Egg) parseRaptor(n *yaml.Node) error {
 			return err
 		}
 		if err := CheckWorkshop(e.Raptor.Workshop, e.Variables); err != nil {
+			return err
+		}
+		if err := CheckWeb(e.Raptor.Web, e.Variables); err != nil {
 			return err
 		}
 	}

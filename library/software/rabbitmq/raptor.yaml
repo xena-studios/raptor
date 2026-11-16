@@ -7,6 +7,10 @@ credits:
   - "Icon: the RabbitMQ logo, from https://github.com/rabbitmq (Broadcom)"
 certified: true
 arch: [amd64, arm64]
+# The app links to its web page (#428).
+web:
+  name: RabbitMQ management
+  port: MANAGEMENT_PORT
 test:
   tier: fast
   memory_mib: 1024

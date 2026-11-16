@@ -223,7 +223,7 @@ Checked against reality: of the 606 eggs, the defaults that fail their own rules
 }
 ```
 
-The fields are those of [Raptor extensions](#raptor-extensions) below (`arch`, `category`, `install`, `backup`, `health`, `players`, `addons`, `workshop`), validated the same way, plus `library`, the egg's ID in the egg library. Errors name them without the `x-raptor.` prefix. An `x-raptor` block in a Raptor egg is ignored.
+The fields are those of [Raptor extensions](#raptor-extensions) below (`arch`, `category`, `install`, `backup`, `health`, `players`, `addons`, `workshop`, `web`), validated the same way, plus `library`, the egg's ID in the egg library. Errors name them without the `x-raptor.` prefix. An `x-raptor` block in a Raptor egg is ignored.
 
 - **Nodes:** Wings lists the `raptor-eggs` capability when it reads the format. The Panel refuses a `server.create` or `server.update` with a Raptor egg for a node without it, saying to update Wings, rather than letting the node fail with "unsupported format" (DECISIONS #353).
 - **Other panels** don't read `RPTR_v1`. Eggs imported from Pterodactyl or Pelican keep their format (and Raptor's settings for them stay under `x-raptor`, which those panels ignore); re-importing one over a Raptor egg keeps the Raptor egg's settings, moved under `x-raptor` (`spec.KeepRaptor`).
@@ -295,6 +295,21 @@ x-raptor:
 ## Server icon and MOTD
 
 Minecraft Java servers (an egg whose `players.query` is `minecraft`) that have a `server.properties` get **In the server list** on Settings (#425, `web/src/components/server-list-look.tsx`): the icon and MOTD players see, previewed as the client draws them. The icon is any image, cropped square and drawn to a 64×64 PNG in the browser, written as `server-icon.png` (or removed); the MOTD has colour and style buttons that insert § codes, and is written to `server.properties` the way Minecraft writes it (non-ASCII as `\uXXXX`, the line rewritten in place, `web/src/lib/minecraft-text.ts`). Both go through `files.write` (and `files.delete`), so they need that permission. Proxies (no `server.properties`) don't get it; their MOTD is in their own config. It moves to the Game tab with the settings form (#424, #436).
+
+## Web dashboards
+
+An egg whose server serves a web page (txAdmin, Grafana, code-server) says so under `x-raptor.web` (#428), and the server's Overview links to it (**Open txAdmin**):
+
+```yaml
+web:
+  name: txAdmin              # what it's called
+  port: TXHOST_TXA_PORT      # the variable with its port; omitted: the primary port
+  enabled: TXADMIN_ENABLE    # a variable that turns it on (1 or true); omitted: always on
+```
+
+- The link is `http://<the server's address>:<port>/`: the shown address's host if it has one, else the node's hostname. A port variable that's empty means it's off. If the port isn't one of the server's ports, Overview says to add it on Network instead of linking.
+- Both variables must be the egg's. The library sets it for FiveM's txAdmin and the software eggs with a web page (code-server, Grafana, Uptime Kuma, Forgejo, Gitea, Owncast, yarr, Reposilite, Prometheus, RabbitMQ's management page, Game Server Watcher, TS3 Manager).
+- Wings reports it in the egg summary (`web`), so servers on older Wings show no link until they update.
 
 ## Steam Workshop
 
