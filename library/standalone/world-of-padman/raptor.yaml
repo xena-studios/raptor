@@ -6,8 +6,8 @@ credits:
   - "Based on the World of PADMAN egg in https://github.com/pelican-eggs/games-standalone (MIT)"
   - "Icon: World of PADMAN's icon, from https://github.com/PadWorld-Entertainment/worldofpadman"
 certified: true
-# x86_64 server only, and it links SDL2, which Raptor's Box64 image lacks.
-arch: [amd64]
+# The server is x86_64 only: on arm64 it runs through Box64.
+arch: [amd64, arm64]
 test:
   tier: fast
   memory_mib: 1024
