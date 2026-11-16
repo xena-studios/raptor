@@ -1114,6 +1114,35 @@ func (q *Queries) OrgMembersExist(ctx context.Context, arg OrgMembersExistParams
 	return count, err
 }
 
+const phoneChannelBySession = `-- name: PhoneChannelBySession :one
+SELECT id, org_id, type, name, config, secret, hint, failing_since, last_error, last_sent_at, disabled_at, created_by, created_at, user_id, session_id FROM alert_channels WHERE session_id = $1 AND type = 'phone'
+`
+
+// An app session's phone, for a push that isn't an alert (an approval
+// request): sent even when the person turned the phone's alerts off.
+func (q *Queries) PhoneChannelBySession(ctx context.Context, sessionID pgtype.UUID) (AlertChannel, error) {
+	row := q.db.QueryRow(ctx, phoneChannelBySession, sessionID)
+	var i AlertChannel
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Type,
+		&i.Name,
+		&i.Config,
+		&i.Secret,
+		&i.Hint,
+		&i.FailingSince,
+		&i.LastError,
+		&i.LastSentAt,
+		&i.DisabledAt,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UserID,
+		&i.SessionID,
+	)
+	return i, err
+}
+
 const phoneSessionLive = `-- name: PhoneSessionLive :one
 SELECT EXISTS (SELECT 1 FROM alert_channels c JOIN sessions s ON s.id = c.session_id
     WHERE c.id = $1 AND s.revoked_at IS NULL AND s.expires_at > now())

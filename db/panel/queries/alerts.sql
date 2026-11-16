@@ -280,6 +280,11 @@ DELETE FROM alert_channels WHERE session_id = $1;
 -- A phone whose push token is gone, or whose session ended.
 DELETE FROM alert_channels WHERE id = $1 AND type = 'phone';
 
+-- name: PhoneChannelBySession :one
+-- An app session's phone, for a push that isn't an alert (an approval
+-- request): sent even when the person turned the phone's alerts off.
+SELECT * FROM alert_channels WHERE session_id = $1 AND type = 'phone';
+
 -- name: PhoneSessionLive :one
 SELECT EXISTS (SELECT 1 FROM alert_channels c JOIN sessions s ON s.id = c.session_id
     WHERE c.id = $1 AND s.revoked_at IS NULL AND s.expires_at > now());

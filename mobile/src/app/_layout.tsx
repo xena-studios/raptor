@@ -104,6 +104,7 @@ export default function RootLayout() {
                 name="server/[orgId]/[nodeId]/[serverId]"
                 options={{ headerShown: true, title: "" }}
               />
+              <Stack.Screen name="approve" options={{ presentation: "modal" }} />
             </Stack.Protected>
             <Stack.Protected guard={!signedIn}>
               <Stack.Screen name="sign-in" />

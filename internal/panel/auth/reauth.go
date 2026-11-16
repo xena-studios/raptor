@@ -89,8 +89,12 @@ func (s *Service) BeginReauth(ctx context.Context, _ *panelv1.BeginReauthRequest
 		return nil, err
 	}
 	totpOn := sess.User.TotpEnabledAt.Valid
+	phone, err := s.phoneAllowed(ctx, q, sess.User)
+	if err != nil {
+		return nil, err
+	}
 	if len(u.creds) == 0 && totpOn {
-		return &panelv1.BeginReauthResponse{TotpAllowed: true}, nil
+		return &panelv1.BeginReauthResponse{TotpAllowed: true, PhoneAllowed: phone}, nil
 	}
 	if len(u.creds) == 0 {
 		if err := s.limit(ctx, "send:email:"+sess.User.Email, limitSendPerEmail); err != nil {
@@ -118,7 +122,7 @@ func (s *Service) BeginReauth(ctx context.Context, _ *panelv1.BeginReauthRequest
 	if err != nil {
 		return nil, err
 	}
-	return &panelv1.BeginReauthResponse{Method: &panelv1.BeginReauthResponse_Passkey{Passkey: ch}, TotpAllowed: totpOn}, nil
+	return &panelv1.BeginReauthResponse{Method: &panelv1.BeginReauthResponse_Passkey{Passkey: ch}, TotpAllowed: totpOn, PhoneAllowed: phone}, nil
 }
 
 // FinishReauth implements AuthService.
@@ -145,6 +149,9 @@ func (s *Service) FinishReauth(ctx context.Context, req *panelv1.FinishReauthReq
 	case *panelv1.FinishReauthRequest_TotpCode:
 		method = "totp"
 		failure, err = s.reauthTOTP(ctx, sess, p.TotpCode)
+	case *panelv1.FinishReauthRequest_PhoneApprovalId:
+		method = "phone"
+		failure, err = s.reauthPhone(ctx, sess, p.PhoneApprovalId)
 	default:
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("a passkey or a code is needed"))
 	}
@@ -284,4 +291,22 @@ func (s *Service) notify(ctx context.Context, user store.User, e mail.Email) {
 	if err := s.Mailer.Send(context.WithoutCancel(ctx), user.Email, e); err != nil {
 		s.log().Error("sending a security notice failed", "user", uuid.UUID(user.ID.Bytes), "err", err)
 	}
+}
+
+func (s *Service) reauthPhone(ctx context.Context, sess *Session, id string) (failure, err error) {
+	err = pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		ok, err := usePhoneApproval(ctx, q, id, func(ap store.PhoneApproval) bool {
+			return ap.Purpose == "reauth" && ap.SessionID == sess.ID
+		})
+		if err != nil {
+			return err
+		}
+		if !ok {
+			failure = connect.NewError(connect.CodePermissionDenied, errors.New("your phone didn't approve that; try again"))
+			return nil
+		}
+		return q.SetSessionReauth(ctx, store.SetSessionReauthParams{ID: sess.ID, ReauthAt: pgtype.Timestamptz{Time: s.now(), Valid: true}})
+	})
+	return failure, err
 }

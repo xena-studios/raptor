@@ -270,6 +270,10 @@ func (s *Service) DisableTOTP(ctx context.Context, _ *panelv1.DisableTOTPRequest
 		if err := q.DisableTOTP(ctx, sess.UserID); err != nil {
 			return err
 		}
+		// Approving from a phone stands in for TOTP; without it, it goes.
+		if err := q.RemoveUserPhoneApprovers(ctx, sess.UserID); err != nil {
+			return err
+		}
 		return q.DeleteRecoveryCodes(ctx, sess.UserID)
 	})
 	if err != nil {
@@ -380,6 +384,11 @@ func (s *Service) FinishSecondFactor(ctx context.Context, req *panelv1.FinishSec
 			var n int64
 			n, err = q.UseRecoveryCode(ctx, store.UseRecoveryCodeParams{UserID: p.UserID, CodeHash: recoveryHash(p.UserID, c.RecoveryCode)})
 			good, recovered, method = n == 1, n == 1, "recovery_code"
+		case *panelv1.FinishSecondFactorRequest_PhoneApprovalId:
+			method = "phone"
+			good, err = usePhoneApproval(ctx, q, c.PhoneApprovalId, func(ap store.PhoneApproval) bool {
+				return ap.Purpose == "signin" && ap.PendingSigninID == p.ID
+			})
 		default:
 			return connect.NewError(connect.CodeInvalidArgument, errors.New("a code is needed"))
 		}

@@ -61,6 +61,9 @@ type Service struct {
 	// them at a test server).
 	Pictures     *http.Client
 	PictureHosts map[string][]string
+	// ApprovalPush sends phone approval requests (nil: they only show when
+	// the app is opened).
+	ApprovalPush ApprovalPusher
 	Log          *slog.Logger
 	Now          func() time.Time
 

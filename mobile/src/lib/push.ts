@@ -85,6 +85,10 @@ export async function unregister() {
 // open goes to what a tapped notification was about.
 function open(data: Record<string, unknown> | undefined) {
   const s = (k: string) => (typeof data?.[k] === "string" ? (data[k] as string) : "");
+  if (s("kind") === "approval") {
+    router.push("/approve");
+    return;
+  }
   if (s("org_id") && s("node_id") && s("server_id")) {
     router.push({
       pathname: "/server/[orgId]/[nodeId]/[serverId]",

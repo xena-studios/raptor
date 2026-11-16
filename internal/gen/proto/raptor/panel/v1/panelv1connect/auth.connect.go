@@ -119,6 +119,27 @@ const (
 	AuthServiceDeleteAccountProcedure = "/raptor.panel.v1.AuthService/DeleteAccount"
 	// AuthServiceApproveAppProcedure is the fully-qualified name of the AuthService's ApproveApp RPC.
 	AuthServiceApproveAppProcedure = "/raptor.panel.v1.AuthService/ApproveApp"
+	// AuthServiceGetPhoneApproverProcedure is the fully-qualified name of the AuthService's
+	// GetPhoneApprover RPC.
+	AuthServiceGetPhoneApproverProcedure = "/raptor.panel.v1.AuthService/GetPhoneApprover"
+	// AuthServiceEnrollPhoneApproverProcedure is the fully-qualified name of the AuthService's
+	// EnrollPhoneApprover RPC.
+	AuthServiceEnrollPhoneApproverProcedure = "/raptor.panel.v1.AuthService/EnrollPhoneApprover"
+	// AuthServiceRemovePhoneApproverProcedure is the fully-qualified name of the AuthService's
+	// RemovePhoneApprover RPC.
+	AuthServiceRemovePhoneApproverProcedure = "/raptor.panel.v1.AuthService/RemovePhoneApprover"
+	// AuthServiceStartPhoneApprovalProcedure is the fully-qualified name of the AuthService's
+	// StartPhoneApproval RPC.
+	AuthServiceStartPhoneApprovalProcedure = "/raptor.panel.v1.AuthService/StartPhoneApproval"
+	// AuthServiceCheckPhoneApprovalProcedure is the fully-qualified name of the AuthService's
+	// CheckPhoneApproval RPC.
+	AuthServiceCheckPhoneApprovalProcedure = "/raptor.panel.v1.AuthService/CheckPhoneApproval"
+	// AuthServiceListPhoneApprovalsProcedure is the fully-qualified name of the AuthService's
+	// ListPhoneApprovals RPC.
+	AuthServiceListPhoneApprovalsProcedure = "/raptor.panel.v1.AuthService/ListPhoneApprovals"
+	// AuthServiceDecidePhoneApprovalProcedure is the fully-qualified name of the AuthService's
+	// DecidePhoneApproval RPC.
+	AuthServiceDecidePhoneApprovalProcedure = "/raptor.panel.v1.AuthService/DecidePhoneApproval"
 )
 
 // AuthServiceClient is a client for the raptor.panel.v1.AuthService service.
@@ -219,6 +240,30 @@ type AuthServiceClient interface {
 	// the phone, which trades it at POST /oauth/token with its PKCE verifier.
 	// Browser sessions only, with a recent re-authentication.
 	ApproveApp(context.Context, *v1.ApproveAppRequest) (*v1.ApproveAppResponse, error)
+	// GetPhoneApprover says whether this app session approves, and whether
+	// it can start to. The phone app only.
+	GetPhoneApprover(context.Context, *v1.GetPhoneApproverRequest) (*v1.GetPhoneApproverResponse, error)
+	// EnrollPhoneApprover makes this app session an approver, with a secret
+	// the app keeps behind Face ID. Only within 15 minutes of the app
+	// signing in (which needed a recent confirmation in the browser), and
+	// only with TOTP on. The account is emailed.
+	EnrollPhoneApprover(context.Context, *v1.EnrollPhoneApproverRequest) (*v1.EnrollPhoneApproverResponse, error)
+	// RemovePhoneApprover stops this app session approving.
+	RemovePhoneApprover(context.Context, *v1.RemovePhoneApproverRequest) (*v1.RemovePhoneApproverResponse, error)
+	// StartPhoneApproval asks the account's phones to approve: the browser
+	// waiting for a second factor (its pending sign-in), or a browser session
+	// confirming it's the person. It shows the number to pick on the phone.
+	StartPhoneApproval(context.Context, *v1.StartPhoneApprovalRequest) (*v1.StartPhoneApprovalResponse, error)
+	// CheckPhoneApproval is whether the phone has answered (the browser that
+	// asked only).
+	CheckPhoneApproval(context.Context, *v1.CheckPhoneApprovalRequest) (*v1.CheckPhoneApprovalResponse, error)
+	// ListPhoneApprovals lists requests waiting for an answer. The phone app
+	// only.
+	ListPhoneApprovals(context.Context, *v1.ListPhoneApprovalsRequest) (*v1.ListPhoneApprovalsResponse, error)
+	// DecidePhoneApproval approves (with the number picked) or denies a
+	// request, proven with the approver's secret. A wrong number denies it.
+	// Denials are emailed.
+	DecidePhoneApproval(context.Context, *v1.DecidePhoneApprovalRequest) (*v1.DecidePhoneApprovalResponse, error)
 }
 
 // NewAuthServiceClient constructs a client for the raptor.panel.v1.AuthService service. By default,
@@ -424,6 +469,51 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("ApproveApp")),
 			connect.WithClientOptions(opts...),
 		),
+		getPhoneApprover: connect.NewClient[v1.GetPhoneApproverRequest, v1.GetPhoneApproverResponse](
+			httpClient,
+			baseURL+AuthServiceGetPhoneApproverProcedure,
+			connect.WithSchema(authServiceMethods.ByName("GetPhoneApprover")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		enrollPhoneApprover: connect.NewClient[v1.EnrollPhoneApproverRequest, v1.EnrollPhoneApproverResponse](
+			httpClient,
+			baseURL+AuthServiceEnrollPhoneApproverProcedure,
+			connect.WithSchema(authServiceMethods.ByName("EnrollPhoneApprover")),
+			connect.WithClientOptions(opts...),
+		),
+		removePhoneApprover: connect.NewClient[v1.RemovePhoneApproverRequest, v1.RemovePhoneApproverResponse](
+			httpClient,
+			baseURL+AuthServiceRemovePhoneApproverProcedure,
+			connect.WithSchema(authServiceMethods.ByName("RemovePhoneApprover")),
+			connect.WithClientOptions(opts...),
+		),
+		startPhoneApproval: connect.NewClient[v1.StartPhoneApprovalRequest, v1.StartPhoneApprovalResponse](
+			httpClient,
+			baseURL+AuthServiceStartPhoneApprovalProcedure,
+			connect.WithSchema(authServiceMethods.ByName("StartPhoneApproval")),
+			connect.WithClientOptions(opts...),
+		),
+		checkPhoneApproval: connect.NewClient[v1.CheckPhoneApprovalRequest, v1.CheckPhoneApprovalResponse](
+			httpClient,
+			baseURL+AuthServiceCheckPhoneApprovalProcedure,
+			connect.WithSchema(authServiceMethods.ByName("CheckPhoneApproval")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		listPhoneApprovals: connect.NewClient[v1.ListPhoneApprovalsRequest, v1.ListPhoneApprovalsResponse](
+			httpClient,
+			baseURL+AuthServiceListPhoneApprovalsProcedure,
+			connect.WithSchema(authServiceMethods.ByName("ListPhoneApprovals")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		decidePhoneApproval: connect.NewClient[v1.DecidePhoneApprovalRequest, v1.DecidePhoneApprovalResponse](
+			httpClient,
+			baseURL+AuthServiceDecidePhoneApprovalProcedure,
+			connect.WithSchema(authServiceMethods.ByName("DecidePhoneApproval")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -460,6 +550,13 @@ type authServiceClient struct {
 	finishEmailChange         *connect.Client[v1.FinishEmailChangeRequest, v1.FinishEmailChangeResponse]
 	deleteAccount             *connect.Client[v1.DeleteAccountRequest, v1.DeleteAccountResponse]
 	approveApp                *connect.Client[v1.ApproveAppRequest, v1.ApproveAppResponse]
+	getPhoneApprover          *connect.Client[v1.GetPhoneApproverRequest, v1.GetPhoneApproverResponse]
+	enrollPhoneApprover       *connect.Client[v1.EnrollPhoneApproverRequest, v1.EnrollPhoneApproverResponse]
+	removePhoneApprover       *connect.Client[v1.RemovePhoneApproverRequest, v1.RemovePhoneApproverResponse]
+	startPhoneApproval        *connect.Client[v1.StartPhoneApprovalRequest, v1.StartPhoneApprovalResponse]
+	checkPhoneApproval        *connect.Client[v1.CheckPhoneApprovalRequest, v1.CheckPhoneApprovalResponse]
+	listPhoneApprovals        *connect.Client[v1.ListPhoneApprovalsRequest, v1.ListPhoneApprovalsResponse]
+	decidePhoneApproval       *connect.Client[v1.DecidePhoneApprovalRequest, v1.DecidePhoneApprovalResponse]
 }
 
 // StartEmailSignIn calls raptor.panel.v1.AuthService.StartEmailSignIn.
@@ -741,6 +838,69 @@ func (c *authServiceClient) ApproveApp(ctx context.Context, req *v1.ApproveAppRe
 	return nil, err
 }
 
+// GetPhoneApprover calls raptor.panel.v1.AuthService.GetPhoneApprover.
+func (c *authServiceClient) GetPhoneApprover(ctx context.Context, req *v1.GetPhoneApproverRequest) (*v1.GetPhoneApproverResponse, error) {
+	response, err := c.getPhoneApprover.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// EnrollPhoneApprover calls raptor.panel.v1.AuthService.EnrollPhoneApprover.
+func (c *authServiceClient) EnrollPhoneApprover(ctx context.Context, req *v1.EnrollPhoneApproverRequest) (*v1.EnrollPhoneApproverResponse, error) {
+	response, err := c.enrollPhoneApprover.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// RemovePhoneApprover calls raptor.panel.v1.AuthService.RemovePhoneApprover.
+func (c *authServiceClient) RemovePhoneApprover(ctx context.Context, req *v1.RemovePhoneApproverRequest) (*v1.RemovePhoneApproverResponse, error) {
+	response, err := c.removePhoneApprover.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// StartPhoneApproval calls raptor.panel.v1.AuthService.StartPhoneApproval.
+func (c *authServiceClient) StartPhoneApproval(ctx context.Context, req *v1.StartPhoneApprovalRequest) (*v1.StartPhoneApprovalResponse, error) {
+	response, err := c.startPhoneApproval.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// CheckPhoneApproval calls raptor.panel.v1.AuthService.CheckPhoneApproval.
+func (c *authServiceClient) CheckPhoneApproval(ctx context.Context, req *v1.CheckPhoneApprovalRequest) (*v1.CheckPhoneApprovalResponse, error) {
+	response, err := c.checkPhoneApproval.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListPhoneApprovals calls raptor.panel.v1.AuthService.ListPhoneApprovals.
+func (c *authServiceClient) ListPhoneApprovals(ctx context.Context, req *v1.ListPhoneApprovalsRequest) (*v1.ListPhoneApprovalsResponse, error) {
+	response, err := c.listPhoneApprovals.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// DecidePhoneApproval calls raptor.panel.v1.AuthService.DecidePhoneApproval.
+func (c *authServiceClient) DecidePhoneApproval(ctx context.Context, req *v1.DecidePhoneApprovalRequest) (*v1.DecidePhoneApprovalResponse, error) {
+	response, err := c.decidePhoneApproval.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // AuthServiceHandler is an implementation of the raptor.panel.v1.AuthService service.
 type AuthServiceHandler interface {
 	// StartEmailSignIn emails a 6-digit code and a sign-in link for the
@@ -839,6 +999,30 @@ type AuthServiceHandler interface {
 	// the phone, which trades it at POST /oauth/token with its PKCE verifier.
 	// Browser sessions only, with a recent re-authentication.
 	ApproveApp(context.Context, *v1.ApproveAppRequest) (*v1.ApproveAppResponse, error)
+	// GetPhoneApprover says whether this app session approves, and whether
+	// it can start to. The phone app only.
+	GetPhoneApprover(context.Context, *v1.GetPhoneApproverRequest) (*v1.GetPhoneApproverResponse, error)
+	// EnrollPhoneApprover makes this app session an approver, with a secret
+	// the app keeps behind Face ID. Only within 15 minutes of the app
+	// signing in (which needed a recent confirmation in the browser), and
+	// only with TOTP on. The account is emailed.
+	EnrollPhoneApprover(context.Context, *v1.EnrollPhoneApproverRequest) (*v1.EnrollPhoneApproverResponse, error)
+	// RemovePhoneApprover stops this app session approving.
+	RemovePhoneApprover(context.Context, *v1.RemovePhoneApproverRequest) (*v1.RemovePhoneApproverResponse, error)
+	// StartPhoneApproval asks the account's phones to approve: the browser
+	// waiting for a second factor (its pending sign-in), or a browser session
+	// confirming it's the person. It shows the number to pick on the phone.
+	StartPhoneApproval(context.Context, *v1.StartPhoneApprovalRequest) (*v1.StartPhoneApprovalResponse, error)
+	// CheckPhoneApproval is whether the phone has answered (the browser that
+	// asked only).
+	CheckPhoneApproval(context.Context, *v1.CheckPhoneApprovalRequest) (*v1.CheckPhoneApprovalResponse, error)
+	// ListPhoneApprovals lists requests waiting for an answer. The phone app
+	// only.
+	ListPhoneApprovals(context.Context, *v1.ListPhoneApprovalsRequest) (*v1.ListPhoneApprovalsResponse, error)
+	// DecidePhoneApproval approves (with the number picked) or denies a
+	// request, proven with the approver's secret. A wrong number denies it.
+	// Denials are emailed.
+	DecidePhoneApproval(context.Context, *v1.DecidePhoneApprovalRequest) (*v1.DecidePhoneApprovalResponse, error)
 }
 
 // NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -1040,6 +1224,51 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("ApproveApp")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceGetPhoneApproverHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceGetPhoneApproverProcedure,
+		svc.GetPhoneApprover,
+		connect.WithSchema(authServiceMethods.ByName("GetPhoneApprover")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceEnrollPhoneApproverHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceEnrollPhoneApproverProcedure,
+		svc.EnrollPhoneApprover,
+		connect.WithSchema(authServiceMethods.ByName("EnrollPhoneApprover")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceRemovePhoneApproverHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceRemovePhoneApproverProcedure,
+		svc.RemovePhoneApprover,
+		connect.WithSchema(authServiceMethods.ByName("RemovePhoneApprover")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceStartPhoneApprovalHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceStartPhoneApprovalProcedure,
+		svc.StartPhoneApproval,
+		connect.WithSchema(authServiceMethods.ByName("StartPhoneApproval")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceCheckPhoneApprovalHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceCheckPhoneApprovalProcedure,
+		svc.CheckPhoneApproval,
+		connect.WithSchema(authServiceMethods.ByName("CheckPhoneApproval")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceListPhoneApprovalsHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceListPhoneApprovalsProcedure,
+		svc.ListPhoneApprovals,
+		connect.WithSchema(authServiceMethods.ByName("ListPhoneApprovals")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceDecidePhoneApprovalHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceDecidePhoneApprovalProcedure,
+		svc.DecidePhoneApproval,
+		connect.WithSchema(authServiceMethods.ByName("DecidePhoneApproval")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/raptor.panel.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthServiceStartEmailSignInProcedure:
@@ -1104,6 +1333,20 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceDeleteAccountHandler.ServeHTTP(w, r)
 		case AuthServiceApproveAppProcedure:
 			authServiceApproveAppHandler.ServeHTTP(w, r)
+		case AuthServiceGetPhoneApproverProcedure:
+			authServiceGetPhoneApproverHandler.ServeHTTP(w, r)
+		case AuthServiceEnrollPhoneApproverProcedure:
+			authServiceEnrollPhoneApproverHandler.ServeHTTP(w, r)
+		case AuthServiceRemovePhoneApproverProcedure:
+			authServiceRemovePhoneApproverHandler.ServeHTTP(w, r)
+		case AuthServiceStartPhoneApprovalProcedure:
+			authServiceStartPhoneApprovalHandler.ServeHTTP(w, r)
+		case AuthServiceCheckPhoneApprovalProcedure:
+			authServiceCheckPhoneApprovalHandler.ServeHTTP(w, r)
+		case AuthServiceListPhoneApprovalsProcedure:
+			authServiceListPhoneApprovalsHandler.ServeHTTP(w, r)
+		case AuthServiceDecidePhoneApprovalProcedure:
+			authServiceDecidePhoneApprovalHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1235,4 +1478,32 @@ func (UnimplementedAuthServiceHandler) DeleteAccount(context.Context, *v1.Delete
 
 func (UnimplementedAuthServiceHandler) ApproveApp(context.Context, *v1.ApproveAppRequest) (*v1.ApproveAppResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.ApproveApp is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) GetPhoneApprover(context.Context, *v1.GetPhoneApproverRequest) (*v1.GetPhoneApproverResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.GetPhoneApprover is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) EnrollPhoneApprover(context.Context, *v1.EnrollPhoneApproverRequest) (*v1.EnrollPhoneApproverResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.EnrollPhoneApprover is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) RemovePhoneApprover(context.Context, *v1.RemovePhoneApproverRequest) (*v1.RemovePhoneApproverResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.RemovePhoneApprover is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) StartPhoneApproval(context.Context, *v1.StartPhoneApprovalRequest) (*v1.StartPhoneApprovalResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.StartPhoneApproval is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) CheckPhoneApproval(context.Context, *v1.CheckPhoneApprovalRequest) (*v1.CheckPhoneApprovalResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.CheckPhoneApproval is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) ListPhoneApprovals(context.Context, *v1.ListPhoneApprovalsRequest) (*v1.ListPhoneApprovalsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.ListPhoneApprovals is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) DecidePhoneApproval(context.Context, *v1.DecidePhoneApprovalRequest) (*v1.DecidePhoneApprovalResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.DecidePhoneApproval is not implemented"))
 }

@@ -2,9 +2,10 @@ import { useMutation } from "@connectrpc/connect-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "cn";
 import { Loader2 } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useCallback, useState } from "react";
 
 import { AuthLayout } from "@/components/auth-layout";
+import { PhoneApproval } from "@/components/phone-approval";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,21 @@ function SecondFactor() {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [left, setLeft] = useState<number | null>(null);
+  // Approving from Raptor's app on a phone, when the account has one that
+  // approves; the code form stays as the fallback.
+  const [phone, setPhone] = useState(true);
+  const noPhone = useCallback(() => setPhone(false), []);
+  const approved = useCallback(
+    async (id: string) => {
+      try {
+        await finish.mutateAsync({ proof: { case: "phoneApprovalId", value: id } });
+        await navigate({ href: safeNext(next), replace: true });
+      } catch (err) {
+        setError(message(err));
+      }
+    },
+    [finish, navigate, next],
+  );
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -75,9 +91,14 @@ function SecondFactor() {
       description={
         recovery
           ? "Enter one of your recovery codes. Each works once."
-          : "Enter the 6-digit code from your authenticator app."
+          : phone
+            ? "Approve on your phone, or enter the 6-digit code from your authenticator app."
+            : "Enter the 6-digit code from your authenticator app."
       }
     >
+      {phone && !recovery && (
+        <PhoneApproval purpose="signin" onApproved={approved} onUnavailable={noPhone} />
+      )}
       <form onSubmit={submit} className="flex flex-col gap-4">
         {error && (
           <Alert variant="destructive" role="alert">
