@@ -478,6 +478,12 @@ func Write(base []byte, s *Spec) ([]byte, error) {
 					}
 					set(n, "dirs", dirs)
 				}
+				if a.Auth != nil {
+					auth := &yaml.Node{Kind: yaml.MappingNode}
+					set(auth, "username", str(a.Auth.Username))
+					set(auth, "token", str(a.Auth.Token))
+					set(n, "auth", auth)
+				}
 				set(addons, kind, n)
 			}
 			set(ext, "addons", addons)

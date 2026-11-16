@@ -29,6 +29,14 @@ Restart the server for changes to take effect. Installing needs the **Change fil
 
 SpigotMC isn't offered: its downloads often go to other sites without a hash, so the machine couldn't check what it got. Install those by uploading the jar, or with [Upload → From a link](/servers/files/#download-from-a-link).
 
+## Factorio mods
+
+Factorio servers get a **Mods** section for mods from the [Factorio mod portal](https://mods.factorio.com), for the server's Factorio version, most downloaded first.
+
+- Set **your factorio.com username and token** in Startup first (the token is on your factorio.com profile page): the portal only lets accounts that own Factorio download mods. Raptor's node adds them to each download itself.
+- **Install** brings the mods it needs with it (and offers the optional ones), and says when it can't run beside one you have. Each download is checked against the portal's hash.
+- **Installed** names mods by their file and offers updates for your Factorio version. Factorio turns on every mod in the folder; to turn one off without removing it, use the game's mod settings or `mods/mod-list.json`.
+
 ## Rust plugins (uMod)
 
 Rust servers get a **Plugins** tab for Oxide and Carbon plugins from [uMod](https://umod.org). Set **Mod framework** to Oxide or Carbon in Startup first (vanilla Rust doesn't load plugins); the tab puts plugins in the folder that framework reads (`oxide/plugins` or `carbon/plugins`).

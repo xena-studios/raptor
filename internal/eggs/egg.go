@@ -335,6 +335,16 @@ type Addon struct {
 	// doesn't name uses Dir.
 	DirVariable string            `yaml:"dir_variable"`
 	Dirs        map[string]string `yaml:"dirs"`
+	// Auth names the variables holding an account's username and token,
+	// for sources whose downloads need one (Factorio's mod portal). Wings
+	// adds them to the download itself, so they never travel in a command.
+	Auth *AddonAuth `yaml:"auth"`
+}
+
+// AddonAuth is where an add-on source's account is: variable names.
+type AddonAuth struct {
+	Username string `yaml:"username"`
+	Token    string `yaml:"token"`
 }
 
 // DirFor is the folder for a server with these variables.
@@ -353,21 +363,22 @@ var AddonKinds = map[string][]string{
 	"mods":      {"fabric", "forge", "neoforge", "quilt"},
 	"datapacks": {"datapack"},
 	"umod":      {"oxide", "carbon"},
+	"factorio":  {"factorio"},
 }
 
 // AddonDir is where a kind's files go by default: datapacks in the world
 // (server.properties' level-name, "world" unless changed).
-var AddonDir = map[string]string{"plugins": "plugins", "mods": "mods", "datapacks": "world/datapacks", "umod": "oxide/plugins"}
+var AddonDir = map[string]string{"plugins": "plugins", "mods": "mods", "datapacks": "world/datapacks", "umod": "oxide/plugins", "factorio": "mods"}
 
 // AddonExt is a kind's file extension: uMod's plugins are C# source.
-var AddonExt = map[string]string{"plugins": ".jar", "mods": ".jar", "datapacks": ".zip", "umod": ".cs"}
+var AddonExt = map[string]string{"plugins": ".jar", "mods": ".jar", "datapacks": ".zip", "umod": ".cs", "factorio": ".zip"}
 
 // CheckAddons validates x-raptor.addons.
 func CheckAddons(addons map[string]Addon) error {
 	for kind, a := range addons {
 		known, ok := AddonKinds[kind]
 		if !ok {
-			return fmt.Errorf("egg: x-raptor.addons.%s: want plugins, mods, datapacks, or umod", kind)
+			return fmt.Errorf("egg: x-raptor.addons.%s: want plugins, mods, datapacks, umod, or factorio", kind)
 		}
 		if len(a.Loaders) == 0 {
 			return fmt.Errorf("egg: x-raptor.addons.%s: name its loaders", kind)
@@ -403,6 +414,13 @@ func CheckAddonVariables(addons map[string]Addon, vars []Variable) error {
 	for kind, a := range addons {
 		if a.DirVariable != "" && !slices.ContainsFunc(vars, func(v Variable) bool { return v.Env == a.DirVariable }) {
 			return fmt.Errorf("egg: x-raptor.addons.%s.dir_variable %q: not one of the egg's variables", kind, a.DirVariable)
+		}
+		if a.Auth != nil {
+			for key, name := range map[string]string{"username": a.Auth.Username, "token": a.Auth.Token} {
+				if !slices.ContainsFunc(vars, func(v Variable) bool { return v.Env == name }) {
+					return fmt.Errorf("egg: x-raptor.addons.%s.auth.%s %q: not one of the egg's variables", kind, key, name)
+				}
+			}
 		}
 	}
 	return nil

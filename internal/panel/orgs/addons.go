@@ -1,6 +1,7 @@
 package orgs
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -18,6 +19,7 @@ import (
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
 	"github.com/xena-studios/raptor/internal/panel/auth"
+	"github.com/xena-studios/raptor/internal/panel/factorio"
 	"github.com/xena-studios/raptor/internal/panel/hangar"
 	"github.com/xena-studios/raptor/internal/panel/modrinth"
 	"github.com/xena-studios/raptor/internal/panel/steam"
@@ -33,6 +35,7 @@ type Addons struct {
 	Hangar   *hangar.Client
 	Steam    *steam.Client
 	UMod     *umod.Client
+	Factorio *factorio.Client
 }
 
 // kindModpacks is the pack picker's kind (#413): Modrinth's modpacks,
@@ -44,6 +47,7 @@ const (
 	sourceModrinth = "modrinth"
 	sourceHangar   = "hangar"
 	sourceUMod     = "umod"
+	sourceFactorio = "factorio"
 )
 
 // umodGame is the uMod category the umod kind's plugins come from.
@@ -118,6 +122,10 @@ func modrinthError(err error) error {
 		return connect.NewError(connect.CodeNotFound, err)
 	case errors.Is(err, umod.ErrUnavailable):
 		return connect.NewError(connect.CodeUnavailable, umod.ErrUnavailable)
+	case errors.Is(err, factorio.ErrNotFound):
+		return connect.NewError(connect.CodeNotFound, err)
+	case errors.Is(err, factorio.ErrUnavailable):
+		return connect.NewError(connect.CodeUnavailable, factorio.ErrUnavailable)
 	}
 	return err
 }
@@ -136,8 +144,8 @@ func hangarPlatform(kind string, loaders []string) (string, error) {
 }
 
 func checkSource(source string) error {
-	if source != "" && source != sourceModrinth && source != sourceHangar && source != sourceUMod {
-		return invalid(errors.New("the source is modrinth, hangar, or umod"))
+	if source != "" && source != sourceModrinth && source != sourceHangar && source != sourceUMod && source != sourceFactorio {
+		return invalid(errors.New("the source is modrinth, hangar, umod, or factorio"))
 	}
 	return nil
 }
@@ -192,6 +200,30 @@ func umodVersion(p umod.Plugin) *panelv1.AddonVersion {
 	return out
 }
 
+func factorioProject(m factorio.Mod) *panelv1.AddonProject {
+	return &panelv1.AddonProject{
+		Id: m.Name, Slug: m.Name, Title: cmp.Or(m.Title, m.Name), Description: m.Summary, IconUrl: m.Icon(),
+		Downloads: m.Downloads, Author: m.Owner, Url: "https://mods.factorio.com/mod/" + url.PathEscape(m.Name), Source: sourceFactorio,
+	}
+}
+
+// factorioVersion is a release as an add-on version: its ID is
+// "mod@version", and its file is the portal's download, checked by SHA-1.
+func factorioVersion(mod string, r factorio.Release) *panelv1.AddonVersion {
+	out := &panelv1.AddonVersion{
+		Id: mod + "@" + r.Version, ProjectId: mod, Name: r.Version, VersionNumber: r.Version,
+		GameVersions: []string{r.Info.FactorioVersion}, Loaders: []string{"factorio"},
+		File: &panelv1.AddonFile{Url: factorio.DefaultBase + r.DownloadURL, Filename: r.FileName, Sha1: r.SHA1},
+	}
+	if !r.Released.IsZero() {
+		out.PublishedAt = timestamppb.New(r.Released)
+	}
+	for _, d := range factorio.Dependencies(r) {
+		out.Dependencies = append(out.Dependencies, &panelv1.AddonDependency{ProjectId: d.Name, Type: d.Type})
+	}
+	return out
+}
+
 func projectProto(p modrinth.Project) *panelv1.AddonProject {
 	return &panelv1.AddonProject{
 		Id: p.Key(), Slug: p.Slug, Title: p.Title, Description: p.Description, IconUrl: p.IconURL,
@@ -234,6 +266,20 @@ func (s *Addons) SearchAddons(ctx context.Context, req *panelv1.SearchAddonsRequ
 	offset := int(min(max(req.GetOffset(), 0), 10_000))
 	if req.GetKind() == kindModpacks && req.GetSource() != "" && req.GetSource() != sourceModrinth {
 		return nil, invalid(errors.New("modpacks come from Modrinth"))
+	}
+	if req.GetKind() == "factorio" || req.GetSource() == sourceFactorio {
+		if req.GetKind() != "factorio" || req.GetSource() != sourceFactorio {
+			return nil, invalid(errors.New("factorio's mods come from its mod portal, and only it has them"))
+		}
+		mods, total, err := s.Factorio.Search(ctx, query, factorio.Major(req.GetGameVersion()), offset)
+		if err != nil {
+			return nil, modrinthError(err)
+		}
+		out := &panelv1.SearchAddonsResponse{Total: int32(min(total, 1<<30))} //nolint:gosec // capped
+		for _, m := range mods {
+			out.Projects = append(out.Projects, factorioProject(m))
+		}
+		return out, nil
 	}
 	if req.GetKind() == "umod" || req.GetSource() == sourceUMod {
 		if req.GetKind() != "umod" || req.GetSource() != sourceUMod {
@@ -288,6 +334,19 @@ func (s *Addons) ListAddonVersions(ctx context.Context, req *panelv1.ListAddonVe
 	}
 	if req.GetKind() == kindModpacks && req.GetSource() != "" && req.GetSource() != sourceModrinth {
 		return nil, invalid(errors.New("modpacks come from Modrinth"))
+	}
+	if req.GetSource() == sourceFactorio {
+		mod, err := s.Factorio.Get(ctx, req.GetProjectId())
+		if err != nil {
+			return nil, modrinthError(err)
+		}
+		out := &panelv1.ListAddonVersionsResponse{}
+		for _, r := range mod.ReleasesFor(factorio.Major(req.GetGameVersion())) {
+			if len(out.Versions) < 50 {
+				out.Versions = append(out.Versions, factorioVersion(mod.Name, r))
+			}
+		}
+		return out, nil
 	}
 	if !projectRef.MatchString(req.GetProjectId()) {
 		return nil, invalid(errors.New("that isn't a project"))
@@ -408,6 +467,9 @@ func (s *Addons) IdentifyAddons(ctx context.Context, req *panelv1.IdentifyAddons
 		return nil, err
 	}
 	if err := s.identifyOnUMod(ctx, req, out); err != nil {
+		return nil, err
+	}
+	if err := s.identifyOnFactorio(ctx, req, out); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -538,4 +600,43 @@ func (s *Addons) LookupWorkshopItems(ctx context.Context, req *panelv1.LookupWor
 		})
 	}
 	return out, nil
+}
+
+// identifyOnFactorio names Factorio mods by their files' names
+// (Krastorio2_2.1.4.zip is Krastorio2 2.1.4): the release with that
+// version, checked by SHA-1, and the newest release for the server's
+// Factorio version when it's newer. At most factorio.MaxNames are looked up.
+func (s *Addons) identifyOnFactorio(ctx context.Context, req *panelv1.IdentifyAddonsRequest, out *panelv1.IdentifyAddonsResponse) error {
+	if s.Factorio == nil || !slices.Contains(req.GetLoaders(), "factorio") {
+		return nil
+	}
+	major := factorio.Major(req.GetGameVersion())
+	looked := 0
+	for _, h := range req.GetHashes() {
+		name, version, ok := factorio.ParseFile(req.GetNames()[h])
+		if !ok || looked == factorio.MaxNames {
+			continue
+		}
+		looked++
+		mod, err := s.Factorio.Get(ctx, name)
+		if errors.Is(err, factorio.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return modrinthError(err)
+		}
+		a := &panelv1.IdentifiedAddon{Sha512: h, Project: factorioProject(mod.Mod)}
+		for _, r := range mod.Releases {
+			if r.Version == version && r.SHA1 == req.GetSha1()[h] {
+				a.Version = factorioVersion(mod.Name, r)
+			}
+		}
+		if newest := mod.ReleasesFor(major); len(newest) > 0 && newest[0].Version != version {
+			if a.Version == nil || newest[0].Released.After(a.GetVersion().GetPublishedAt().AsTime()) {
+				a.Latest = factorioVersion(mod.Name, newest[0])
+			}
+		}
+		out.Addons = append(out.Addons, a)
+	}
+	return nil
 }

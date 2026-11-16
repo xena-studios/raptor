@@ -1119,9 +1119,11 @@ type ResolveAddonDependenciesRequest struct {
 	VersionId   string   `protobuf:"bytes,2,opt,name=version_id,json=versionId,proto3" json:"version_id,omitempty"`
 	Loaders     []string `protobuf:"bytes,3,rep,name=loaders,proto3" json:"loaders,omitempty"`
 	GameVersion string   `protobuf:"bytes,4,opt,name=game_version,json=gameVersion,proto3" json:"game_version,omitempty"`
-	// Projects already on the server (Modrinth IDs), left out of what's
-	// needed and checked against incompatible ones.
-	Installed     []string `protobuf:"bytes,5,rep,name=installed,proto3" json:"installed,omitempty"`
+	// Projects already on the server (Modrinth IDs, or Factorio mod names),
+	// left out of what's needed and checked against incompatible ones.
+	Installed []string `protobuf:"bytes,5,rep,name=installed,proto3" json:"installed,omitempty"`
+	// "modrinth" (the default) or "factorio" (version_id is "mod@version").
+	Source        string `protobuf:"bytes,6,opt,name=source,proto3" json:"source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1189,6 +1191,13 @@ func (x *ResolveAddonDependenciesRequest) GetInstalled() []string {
 		return x.Installed
 	}
 	return nil
+}
+
+func (x *ResolveAddonDependenciesRequest) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
 }
 
 type ResolvedAddon struct {
@@ -1433,14 +1442,15 @@ const file_raptor_panel_v1_addon_proto_rawDesc = "" +
 	"collection\x12\x1a\n" +
 	"\bchildren\x18\b \x03(\tR\bchildren\"R\n" +
 	"\x1bLookupWorkshopItemsResponse\x123\n" +
-	"\x05items\x18\x01 \x03(\v2\x1d.raptor.panel.v1.WorkshopItemR\x05items\"\xb2\x01\n" +
+	"\x05items\x18\x01 \x03(\v2\x1d.raptor.panel.v1.WorkshopItemR\x05items\"\xca\x01\n" +
 	"\x1fResolveAddonDependenciesRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x1d\n" +
 	"\n" +
 	"version_id\x18\x02 \x01(\tR\tversionId\x12\x18\n" +
 	"\aloaders\x18\x03 \x03(\tR\aloaders\x12!\n" +
 	"\fgame_version\x18\x04 \x01(\tR\vgameVersion\x12\x1c\n" +
-	"\tinstalled\x18\x05 \x03(\tR\tinstalled\"\x9e\x01\n" +
+	"\tinstalled\x18\x05 \x03(\tR\tinstalled\x12\x16\n" +
+	"\x06source\x18\x06 \x01(\tR\x06source\"\x9e\x01\n" +
 	"\rResolvedAddon\x127\n" +
 	"\aproject\x18\x01 \x01(\v2\x1d.raptor.panel.v1.AddonProjectR\aproject\x127\n" +
 	"\aversion\x18\x02 \x01(\v2\x1d.raptor.panel.v1.AddonVersionR\aversion\x12\x1b\n" +

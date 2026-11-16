@@ -147,6 +147,10 @@ message EggAddon {
   // software that keeps add-ons in different places; dir otherwise.
   string dir_variable = 5;
   map<string, string> dirs = 6;
+  // The variables holding an account's username and token, for sources
+  // whose downloads need one (Factorio's mod portal); empty: none.
+  string auth_username = 7;
+  string auth_token = 8;
 }
 
 message EggStartup {

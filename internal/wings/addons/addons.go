@@ -51,10 +51,17 @@ const (
 	ModrinthHost = "cdn.modrinth.com"
 	HangarHost   = "hangarcdn.papermc.io"
 	UModHost     = "umod.org"
+	// FactorioHost is Factorio's mod portal: its downloads need the
+	// account's username and token, which Wings adds from the server's
+	// variables (the egg's auth).
+	FactorioHost = "mods.factorio.com"
 )
 
 // DefaultHosts are where files may come from.
-var DefaultHosts = []string{ModrinthHost, HangarHost, UModHost}
+var DefaultHosts = []string{ModrinthHost, HangarHost, UModHost, FactorioHost}
+
+// ErrNoAccount is a download that needs an account the server hasn't set.
+var ErrNoAccount = errors.New("the mod portal needs your factorio.com username and token: set them in Startup first")
 
 // Errors.
 var (
@@ -276,6 +283,11 @@ func (s *Service) Install(ctx context.Context, id, user string, p Install) (File
 	if err != nil {
 		return File{}, err
 	}
+	if a.Auth != nil && strings.EqualFold(u.Hostname(), FactorioHost) {
+		if u, err = s.withAccount(ctx, id, a.Auth, u); err != nil {
+			return File{}, err
+		}
+	}
 	if err := checkName(p.Kind, p.Filename); err != nil {
 		return File{}, err
 	}
@@ -314,6 +326,25 @@ func (s *Service) Install(ctx context.Context, id, user string, p Install) (File
 	return File{Name: p.Filename, Size: fi.Size(), Modified: fi.ModTime().UnixMilli(), Sha512: p.Sha512, Sha256: p.Sha256, Sha1: p.Sha1}, nil
 }
 
+// withAccount adds the server's account (its variables named by the
+// egg's auth) to a download from a source that needs one.
+func (s *Service) withAccount(ctx context.Context, id string, auth *eggs.AddonAuth, u *url.URL) (*url.URL, error) {
+	vars, err := s.Servers.Variables(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	user, token := strings.TrimSpace(vars[auth.Username]), strings.TrimSpace(vars[auth.Token])
+	if user == "" || token == "" {
+		return nil, ErrNoAccount
+	}
+	out := *u
+	q := out.Query()
+	q.Set("username", user)
+	q.Set("token", token)
+	out.RawQuery = q.Encode()
+	return &out, nil
+}
+
 // expected is the hash a download must have.
 type expected struct {
 	new func() hash.Hash
@@ -328,7 +359,7 @@ func wantHash(host string, p Install) (expected, error) {
 	switch {
 	case strings.EqualFold(host, HangarHost):
 		hexSum, size, newHash, name = p.Sha256, sha256.Size, sha256.New, "SHA-256"
-	case strings.EqualFold(host, UModHost):
+	case strings.EqualFold(host, UModHost), strings.EqualFold(host, FactorioHost):
 		hexSum, size, newHash, name = p.Sha1, sha1.Size, sha1.New, "SHA-1"
 	}
 	sum, err := hex.DecodeString(hexSum)
@@ -350,9 +381,17 @@ func (s *Service) download(ctx context.Context, f *files.FS, tmp string, u *url.
 	}
 	resp, err := s.client().Do(req)
 	if err != nil {
+		// Not the URL: it can carry an account's token.
+		var ue *url.Error
+		if errors.As(err, &ue) {
+			err = ue.Err
+		}
 		return fmt.Errorf("downloading from %s: %w", u.Hostname(), err)
 	}
 	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode == http.StatusForbidden && u.Query().Has("token") {
+		return errors.New("the mod portal refused the username and token: check them in Startup")
+	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("downloading from %s: %s", u.Hostname(), resp.Status)
 	}

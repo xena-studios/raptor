@@ -8,6 +8,16 @@ credits:
 certified: true
 # Native arm64 builds from 2.1.18; older versions run through Box64.
 arch: [amd64, arm64]
+# Mods from the mod portal (#411); downloads need the factorio.com account
+# in the server's settings, which Wings adds itself.
+addons:
+  factorio:
+    loaders: [factorio]
+    dir: mods
+    version: FACTORIO_VERSION
+    auth:
+      username: SERVER_USERNAME
+      token: SERVER_TOKEN
 test:
   tier: fast
   memory_mib: 2048

@@ -198,9 +198,11 @@ message ResolveAddonDependenciesRequest {
   string version_id = 2;
   repeated string loaders = 3;
   string game_version = 4;
-  // Projects already on the server (Modrinth IDs), left out of what's
-  // needed and checked against incompatible ones.
+  // Projects already on the server (Modrinth IDs, or Factorio mod names),
+  // left out of what's needed and checked against incompatible ones.
   repeated string installed = 5;
+  // "modrinth" (the default) or "factorio" (version_id is "mod@version").
+  string source = 6;
 }
 
 message ResolvedAddon {

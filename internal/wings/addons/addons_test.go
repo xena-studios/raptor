@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/xena-studios/raptor/internal/eggs"
@@ -25,7 +26,7 @@ const srvID = "0199a0b1-7c2e-7a41-9f3e-2b1c4d5e6f70"
 
 // servers is a fake server manager with one Paper server (that also
 // takes uMod plugins, in the folder its FRAMEWORK picks).
-type servers struct{ dir, framework string }
+type servers struct{ dir, framework, user, token string }
 
 func (s *servers) FilesDir(string) (string, error)                  { return s.dir, nil }
 func (s *servers) CheckFiles(context.Context, string, bool) error   { return nil }
@@ -43,11 +44,15 @@ func (s *servers) Egg(context.Context, string) (*eggs.Egg, error) {
 			Loaders: []string{"oxide", "carbon"}, Dir: "oxide/plugins",
 			DirVariable: "FRAMEWORK", Dirs: map[string]string{"carbon": "carbon/plugins"},
 		},
+		"factorio": {
+			Loaders: []string{"factorio"}, Dir: "mods",
+			Auth: &eggs.AddonAuth{Username: "SERVER_USERNAME", Token: "SERVER_TOKEN"},
+		},
 	}}}, nil
 }
 
 func (s *servers) Variables(context.Context, string) (map[string]string, error) {
-	return map[string]string{"FRAMEWORK": s.framework}, nil
+	return map[string]string{"FRAMEWORK": s.framework, "SERVER_USERNAME": s.user, "SERVER_TOKEN": s.token}, nil
 }
 
 func sum1(b []byte) string {
@@ -94,6 +99,12 @@ func TestInstall(t *testing.T) {
 			_, _ = w.Write(v1)
 		case "/v2.jar":
 			_, _ = w.Write(v2)
+		case "/download/Krastorio2/abc":
+			if r.URL.Query().Get("username") != "alice" || r.URL.Query().Get("token") != "s3cret" {
+				http.Error(w, "forbidden", http.StatusForbidden)
+				return
+			}
+			_, _ = w.Write(v1)
 		case "/elsewhere":
 			http.Redirect(w, r, "https://evil.example.net/x.jar", http.StatusFound)
 		default:
@@ -106,7 +117,7 @@ func TestInstall(t *testing.T) {
 	tr.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {
 		return (&net.Dialer{}).DialContext(ctx, network, cdn.Listener.Addr().String())
 	}
-	svc := &addons.Service{Files: fsvc, Servers: srv, Hosts: []string{"example.com", addons.HangarHost, addons.UModHost}}
+	svc := &addons.Service{Files: fsvc, Servers: srv, Hosts: []string{"example.com", addons.HangarHost, addons.UModHost, addons.FactorioHost}}
 	svc.Client = &http.Client{Transport: tr, CheckRedirect: func(*http.Request, []*http.Request) error {
 		return addons.ErrSource // the default client only follows redirects to its hosts
 	}}
@@ -223,5 +234,31 @@ func TestInstall(t *testing.T) {
 	ls, err := svc.List(ctx, srvID, "umod")
 	if err != nil || ls.Dir != "carbon/plugins" || len(ls.Files) != 1 || ls.Files[0].Sha1 != sum1(v1) {
 		t.Errorf("Carbon's plugins: %+v, %v", ls, err)
+	}
+
+	// Factorio's mod portal: SHA-1, and the server's account added by Wings.
+	factorio := func(p addons.Install) (addons.File, error) {
+		p.Kind = "factorio"
+		return svc.Install(ctx, srvID, "user", p)
+	}
+	portal := "https://" + addons.FactorioHost + "/download/Krastorio2/abc"
+	if _, err := factorio(addons.Install{URL: portal, Sha1: sum1(v1), Filename: "Krastorio2_2.1.4.zip"}); !errors.Is(err, addons.ErrNoAccount) {
+		t.Errorf("without an account: %v", err)
+	}
+	srv.user, srv.token = "alice", "wrong"
+	_, err = factorio(addons.Install{URL: portal, Sha1: sum1(v1), Filename: "Krastorio2_2.1.4.zip"})
+	if err == nil || strings.Contains(err.Error(), "wrong") {
+		t.Errorf("a refused token: %v (it mustn't show the token)", err)
+	}
+	srv.token = "s3cret"
+	if _, err := factorio(addons.Install{URL: portal, Sha1: sum1(v1), Filename: "Krastorio2_2.1.4.zip"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "mods", "Krastorio2_2.1.4.zip")); err != nil {
+		t.Errorf("the mod: %v", err)
+	}
+	// The account goes to the mod portal only.
+	if _, err := factorio(addons.Install{URL: "https://example.com/v1.jar", Sha512: sum(v1), Filename: "x.zip"}); err != nil {
+		t.Errorf("another host for a factorio add-on: %v", err)
 	}
 }

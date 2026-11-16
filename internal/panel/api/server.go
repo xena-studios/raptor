@@ -23,6 +23,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/billing"
 	"github.com/xena-studios/raptor/internal/panel/commands"
 	"github.com/xena-studios/raptor/internal/panel/discord"
+	"github.com/xena-studios/raptor/internal/panel/factorio"
 	"github.com/xena-studios/raptor/internal/panel/hangar"
 	"github.com/xena-studios/raptor/internal/panel/images"
 	"github.com/xena-studios/raptor/internal/panel/live"
@@ -81,6 +82,8 @@ type Config struct {
 	Steam *steam.Client
 	// UMod is where Rust's plugins are found (nil: umod.org).
 	UMod *umod.Client
+	// Factorio is Factorio's mod portal (nil: mods.factorio.com).
+	Factorio *factorio.Client
 	// Support takes nodes' support bundles (nil: not configured).
 	Support http.Handler
 	// Transfers opens file transfer connections to nodes (*nodes.Router),
@@ -170,8 +173,12 @@ func Handler(cfg Config) http.Handler {
 		if um == nil {
 			um = &umod.Client{UserAgent: ua}
 		}
+		fa := cfg.Factorio
+		if fa == nil {
+			fa = &factorio.Client{UserAgent: ua}
+		}
 		// A lookup is up to 500 SHA-512s, with their SHA-256s.
-		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg, Steam: st, UMod: um}, opts(connect.WithReadMaxBytes(256<<10))...)
+		path, handler = panelv1connect.NewAddonServiceHandler(&orgs.Addons{Orgs: cfg.Orgs, Modrinth: mr, Hangar: hg, Steam: st, UMod: um, Factorio: fa}, opts(connect.WithReadMaxBytes(256<<10))...)
 		api.Handle(path, handler)
 	}
 	if cfg.Orgs != nil {
