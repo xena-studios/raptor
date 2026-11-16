@@ -23,6 +23,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/gameversions"
 	"github.com/xena-studios/raptor/internal/panel/hangar"
 	"github.com/xena-studios/raptor/internal/panel/modrinth"
+	"github.com/xena-studios/raptor/internal/panel/mojang"
 	"github.com/xena-studios/raptor/internal/panel/steam"
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/panel/umod"
@@ -38,6 +39,7 @@ type Addons struct {
 	UMod     *umod.Client
 	Factorio *factorio.Client
 	Versions *gameversions.Client
+	Mojang   *mojang.Client
 }
 
 // kindModpacks is the pack picker's kind (#413): Modrinth's modpacks,
@@ -120,6 +122,10 @@ func modrinthError(err error) error {
 		return connect.NewError(connect.CodeUnavailable, hangar.ErrUnavailable)
 	case errors.Is(err, steam.ErrUnavailable):
 		return connect.NewError(connect.CodeUnavailable, steam.ErrUnavailable)
+	case errors.Is(err, mojang.ErrNotFound):
+		return connect.NewError(connect.CodeNotFound, err)
+	case errors.Is(err, mojang.ErrUnavailable):
+		return connect.NewError(connect.CodeUnavailable, mojang.ErrUnavailable)
 	case errors.Is(err, gameversions.ErrUnavailable):
 		return connect.NewError(connect.CodeUnavailable, gameversions.ErrUnavailable)
 	case errors.Is(err, umod.ErrNotFound):
@@ -665,4 +671,22 @@ func (s *Addons) ListGameVersions(ctx context.Context, req *panelv1.ListGameVers
 		out.Versions = append(out.Versions, &panelv1.GameVersion{Id: v.ID, Stable: v.Stable})
 	}
 	return out, nil
+}
+
+// LookupMinecraftPlayer implements AddonService (#422).
+func (s *Addons) LookupMinecraftPlayer(ctx context.Context, req *panelv1.LookupMinecraftPlayerRequest) (*panelv1.LookupMinecraftPlayerResponse, error) {
+	if err := s.allow(ctx, req.GetOrgId()); err != nil {
+		return nil, err
+	}
+	if !mojang.ValidName(req.GetName()) {
+		return nil, invalid(errors.New("a Minecraft name is 1 to 16 letters, digits, and underscores"))
+	}
+	if req.GetOffline() {
+		return &panelv1.LookupMinecraftPlayerResponse{Name: req.GetName(), Uuid: mojang.OfflineUUID(req.GetName())}, nil
+	}
+	p, err := s.Mojang.Lookup(ctx, req.GetName())
+	if err != nil {
+		return nil, modrinthError(err)
+	}
+	return &panelv1.LookupMinecraftPlayerResponse{Name: p.Name, Uuid: p.UUID}, nil
 }

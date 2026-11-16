@@ -10,6 +10,7 @@ import { useAddonSections } from "@/lib/addon-sections";
 import { useGameTab } from "@/lib/game-tab";
 import { canonical, resolveServer, shortId, useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
+import { usePlayersTab } from "@/lib/players-tab";
 import { serverStatus } from "@/lib/servers";
 
 // A server's tabs, each shown to those who may use it.
@@ -62,6 +63,7 @@ function ServerLayout() {
   // share one Add-ons tab after Files, with a section each (#436).
   const { sections } = useAddonSections(orgId, nodeId, serverId, server, node?.capabilities);
   const game = useGameTab(orgId, nodeId, serverId, server);
+  const players = usePlayersTab(orgId, nodeId, serverId, server);
   const [error, setError] = useState("");
   const status = server && serverStatus(server, node?.connected ?? false);
   const params = { orgId, serverId };
@@ -119,6 +121,18 @@ function ServerLayout() {
                       className={tabClass}
                     >
                       Game
+                    </Link>,
+                  ]
+                : []),
+              ...(t.label === "Overview" && players
+                ? [
+                    <Link
+                      key="players"
+                      to="/orgs/$orgId/servers/$serverId/players"
+                      params={params}
+                      className={tabClass}
+                    >
+                      Players
                     </Link>,
                   ]
                 : []),
