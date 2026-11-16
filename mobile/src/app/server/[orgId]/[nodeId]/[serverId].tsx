@@ -13,7 +13,7 @@ import {
   Square,
   Terminal,
 } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 
 import { type Readout, Readouts } from "@/components/readouts";
@@ -21,6 +21,7 @@ import { Page, PageHeader } from "@/components/screen";
 import { Button, Card, CardBody, Notice, Row, Skeleton, StatusChip, Text } from "@/components/ui";
 import { AlertService } from "@/gen/raptor/panel/v1/alert_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
+import { type Activity, settled as actionSettled, startActivity } from "@/lib/activity";
 import { appURL } from "@/lib/config";
 import { can } from "@/lib/format";
 import { useLock } from "@/lib/lock";
@@ -29,6 +30,7 @@ import { MUTE_MINUTES } from "@/lib/push";
 import { serverStatus } from "@/lib/status";
 import { useColors } from "@/lib/theme";
 import { alertClient, commandClient, message } from "@/lib/transport";
+import { syncWidget } from "@/lib/widget";
 
 // Now is what the server uses now, with the last hour behind CPU.
 function Now({ metrics, running }: { metrics?: Metrics; running: boolean }) {
@@ -77,7 +79,7 @@ export default function ServerScreen() {
     orgId: string;
     nodeId: string;
     serverId: string;
-    // A notification's button: "restart" or "mute".
+    // A notification's button or Siri: "restart", "start", "stop", or "mute".
     do?: string;
   }>();
   const lock = useLock();
@@ -96,7 +98,7 @@ export default function ServerScreen() {
   const node = nodes.data?.nodes.find((n) => n.id === nodeId);
   const connected = node?.connected ?? true;
   const metrics = useServerMetrics(nodeId, serverId, !!s && connected);
-  const status = s ? serverStatus(s, connected) : null;
+  const status = useMemo(() => (s ? serverStatus(s, connected) : null), [s, connected]);
   // As the web app's power buttons: off while the server is busy (an
   // install, a move, a restore) or its node is offline; a server stuck
   // starting can still be stopped.
@@ -107,6 +109,9 @@ export default function ServerScreen() {
       ? s.displayAddress ||
         `${node.shortId}.raptornodes.net${s.ports.length ? `:${s.ports[0]}` : ""}`
       : "";
+
+  // The Live Activity for the power action under way, if any.
+  const activity = useRef<{ action: string; a: Activity; at: number } | null>(null);
 
   async function run(action: string, done: string, params?: object) {
     setBusy(action);
@@ -119,13 +124,33 @@ export default function ServerScreen() {
         paramsJson: params ? JSON.stringify(params) : "",
       });
       setResult({ ok: true, text: done });
+      if (s && status) {
+        activity.current?.a.end();
+        const a = startActivity(action, s.name, node?.name ?? "", status);
+        activity.current = a ? { action, a, at: Date.now() } : null;
+      }
       await client.invalidateQueries();
+      setTimeout(() => syncWidget().catch(() => {}), 3000);
     } catch (err) {
       setResult({ ok: false, text: message(err) });
     } finally {
       setBusy("");
     }
   }
+
+  // Follow the Live Activity until the server settles (a few seconds in,
+  // so the state before the action doesn't count).
+  useEffect(() => {
+    const cur = activity.current;
+    if (!cur || !s || !status) return;
+    if (Date.now() - cur.at > 3000 && actionSettled(cur.action, s.state)) {
+      cur.a.end(status);
+      activity.current = null;
+    } else {
+      cur.a.update(status);
+    }
+  }, [s, status]);
+  useEffect(() => () => activity.current?.a.end(), []);
 
   async function mute(on: boolean) {
     setBusy("mute");
@@ -152,8 +177,15 @@ export default function ServerScreen() {
   useEffect(() => {
     if (did.current || !s || lock.locked || !requested) return;
     did.current = true;
-    if (requested === "restart" && can(s.permissions, "power")) {
-      run("server.restart", "Restarting.");
+    const power: Record<string, [string, string]> = {
+      restart: ["server.restart", "Restarting."],
+      start: ["server.start", "Starting."],
+      stop: ["server.stop", "Stopping."],
+    };
+    if (power[requested]) {
+      if (can(s.permissions, "power")) run(...power[requested]);
+      else
+        setResult({ ok: false, text: "You don't have permission to start or stop this server." });
     } else if (requested === "mute") {
       mute(true);
     }

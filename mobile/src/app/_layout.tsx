@@ -14,14 +14,16 @@ import { useFonts } from "expo-font";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import { useColorScheme } from "react-native";
+import { AppState, useColorScheme } from "react-native";
 
 import { LockScreen } from "@/components/lock-screen";
 import { start, useAuth } from "@/lib/auth";
+import { IntentHandler } from "@/lib/intents";
 import { forgetLock, startLock, useLock } from "@/lib/lock";
 import { listen, register } from "@/lib/push";
 import { fonts, useColors } from "@/lib/theme";
 import { transport } from "@/lib/transport";
+import { clearWidget, syncWidget } from "@/lib/widget";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -58,12 +60,25 @@ export default function RootLayout() {
   useEffect(() => {
     if (!signedIn) {
       queryClient.clear();
-      // The lock belongs to the signed-in phone; signing out ends it.
-      if (auth.status === "signedOut") forgetLock();
+      // The lock belongs to the signed-in phone; signing out ends it, and
+      // the widget stops showing the servers.
+      if (auth.status === "signedOut") {
+        forgetLock();
+        clearWidget();
+      }
       return;
     }
     register(false).catch(() => {});
-    return listen();
+    // The widget and Siri's servers: now, and each time the app comes back.
+    syncWidget().catch(() => {});
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") syncWidget().catch(() => {});
+    });
+    const stop = listen();
+    return () => {
+      sub.remove();
+      stop();
+    };
   }, [signedIn, auth.status]);
 
   // Nothing renders until the fonts are in: text laid out before they
@@ -115,6 +130,7 @@ export default function RootLayout() {
             </Stack.Protected>
           </Stack>
           {signedIn ? <LockScreen /> : null}
+          {signedIn && !lock.locked ? <IntentHandler /> : null}
         </QueryClientProvider>
       </TransportProvider>
     </ThemeProvider>

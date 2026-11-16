@@ -53,11 +53,31 @@
         {
           "faceIDPermission": "Raptor uses Face ID to unlock the app and to approve sign-ins, when you turn them on."
         }
-      ]
+      ],
+      [
+        "expo-widgets",
+        {
+          "widgets": [
+            {
+              "name": "ServersWidget",
+              "displayName": "Servers",
+              "description": "How many of your servers are running, and which aren't.",
+              "ios": {
+                "supportedFamilies": ["systemSmall", "systemMedium"],
+                "initialLayout": "./src/widgets/servers-widget.tsx"
+              }
+            }
+          ]
+        }
+      ],
+      "expo-app-intents"
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": true,
+      "inlineModules": {
+        "watchedDirectories": ["app-intents"]
+      }
     }
   }
 }
