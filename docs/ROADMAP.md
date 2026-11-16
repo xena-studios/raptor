@@ -138,7 +138,7 @@ Planned in [#432](https://github.com/xena-studios/raptor/issues/432): what Ptero
 3. **Game pages:** a settings schema and form (#424), then worlds and saves (#426) on it; the version switcher (#420) on shared version lookups, then updates in one place with alerts and a schedule step (#418).
 4. **Players** (#422, #423): a `players` permission, then Minecraft's whitelist, ops, and bans, then RCON for Steam games.
 5. **Networks-dependent and power-user:** proxy backends (#427, after #405/#406), add-ons as code (#437, with #374).
-6. **Needs the game run to verify** (each 20–40 minutes in CI): Workshop for games that list mods in config files (#408), CS2's Metamod and CounterStrikeSharp (#414). Low priority: OpenMod (#415), Bedrock packs (#416), Arma Reforger mods (#417), the FiveM backdoor scan (#428).
+6. **Needs the game run to verify** (each 20–40 minutes in CI): Workshop for games that list mods in config files (#408), CS2's Metamod and CounterStrikeSharp (#414). Low priority: OpenMod (#415), Arma Reforger mods (#417), the FiveM backdoor scan (#428).
 
 A public demo to try Raptor and its eggs without an account is planned in [#449](https://github.com/xena-studios/raptor/issues/449), on a node of its own.
 

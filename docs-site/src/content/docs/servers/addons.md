@@ -56,6 +56,17 @@ Java servers running Paper (and Purpur, Folia, Spigot), Velocity, Waterfall, Fab
 
 The card then shows the address and port to give Bedrock players. If they can't connect, check your provider's firewall lets **UDP** through on that port.
 
+## Bedrock packs
+
+Bedrock servers (Mojang's server, and Endstone) get a **Packs** section in Add-ons for behaviour and resource packs.
+
+- **Add a pack** takes a `.mcpack` or a `.mcaddon` (which holds several). Raptor reads each pack's manifest, puts it in `behavior_packs/` or `resource_packs/`, and turns it on for the loaded world. Restart the server to load it.
+- Start the server once first: the world has to exist before packs can be turned on for it.
+- Packs already in the folders show up too: turn them on or off for the world, or remove them (the folder goes to the trash).
+- A pack marked **Needs Beta APIs** uses scripts; turn on the world's Beta APIs experiment (in the world's settings in the game, then upload the world) or it won't run.
+
+Raptor puts resource packs on the world's list, but players only download them if `texturepack-required=true` is set in `server.properties`.
+
 ## Steam Workshop
 
 Games that load Steam Workshop items themselves get a **Workshop** section in Add-ons: Garry's Mod (a collection), Counter-Strike 2 (a map collection), ARK (mods), Conan Exiles (mods, loaded in the order you list them), and Squad (items).

@@ -26,6 +26,11 @@ export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/addons/")({
       );
     }
     const params = { orgId, serverId };
+    if (first.key === "bedrock") {
+      return (
+        <Navigate to="/orgs/$orgId/servers/$serverId/addons/bedrock" params={params} replace />
+      );
+    }
     return first.key === "workshop" ? (
       <Navigate to="/orgs/$orgId/servers/$serverId/addons/workshop" params={params} replace />
     ) : (
