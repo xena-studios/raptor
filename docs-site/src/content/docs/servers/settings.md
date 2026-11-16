@@ -40,7 +40,10 @@ On **Startup**:
 - **Game settings:** versions, jar names, world names, passwords, and the like, each with what it does. Some are fixed by the game's recipe and shown greyed out; members only see the ones they're allowed to.
 - **Modpack** (Modrinth modpack servers): **Choose another modpack** picks a pack and version from Modrinth and fills in its settings. Save, then [reinstall](#reinstall) to install it. Back up first: the pack's mods and configs are replaced.
 
-Minecraft Java servers also get **In the server list** on Settings: the icon and message (MOTD) players see before they join, with a preview. Upload any image for the icon (it's cropped square and made 64×64, saved as `server-icon.png`), and use the colour and style buttons for the message instead of typing § codes. It saves to `server.properties`; restart the server to show it. It needs the **Change files** permission.
+Minecraft Java servers get a **Game** tab, next to Overview:
+
+- **Game settings:** Minecraft's own settings (server.properties) as a form: difficulty, game mode, PvP, the whitelist, max players, view distance, the world's seed and type, and the rest, each saying what it does. The form shows the settings your Minecraft version has, so it follows the version you run. **↺** puts one back to its default. The port is set on Network; settings the form doesn't know are listed and left alone, and **Edit as text** opens the file. Restart the server to use changes. Saving needs the **Change files** permission.
+- **In the server list:** the icon and message (MOTD) players see before they join, with a preview. Upload any image for the icon (it's cropped square and made 64×64, saved as `server-icon.png`), and use the colour and style buttons for the message instead of typing § codes. Restart the server to show it.
 
 Games with plugins, mods, datapacks, or Steam Workshop support get an **Add-ons** tab, with a section for each: see [Plugins, mods, and the Workshop](/servers/addons/).
 

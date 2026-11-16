@@ -7,6 +7,7 @@ import { PowerButtons } from "@/components/power-buttons";
 import { StatusBadge, StatusDetail } from "@/components/server-status";
 import type { Server } from "@/gen/raptor/panel/v1/org_pb";
 import { useAddonSections } from "@/lib/addon-sections";
+import { useGameTab } from "@/lib/game-tab";
 import { canonical, resolveServer, shortId, useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
 import { serverStatus } from "@/lib/servers";
@@ -60,6 +61,7 @@ function ServerLayout() {
   // The egg's add-ons (plugins, mods, datapacks) and Steam Workshop items
   // share one Add-ons tab after Files, with a section each (#436).
   const { sections } = useAddonSections(orgId, nodeId, serverId, server, node?.capabilities);
+  const game = useGameTab(orgId, nodeId, serverId, server);
   const [error, setError] = useState("");
   const status = server && serverStatus(server, node?.connected ?? false);
   const params = { orgId, serverId };
@@ -108,6 +110,18 @@ function ServerLayout() {
               >
                 {t.label}
               </Link>,
+              ...(t.label === "Overview" && game
+                ? [
+                    <Link
+                      key="game"
+                      to="/orgs/$orgId/servers/$serverId/game"
+                      params={params}
+                      className={tabClass}
+                    >
+                      Game
+                    </Link>,
+                  ]
+                : []),
               ...(t.label === "Files" && sections.length > 0
                 ? [
                     <Link
