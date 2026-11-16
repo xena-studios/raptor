@@ -121,12 +121,26 @@ The owner took every recommendation (October 2026):
 Bigger work, unordered.
 
 - Server transfers between nodes (direct node-to-node)
-- CurseForge for the mod manager (Modrinth, Hangar, datapacks, and Steam Workshop are built; CurseForge's terms and API key need a look first)
 - A connection relay for owners behind CGNAT (a paid add-on)
 - Queued config edits for offline nodes
 - Scoped API tokens, webhooks, an MCP server for AI tools, and Raptor Deployments (servers as code from GitHub: deploys with health checks and rollback, drift sent back as pull requests): the plan is [#374](https://github.com/xena-studios/raptor/issues/374)
 - More certified games and OS versions
 - End-to-end encryption of node traffic inside the WebSocket, so Cloudflare can't read it, if customers ask for it
+
+## Add-ons and game features
+
+Planned in [#432](https://github.com/xena-studios/raptor/issues/432): what Pterodactyl owners buy as paid add-ons, built in. Phases are in order; each phase's items can go in parallel.
+
+**Built** (Nov 16): add-on update status and Update all, dependencies and client-only filtering, the Java switch, console problems with a fix, log sharing (mclo.gs), the server icon and MOTD, the own-domain guide, the modpack picker (Modrinth), web dashboard links, Rust plugins (uMod), and one Add-ons tab.
+
+1. **The frame** (#436, #435): the tab groups (Game, Add-ons, Players, Worlds) and the Needs attention card on Overview, which collects console problems, updates, an out-of-date egg, missing dependencies, and failed connection tests. Every later page lands in these.
+2. **More add-on sources:** Factorio's mod portal (#411; Wings adds the owner's token from the server's variables), Geyser and Floodgate for Bedrock players (#419; admins add the UDP port in one click), CurseForge (#412; off until Raptor has an API key, honouring authors' distribution switch), Thunderstore (#410; the Panel hashes downloads, Wings unpacks zips). Then FTB and Technic packs for the picker (#413).
+3. **Game pages:** a settings schema and form (#424), then worlds and saves (#426) on it; the version switcher (#420) on shared version lookups, then updates in one place with alerts and a schedule step (#418).
+4. **Players** (#422, #423): a `players` permission, then Minecraft's whitelist, ops, and bans, then RCON for Steam games.
+5. **Networks-dependent and power-user:** proxy backends (#427, after #405/#406), add-ons as code (#437, with #374).
+6. **Needs the game run to verify** (each 20–40 minutes in CI): Workshop for games that list mods in config files (#408), CS2's Metamod and CounterStrikeSharp (#414). Low priority: OpenMod (#415), Bedrock packs (#416), Arma Reforger mods (#417), the FiveM backdoor scan (#428).
+
+A public demo to try Raptor and its eggs without an account is planned in [#449](https://github.com/xena-studios/raptor/issues/449), on a node of its own.
 
 ## Metrics
 
