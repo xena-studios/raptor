@@ -5,11 +5,13 @@ import { router } from "expo-router";
 import { ShieldCheck } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Button, Card, Empty, Notice, Row, Text } from "@/components/ui";
+import { Button, Card, Empty, Notice, Row, Text, useSink } from "@/components/ui";
 import { AuthService, type PhoneApproval } from "@/gen/raptor/panel/v1/auth_pb";
 import { decide, LostSecret } from "@/lib/approvals";
+import { arrive, haptic } from "@/lib/motion";
 import { radius, type as typeScale, useColors } from "@/lib/theme";
 import { message } from "@/lib/transport";
 
@@ -45,6 +47,8 @@ export default function Approve() {
     setBusy(approve ? n : "deny");
     try {
       const status = await decide(a, approve, n);
+      if (status === "approved") haptic.success();
+      else haptic.error();
       setResult(
         status === "approved"
           ? { ok: true, text: "Approved. The browser is signing in." }
@@ -52,9 +56,12 @@ export default function Approve() {
       );
       await client.invalidateQueries();
     } catch (err) {
-      if (err instanceof LostSecret) setResult({ ok: false, text: err.message });
       // Face ID cancelled: stay, so they can try again.
-      else if (!/cancel/i.test(String(err))) setResult({ ok: false, text: message(err) });
+      const cancelled = !(err instanceof LostSecret) && /cancel/i.test(String(err));
+      if (!cancelled) {
+        haptic.error();
+        setResult({ ok: false, text: err instanceof LostSecret ? err.message : message(err) });
+      }
     } finally {
       setBusy(null);
     }
@@ -65,14 +72,14 @@ export default function Approve() {
   if (result) {
     return (
       <SafeAreaView style={[styles.screen, { backgroundColor: c.background }]}>
-        <View style={styles.center}>
+        <Animated.View entering={arrive} style={styles.center}>
           <Text variant="headline" accessibilityRole="header" style={{ textAlign: "center" }}>
             {result.ok ? "Approved" : "Not approved"}
           </Text>
           <Text ink={result.ok ? "muted" : "destructive"} style={{ textAlign: "center" }}>
             {result.text}
           </Text>
-        </View>
+        </Animated.View>
         <Button label="Done" variant="outline" onPress={close} />
       </SafeAreaView>
     );
@@ -127,7 +134,7 @@ export default function Approve() {
             accessibilityLabel="The number the browser shows"
           >
             {a.choices.map((n) => (
-              <Pressable
+              <Key
                 key={n}
                 accessibilityRole="button"
                 accessibilityLabel={`${n}`}
@@ -149,7 +156,7 @@ export default function Approve() {
                 >
                   {n}
                 </Text>
-              </Pressable>
+              </Key>
             ))}
           </View>
           <View style={{ flex: 1 }} />
@@ -167,12 +174,36 @@ export default function Approve() {
   );
 }
 
+// Key is one of the numbers to pick: it sinks under the finger and taps
+// back, as a keypad does.
+function Key({
+  onPress,
+  children,
+  ...rest
+}: React.ComponentProps<typeof Pressable> & { onPress: () => void; children: React.ReactNode }) {
+  const sink = useSink(0.95);
+  return (
+    <Animated.View style={[{ flex: 1 }, sink.style]}>
+      <Pressable
+        {...rest}
+        onPressIn={sink.onPressIn}
+        onPressOut={sink.onPressOut}
+        onPress={() => {
+          haptic.press();
+          onPress();
+        }}
+      >
+        {children}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, paddingHorizontal: 16, paddingBottom: 8, gap: 20 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   numbers: { flexDirection: "row", gap: 10 },
   number: {
-    flex: 1,
     height: 88,
     alignItems: "center",
     justifyContent: "center",

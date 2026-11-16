@@ -26,6 +26,7 @@ import { appURL } from "@/lib/config";
 import { can } from "@/lib/format";
 import { useLock } from "@/lib/lock";
 import { formatBytes, formatPercent, type Metrics, useServerMetrics } from "@/lib/metrics";
+import { haptic } from "@/lib/motion";
 import { MUTE_MINUTES } from "@/lib/push";
 import { serverStatus } from "@/lib/status";
 import { useColors } from "@/lib/theme";
@@ -123,6 +124,7 @@ export default function ServerScreen() {
         action,
         paramsJson: params ? JSON.stringify(params) : "",
       });
+      haptic.success();
       setResult({ ok: true, text: done });
       if (s && status) {
         activity.current?.a.end();
@@ -132,6 +134,7 @@ export default function ServerScreen() {
       await client.invalidateQueries();
       setTimeout(() => syncWidget().catch(() => {}), 3000);
     } catch (err) {
+      haptic.error();
       setResult({ ok: false, text: message(err) });
     } finally {
       setBusy("");

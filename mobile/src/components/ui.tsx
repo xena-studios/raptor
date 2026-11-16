@@ -1,5 +1,5 @@
 import { ChevronRight, type LucideIcon } from "lucide-react-native";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -12,7 +12,16 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
+import Animated, {
+  cancelAnimation,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 
+import { arrive, duration, easeOut, haptic, leave, settle } from "@/lib/motion";
 import type { ServerStatus, Tone } from "@/lib/status";
 import { type Colors, fonts, radius, space, type, useColors } from "@/lib/theme";
 
@@ -86,23 +95,64 @@ const toneColor = (c: Colors, t: Tone) =>
     stale: c.mutedForeground,
   })[t];
 
+// useSink sinks a pressable a little at once and lets it back up gently:
+// spread its handlers on the Pressable and its style on an Animated.View.
+export function useSink(depth = 0.97) {
+  const scale = useSharedValue(1);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return {
+    style,
+    onPressIn: () => {
+      scale.value = withTiming(depth, { duration: duration.press, easing: easeOut });
+    },
+    onPressOut: () => {
+      scale.value = withTiming(1, { duration: duration.release, easing: easeOut });
+    },
+  };
+}
+
+// usePulse breathes a view's opacity between 1 and low while on: for what's
+// waiting (a server starting, a placeholder), so it reads as in progress.
+function usePulse(on: boolean, low: number) {
+  const o = useSharedValue(1);
+  useEffect(() => {
+    if (on) {
+      o.value = withRepeat(
+        withTiming(low, { duration: duration.pulse, easing: easeOut }),
+        -1,
+        true,
+      );
+    } else {
+      cancelAnimation(o);
+      o.value = withTiming(1, { duration: duration.release, easing: easeOut });
+    }
+    return () => cancelAnimation(o);
+  }, [on, low, o]);
+  return useAnimatedStyle(() => ({ opacity: o.value }));
+}
+
 // StatusChip shows a state as a readout: [ RUNNING ]. A stale one (its
-// node is offline) is dimmed, since it's only the node's last report.
+// node is offline) is dimmed, since it's only the node's last report; a
+// pending one (starting, stopping) breathes until it settles, and a new
+// state fades in over the old.
 export function StatusChip({ status }: { status: ServerStatus }) {
   const c = useColors();
+  const pulse = usePulse(status.tone === "pending", 0.4);
   return (
-    <Text
-      variant="label"
-      mono
-      accessibilityLabel={status.label}
-      style={{
-        color: toneColor(c, status.tone),
-        opacity: status.tone === "stale" ? 0.6 : 1,
-        textTransform: "uppercase",
-      }}
-    >
-      [ {status.label} ]
-    </Text>
+    <Animated.View key={status.label} entering={arrive} style={pulse}>
+      <Text
+        variant="label"
+        mono
+        accessibilityLabel={status.label}
+        style={{
+          color: toneColor(c, status.tone),
+          opacity: status.tone === "stale" ? 0.6 : 1,
+          textTransform: "uppercase",
+        }}
+      >
+        [ {status.label} ]
+      </Text>
+    </Animated.View>
   );
 }
 
@@ -143,35 +193,43 @@ export function Button({
     },
   }[variant];
   const off = disabled || busy;
+  const sink = useSink();
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityHint={accessibilityHint}
-      accessibilityState={{ disabled: !!off, busy: !!busy }}
-      disabled={off}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        {
-          backgroundColor: pressed ? look.pressed : look.bg,
-          borderColor: look.border,
-          opacity: off ? 0.5 : pressed && variant === "primary" ? 0.82 : 1,
-          transform: [{ translateY: pressed ? 1 : 0 }],
-        },
-        style,
-      ]}
-    >
-      {variant === "primary" ? (
-        <View pointerEvents="none" style={[styles.keyLight, { backgroundColor: c.keyLight }]} />
-      ) : null}
-      {busy ? (
-        <ActivityIndicator size="small" color={look.fg} />
-      ) : Icon ? (
-        <Icon size={16} color={look.fg} strokeWidth={2} />
-      ) : null}
-      <RNText style={[type.button, { color: look.fg, textTransform: "uppercase" }]}>{label}</RNText>
-    </Pressable>
+    <Animated.View style={[sink.style, style]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityHint={accessibilityHint}
+        accessibilityState={{ disabled: !!off, busy: !!busy }}
+        disabled={off}
+        onPressIn={sink.onPressIn}
+        onPressOut={sink.onPressOut}
+        onPress={() => {
+          if (variant === "primary" || variant === "destructive") haptic.press();
+          onPress();
+        }}
+        style={({ pressed }) => [
+          styles.button,
+          {
+            backgroundColor: pressed ? look.pressed : look.bg,
+            borderColor: look.border,
+            opacity: off ? 0.5 : pressed && variant === "primary" ? 0.86 : 1,
+          },
+        ]}
+      >
+        {variant === "primary" ? (
+          <View pointerEvents="none" style={[styles.keyLight, { backgroundColor: c.keyLight }]} />
+        ) : null}
+        {busy ? (
+          <ActivityIndicator size="small" color={look.fg} />
+        ) : Icon ? (
+          <Icon size={16} color={look.fg} strokeWidth={2} />
+        ) : null}
+        <RNText style={[type.button, { color: look.fg, textTransform: "uppercase" }]}>
+          {label}
+        </RNText>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -192,7 +250,10 @@ export function Card({
 }) {
   const c = useColors();
   return (
-    <View style={[styles.card, { backgroundColor: c.card, borderColor: c.ring }, style]}>
+    <Animated.View
+      layout={settle}
+      style={[styles.card, { backgroundColor: c.card, borderColor: c.ring }, style]}
+    >
       {title ? (
         <View style={styles.cardHeader}>
           <View style={{ flex: 1, gap: 2 }}>
@@ -207,7 +268,7 @@ export function Card({
         </View>
       ) : null}
       {children}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -242,25 +303,38 @@ export function Row({
   first?: boolean;
 }) {
   const c = useColors();
-  const inner = (pressed: boolean) => (
-    <View
+  // The pressed tint comes in at once and fades out, as iOS's own lists.
+  const p = useSharedValue(0);
+  const tint = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(p.value, [0, 1], [`${c.muted}00`, c.muted]),
+  }));
+  const row = (
+    <Animated.View
+      entering={arrive}
       style={[
         styles.row,
-        {
-          borderTopColor: c.border,
-          borderTopWidth: first ? 0 : StyleSheet.hairlineWidth,
-          backgroundColor: pressed ? c.muted : "transparent",
-        },
+        { borderTopColor: c.border, borderTopWidth: first ? 0 : StyleSheet.hairlineWidth },
+        tint,
       ]}
     >
       <View style={{ flex: 1, gap: 3 }}>{children}</View>
       {chevron ? <ChevronRight size={18} color={c.mutedForeground} /> : null}
-    </View>
+    </Animated.View>
   );
-  if (!onPress) return inner(false);
+  if (!onPress) return row;
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress}>
-      {({ pressed }) => inner(pressed)}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
+      onPressIn={() => {
+        p.value = withTiming(1, { duration: duration.press, easing: easeOut });
+      }}
+      onPressOut={() => {
+        p.value = withTiming(0, { duration: duration.release * 1.5, easing: easeOut });
+      }}
+    >
+      {row}
     </Pressable>
   );
 }
@@ -297,7 +371,10 @@ export function SwitchRow({
         <Switch
           value={value}
           disabled={disabled}
-          onValueChange={onChange}
+          onValueChange={(on) => {
+            haptic.tap();
+            onChange(on);
+          }}
           trackColor={{ true: c.primary, false: c.muted }}
           accessibilityLabel={title}
         />
@@ -312,7 +389,9 @@ export function Notice({ text, tone = "danger" }: { text: string; tone?: "danger
   if (!text) return null;
   const danger = tone === "danger";
   return (
-    <View
+    <Animated.View
+      entering={arrive}
+      exiting={leave}
       accessibilityRole="alert"
       style={[
         styles.notice,
@@ -325,7 +404,7 @@ export function Notice({ text, tone = "danger" }: { text: string; tone?: "danger
       <Text variant="meta" ink={danger ? "destructive" : "muted"}>
         {text}
       </Text>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -341,7 +420,7 @@ export function Empty({
 }) {
   const c = useColors();
   return (
-    <View style={[styles.empty, { borderColor: c.border }]}>
+    <Animated.View entering={arrive} style={[styles.empty, { borderColor: c.border }]}>
       {Icon ? <Icon size={26} color={c.mutedForeground} strokeWidth={1.75} /> : null}
       <Text weight="medium" style={{ textAlign: "center" }}>
         {title}
@@ -351,11 +430,12 @@ export function Empty({
           {text}
         </Text>
       ) : null}
-    </View>
+    </Animated.View>
   );
 }
 
-// Skeleton is a placeholder line while something loads.
+// Skeleton is a placeholder line while something loads: it breathes, so
+// it reads as loading rather than empty, and fades out when it's replaced.
 export function Skeleton({
   width,
   height = 14,
@@ -364,7 +444,13 @@ export function Skeleton({
   height?: number;
 }) {
   const c = useColors();
-  return <View style={{ width, height, borderRadius: radius.sm, backgroundColor: c.muted }} />;
+  const pulse = usePulse(true, 0.45);
+  return (
+    <Animated.View
+      exiting={leave}
+      style={[{ width, height, borderRadius: radius.sm, backgroundColor: c.muted }, pulse]}
+    />
+  );
 }
 
 const styles = StyleSheet.create({

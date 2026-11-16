@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { AppState, StyleSheet, View } from "react-native";
+import Animated, { FadeOut } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { FullLogo } from "@/components/logo";
 import { Button, Text } from "@/components/ui";
 import { method, unlock, useLock } from "@/lib/lock";
+import { easeOut, haptic } from "@/lib/motion";
 import { useColors } from "@/lib/theme";
 
 // LockScreen covers the app while it's locked, and asks for Face ID as
@@ -30,7 +32,10 @@ export function LockScreen() {
     const ask = () => {
       if (asked.current || AppState.currentState !== "active") return;
       asked.current = true;
-      unlock().then((ok) => setFailed(!ok));
+      unlock().then((ok) => {
+        setFailed(!ok);
+        if (!ok) haptic.error();
+      });
     };
     ask();
     const sub = AppState.addEventListener("change", (s) => s === "active" && ask());
@@ -39,7 +44,12 @@ export function LockScreen() {
 
   if (!lock.locked && !lock.covered) return null;
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: c.background }]}>
+    // It covers at once (so the app switcher never sees the app), and
+    // fades away once unlocked.
+    <Animated.View
+      exiting={FadeOut.duration(260).easing(easeOut)}
+      style={[StyleSheet.absoluteFill, { backgroundColor: c.background }]}
+    >
       <SafeAreaView style={styles.screen}>
         <View style={styles.center}>
           {/* The full logo, as on the splash screen: 240 points wide. */}
@@ -60,12 +70,15 @@ export function LockScreen() {
             label={`Unlock with ${how}`}
             onPress={() => {
               setFailed(false);
-              unlock().then((ok) => setFailed(!ok));
+              unlock().then((ok) => {
+                setFailed(!ok);
+                if (!ok) haptic.error();
+              });
             }}
           />
         ) : null}
       </SafeAreaView>
-    </View>
+    </Animated.View>
   );
 }
 

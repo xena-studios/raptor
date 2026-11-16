@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
+import { LayoutAnimationConfig } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Kicker, Text } from "@/components/ui";
@@ -77,8 +78,12 @@ export function Page({
         ) : undefined
       }
     >
-      {header}
-      {children}
+      {/* What's there when the page opens is simply there; only what
+          arrives later (data replacing a placeholder) fades in. */}
+      <LayoutAnimationConfig skipEntering>
+        {header}
+        {children}
+      </LayoutAnimationConfig>
     </ScrollView>
   );
 }
