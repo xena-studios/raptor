@@ -6,7 +6,7 @@ require (
 	aead.dev/minisign v0.3.0
 	connectrpc.com/connect v1.21.1
 	connectrpc.com/otelconnect v0.12.0
-	github.com/charmbracelet/bubbles v1.0.0
+	github.com/charmbracelet/bubbles/v2 v2.2.1
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/coder/websocket v1.8.15
