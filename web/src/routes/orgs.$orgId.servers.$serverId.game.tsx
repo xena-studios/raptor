@@ -2,6 +2,7 @@ import { useQuery } from "@connectrpc/connect-query";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { GameSettings } from "@/components/game-settings";
+import { ProxyBackends } from "@/components/proxy-backends";
 import { ServerListLook } from "@/components/server-list-look";
 import { VersionSwitch } from "@/components/version-switch";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
@@ -17,13 +18,23 @@ export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/game")({
     const { orgId, nodeId, serverId } = useIds();
     const { server } = useServer(orgId, nodeId, serverId);
     const res = useQuery(OrgService.method.getServer, { orgId, nodeId, serverId });
-    const proxy = isProxy(
-      res.data?.configJson ? (JSON.parse(res.data.configJson) as ServerConfig) : undefined,
-    );
+    const cfg = res.data?.configJson
+      ? (JSON.parse(res.data.configJson) as ServerConfig)
+      : undefined;
+    const proxy = isProxy(cfg);
+    const velocity = Object.values(cfg?.egg?.addons ?? {}).some((a) => a.loaders[0] === "velocity");
     if (!server) return null;
     return (
       <div className="flex flex-col gap-6">
         <VersionSwitch orgId={orgId} nodeId={nodeId} serverId={serverId} server={server} />
+        {velocity && (
+          <ProxyBackends
+            orgId={orgId}
+            nodeId={nodeId}
+            serverId={serverId}
+            canWrite={can(server, "files.write")}
+          />
+        )}
         <ServerListLook
           orgId={orgId}
           nodeId={nodeId}
