@@ -29,15 +29,20 @@ If players can't join, see [Players can't connect](/help/players-cant-connect/).
 
 ## What's on a server's page
 
+The tabs along the top are what you'll use most. Tabs you need less often are under **More**, at the end of the row.
+
 - **Overview:** the console (the server's output, live, and a box to type commands), its address, its power buttons and stats, and **Needs attention** when something needs you. [More](/servers/overview/)
-- **Game, Players, and Worlds** (Minecraft Java; proxies get Game): Minecraft's settings as a form, its version, the whitelist, operators, and bans, and its worlds and game rules. [Game](/servers/settings/#startup-and-game-settings), [Players](/servers/players/), [Worlds](/servers/worlds/)
-- **Files:** a file manager in the browser, and temporary SFTP logins for big uploads. [More](/servers/files/)
+- **Game, Players, and Worlds** (Minecraft Java; proxies get Game): Minecraft's settings as a form, its version, the whitelist, operators, and bans, and its worlds and game rules. [Game](/servers/settings/#the-game-tab), [Players](/servers/players/), [Worlds](/servers/worlds/)
 - **Add-ons** (games that have them): plugins, mods, datapacks, and Steam Workshop items. [More](/servers/addons/)
-- **Schedules:** restarts, backups, and commands on a timer. [More](/servers/schedules/)
+- **Files:** a file manager in the browser, and temporary SFTP logins for big uploads. [More](/servers/files/)
 - **Backups:** back up now, restore everything or just some files, and choose where backups go. [More](/servers/backups/)
+- **Schedules:** restarts, backups, and commands on a timer. [More](/servers/schedules/)
+
+Under **More**:
+
 - **Databases:** the server's databases and their details for plugins. [More](/servers/databases/)
 - **Network:** the server's ports, its shown address, and the connection test. [Players can't connect](/help/players-cant-connect/), [Use your own domain](/help/your-own-domain/)
-- **Startup:** the command it starts with, and its game settings.
-- **Settings:** its name and limits, what happens when it crashes or stops, changing its game, reinstalling it, and deleting it. [More](/servers/settings/)
+- **Startup:** the command it starts with, and every startup variable exactly as set. Game shows the same values as a form.
+- **Settings:** Raptor's settings for the server: its name and limits, what happens when it crashes or stops, changing its game, reinstalling it, and deleting it. [More](/servers/settings/)
 - **Activity:** who did what to it, and when. [More](/team/activity/)
 - **Access:** what each member of your org may do on this server. [More](/team/members/#what-members-can-do-on-a-server)

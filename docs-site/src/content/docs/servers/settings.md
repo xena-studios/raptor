@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-A server's settings are spread over a few tabs: **Settings** for its name, limits, and behaviour; **Startup** for its runtime and game settings; **Network** for its ports and address; and, for Minecraft Java servers and proxies, **Game** for the game's own settings and version.
+A server's settings are spread over a few tabs: **Settings** for its name, limits, and behaviour; **Startup** for its runtime and game settings; **Network** for its ports and address; and, for Minecraft Java servers and proxies, **Game** for the game's own settings and version. Settings, Startup, and Network are under **More**, at the end of the row of tabs; Game is in the row, after Overview.
 
 Most changes take effect the **next time the server starts**; the app says when one needs a restart. Changes that alter what code runs (the runtime, the startup command, the game) are signed with your passkey.
 
