@@ -37,3 +37,40 @@ func TestSetHint(t *testing.T) {
 		t.Errorf("clear: %q doesn't expire the cookie", clear)
 	}
 }
+
+// GetSession's sync sets the hint for a signed-in browser that lacks it,
+// clears one left behind after the session ended, and leaves a correct
+// cookie and the phone app alone.
+func TestSyncHint(t *testing.T) {
+	s := &Service{HintDomain: "raptorpanel.net"}
+	cases := []struct {
+		name     string
+		cookie   string
+		bearer   bool
+		signedIn bool
+		want     string
+	}{
+		{"signed in, no hint", "", false, true, "raptor_signed_in=1"},
+		{"signed in, has hint", "raptor_signed_in=1", false, true, ""},
+		{"signed out, stale hint", "raptor_signed_in=1", false, false, "raptor_signed_in=;"},
+		{"signed out, no hint", "", false, false, ""},
+		{"phone app", "", true, true, ""},
+	}
+	for _, tc := range cases {
+		req, resp := http.Header{}, http.Header{}
+		if tc.cookie != "" {
+			req.Set("Cookie", tc.cookie)
+		}
+		if tc.bearer {
+			req.Set("Authorization", "Bearer x")
+		}
+		s.syncHint(req, resp, tc.signedIn)
+		got := resp.Get("Set-Cookie")
+		if tc.want == "" && got != "" {
+			t.Errorf("%s: want no cookie, got %q", tc.name, got)
+		}
+		if tc.want != "" && !strings.Contains(got, tc.want) {
+			t.Errorf("%s: got %q, want %q", tc.name, got, tc.want)
+		}
+	}
+}
