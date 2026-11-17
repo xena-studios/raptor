@@ -64,11 +64,8 @@ Valheim and V Rising servers get a **Mods** section for BepInEx mods from [Thund
 - Thunderstore doesn't publish hashes, so the Panel downloads the mod first and hashes it; the machine then downloads the same file from Thunderstore and keeps it only if it matches.
 - Each mod is unpacked into its own folder in `BepInEx/plugins`. **Remove** moves that folder to the trash; an update replaces it, with the old one in the trash.
 - Mods' settings are in `BepInEx/config` in the file manager, made when the server first starts with the mod.
-## Unturned plugins (OpenMod)
 
-:::note
-Coming with the next update of the Unturned egg: the plugin installer is in, but the egg that turns it on is still being tested.
-:::
+## Unturned plugins (OpenMod)
 
 Unturned servers get a **Plugins** tab for [OpenMod](https://openmod.github.io/openmod-docs/) plugins, which are published on [NuGet](https://www.nuget.org/packages?q=Tags%3A%22openmod-plugin%22).
 

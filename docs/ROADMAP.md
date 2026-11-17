@@ -140,7 +140,7 @@ Planned in [#432](https://github.com/xena-studios/raptor/issues/432): what Ptero
 - **Security and tools:** the FiveM backdoor scan and txAdmin's PIN (#428), console problems with a fix, log sharing (mclo.gs), the own-domain guide, web dashboard links, add-on lists (export and import, #437), and the egg library sorted by Popular with Popular and Trending badges (#457).
 
 **Left:**
-1. **Not yet run on a real server:** CS2 with Metamod (its conformance test is manual: about 60 GB), txAdmin's first-run PIN, OpenMod loading a plugin, Project Zomboid's Build 42 mod IDs. The Unturned egg crashes at start in CI for a reason not yet known, which holds back its Workshop and OpenMod parts.
+1. **Not yet run on a real server:** CS2 with Metamod (its conformance test is manual: about 60 GB), txAdmin's first-run PIN, OpenMod loading a plugin, Project Zomboid's Build 42 mod IDs.
 2. **Follow-ups listed in their issues:** CounterStrikeSharp plugins as an add-on source (#414); Space Engineers and tModLoader Workshop lists (#408); BattlEye RCon (DayZ, Arma), more RCON games, and a ban list (#423); a scan after uploads and an alert on findings (#428); Needs attention's EULA button, connection results, server list dot, and alerts (#487); applying an add-on list to several servers at once (#437, with #374).
 3. **Bigger:** updates in one place with alerts and a schedule step (#418).
 
