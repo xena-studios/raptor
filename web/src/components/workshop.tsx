@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { WorkshopFilePage } from "@/components/workshop-file";
 import { AddonService, type WorkshopItem } from "@/gen/raptor/panel/v1/addon_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { message } from "@/lib/errors";
@@ -27,18 +28,23 @@ import { commandClient } from "@/lib/transport";
 // Steam Workshop items (docs/EGGS.md#steam-workshop): the egg names the
 // variable the game reads them from, and the game (or its install script)
 // downloads them. This page only edits that variable, naming the IDs from
-// Steam through the Panel.
+// Steam through the Panel. Games that list them in a config file instead
+// get WorkshopFilePage (#408).
 
 export function WorkshopPage({
   orgId,
   nodeId,
   serverId,
   canWrite,
+  canReadFiles,
+  canWriteFiles,
 }: {
   orgId: string;
   nodeId: string;
   serverId: string;
   canWrite: boolean;
+  canReadFiles: boolean;
+  canWriteFiles: boolean;
 }) {
   const res = useQuery(OrgService.method.getServer, { orgId, nodeId, serverId });
   const cfg = useMemo(
@@ -54,6 +60,20 @@ export function WorkshopPage({
         icon={Package}
         title="This server's game doesn't take Steam Workshop items"
         description="Only games that download Workshop items themselves have this page."
+      />
+    );
+  }
+  if (ws.file) {
+    return (
+      <WorkshopFilePage
+        orgId={orgId}
+        nodeId={nodeId}
+        serverId={serverId}
+        cfg={cfg}
+        ws={ws}
+        file={ws.file}
+        canRead={canReadFiles}
+        canWrite={canWriteFiles}
       />
     );
   }
@@ -249,7 +269,7 @@ function WorkshopItems({
   );
 }
 
-function ItemRow({
+export function ItemRow({
   id,
   item,
   loading,
@@ -307,7 +327,7 @@ function ItemRow({
 
 // AddItem takes a Workshop link or ID, shows what it is, and adds it if
 // it's for this game (a collection's items, for games that take a list).
-function AddItem({
+export function AddItem({
   orgId,
   ws,
   ids,

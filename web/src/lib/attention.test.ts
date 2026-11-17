@@ -8,6 +8,7 @@ import {
   eggItem,
   installItem,
   rank,
+  scanItem,
   sortItems,
   whoCan,
 } from "./attention.ts";
@@ -130,4 +131,13 @@ test("worst first, ties in order", () => {
 test("who can", () => {
   assert.equal(whoCan("*", "do it"), "An org admin or owner can do it.");
   assert.equal(whoCan("backups", "do it"), 'Someone with the "backups" permission can do it.');
+});
+
+test("the resource scan's row", () => {
+  assert.equal(scanItem({ high: 0, medium: 0 }, 0), undefined);
+  const hi = scanItem({ high: 2, medium: 5 }, 1);
+  assert.equal(hi?.rank, rank.security);
+  assert.match(hi?.text ?? "", /2 high-severity lines in 1 file/);
+  assert.equal(hi?.action?.to, "scan");
+  assert.match(scanItem({ high: 0, medium: 1 }, 1)?.text ?? "", /1 medium-severity line in 1 file/);
 });

@@ -396,7 +396,16 @@ func (r *run) console() []string {
 
 func (r *run) dumpConsole() {
 	h := r.console()
-	r.t.Logf("console (last %d lines):\n%s", min(len(h), 60), strings.Join(h[max(0, len(h)-60):], "\n"))
+	// Unity games end with a memory report of hundreds of lines, which
+	// would push out why they stopped: show what came before it.
+	for i, l := range h {
+		if strings.Contains(l, "Memory Statistics:") {
+			r.t.Logf("(Unity's memory report from line %d left out)", i+1)
+			h = h[:i]
+			break
+		}
+	}
+	r.t.Logf("console (last %d lines):\n%s", min(len(h), 80), strings.Join(h[max(0, len(h)-80):], "\n"))
 }
 
 // command sends a console command and waits for a reply line.

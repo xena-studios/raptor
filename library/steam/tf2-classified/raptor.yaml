@@ -9,6 +9,12 @@ certified: true
 arch: [amd64]
 players:
   query: source
+# The Players tab talks to the game over RCON, on its game port; RCON is
+# off until a password is set.
+rcon:
+  protocol: source
+  password: RCON_PASSWORD
+  players: source
 test:
   tier: manual
   reason: "It needs the Team Fortress 2 dedicated server too: about 23 GB together, more than a standard GitHub runner has free"

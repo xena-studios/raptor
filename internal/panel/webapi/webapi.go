@@ -37,6 +37,9 @@ type Client struct {
 	// NotFound is returned for a 404, and Unavailable (wrapping the cause)
 	// for anything else that isn't a good answer.
 	NotFound, Unavailable error
+	// Extract, if set, turns an answer that isn't JSON (a web page) into
+	// the JSON that's decoded and cached.
+	Extract func([]byte) ([]byte, error)
 
 	mu    sync.Mutex
 	cache map[string]cached
@@ -110,7 +113,11 @@ func (c *Client) Do(ctx context.Context, path string, query url.Values, body any
 		req.Header[k] = v
 	}
 	req.Header.Set("User-Agent", c.UserAgent)
-	req.Header.Set("Accept", "application/json")
+	if c.Extract != nil {
+		req.Header.Set("Accept", "text/html")
+	} else {
+		req.Header.Set("Accept", "application/json")
+	}
 	if body != nil {
 		req.Header.Set("Content-Type", contentType)
 	}
@@ -128,6 +135,11 @@ func (c *Client) Do(ctx context.Context, path string, query url.Values, body any
 		return c.NotFound
 	case resp.StatusCode != http.StatusOK:
 		return c.unavailable(resp.Status)
+	}
+	if c.Extract != nil {
+		if data, err = c.Extract(data); err != nil {
+			return c.unavailable(err)
+		}
 	}
 	if err := json.Unmarshal(data, out); err != nil {
 		return c.unavailable(err)

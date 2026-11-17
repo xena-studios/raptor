@@ -123,7 +123,9 @@ temporary files (a JDK to build with, archives) go in a folder under
   only adds and replaces the game's own files, so saves and configs stay;
   game-specific steps (mod loaders, config lines the Panel replaces, an
   opt-in wipe) come after, and anything destructive only once the game
-  installed. Large games set `"install": {"timeout": "4h"}` in the egg.
+  installed. `steam/cs2`'s Metamod:Source and CounterStrikeSharp
+  are such steps, with the startup adding Metamod to `gameinfo.gi`
+  ([docs/EGGS.md](../docs/EGGS.md#cs2-frameworks)). Large games set `"install": {"timeout": "4h"}` in the egg.
 - **Images:** Raptor's `steamcmd` (Debian with SteamCMD's 32-bit
   libraries) when the game runs on it, named `SteamCMD`. Its entrypoint
   updates nothing, so the startup starts with the update step below and

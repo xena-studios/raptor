@@ -93,6 +93,7 @@ const (
 	FilesUploadStatus = "files.upload.status"
 	FilesUploadCancel = "files.upload.cancel"
 	FilesDownload     = "files.download" // start a download
+	FilesScan         = "files.scan"     // scan the egg's script folders for backdoors (#428)
 )
 
 // ServerConfig is a server's configuration as sent by the Panel.

@@ -562,6 +562,13 @@ message Server {
   // proxy. For the Players tab, which members without the startup
   // permission (who get no config) can have too.
   bool player_lists = 11;
+  // The game's RCON player commands (#423): "source", "ark", "palworld",
+  // or "rust", from its egg's x-raptor.rcon; empty for none. Servers with
+  // one get the Players tab over RCON (who's on, kick, ban, message).
+  string rcon_players = 12;
+  // Its scripts can be scanned for backdoors (#428): the egg has
+  // x-raptor.scan (FiveM). For members with files.read but no config.
+  bool resource_scan = 13;
 }
 
 message ListServersResponse {

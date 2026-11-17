@@ -24,6 +24,12 @@ backup:
   pre: ["server.save"]
   wait_for: "regex:Saved [0-9,]+ ents"
   timeout: 5m
+# The Players tab talks to the game over WebRCON.
+rcon:
+  protocol: webrcon
+  port: RCON_PORT
+  password: RCON_PASS
+  players: rust
 test:
   tier: slow
   memory_mib: 8192

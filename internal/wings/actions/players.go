@@ -14,6 +14,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/command"
 	"github.com/xena-studios/raptor/internal/wings/files"
 	"github.com/xena-studios/raptor/internal/wings/metrics"
+	"github.com/xena-studios/raptor/internal/wings/rcon"
 	"github.com/xena-studios/raptor/internal/wings/server"
 )
 
@@ -23,6 +24,10 @@ import (
 // command (it would overwrite an edited file); a stopped one has its
 // list files edited as the game writes them. Nothing a user sends reaches
 // the console except a checked name, IP, level, or one-line reason.
+//
+// Games whose egg declares RCON player commands (#423, x-raptor.rcon) get
+// players.online and players.manage's kick, ban, unban, and say over RCON
+// instead (players_rcon.go), under the same rule.
 const (
 	PlayersLists  = "players.lists"  // a read: the list files
 	PlayersManage = "players.manage" // whitelist, op, ban, kick, and their undoing
@@ -195,8 +200,9 @@ func editList(ctx context.Context, fsvc *files.Service, id, file, key, value str
 	return fsvc.Write(ctx, id, file, append(out, '\n'))
 }
 
-// RegisterPlayers adds the player actions. Neither is signed: they do only
-// what the console could, on a Minecraft Java server.
+// RegisterPlayers adds the player actions. None is signed: they do only
+// what the console could, on a Minecraft Java server or over a game's RCON
+// (players.online, and players.manage's kick, ban, unban, and say).
 func RegisterPlayers(x *command.Executor, m *server.Manager, fsvc *files.Service) {
 	minecraft := func(ctx context.Context, e command.Envelope) error {
 		if e.ServerID == "" {
@@ -243,6 +249,22 @@ func RegisterPlayers(x *command.Executor, m *server.Manager, fsvc *files.Service
 		return out, nil
 	}})
 	x.Register(PlayersOnline, command.Handler{Signed: command.Never, ReadOnly: true, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		if e.ServerID == "" {
+			return nil, errors.New("command needs a server_id")
+		}
+		// A game with RCON player commands (#423): who's on, over RCON.
+		if egg, err := m.Egg(ctx, e.ServerID); err == nil && egg.Raptor.RCON != nil && egg.Raptor.RCON.Players != "" {
+			t, err := m.RCON(ctx, e.ServerID)
+			if err != nil {
+				return nil, err
+			}
+			players, err := rconOnline(ctx, t)
+			if err != nil {
+				return nil, err
+			}
+			return map[string]any{"players": players}, nil
+		}
+		// Minecraft: the count and names from its ping (#422).
 		if err := minecraft(ctx, e); err != nil {
 			return nil, err
 		}
@@ -262,6 +284,25 @@ func RegisterPlayers(x *command.Executor, m *server.Manager, fsvc *files.Service
 		return Online{Running: true, Online: p.Online, Max: p.Max, Names: p.Names}, nil
 	}})
 	x.Register(PlayersManage, command.Handler{Signed: command.Never, Run: func(ctx context.Context, e command.Envelope) (any, error) {
+		if e.ServerID == "" {
+			return nil, errors.New("command needs a server_id")
+		}
+		// A game with RCON player commands (#423) is told over RCON.
+		if egg, err := m.Egg(ctx, e.ServerID); err == nil && egg.Raptor.RCON != nil && egg.Raptor.RCON.Players != "" {
+			var o rcon.Op
+			if err := decode(e, &o); err != nil {
+				return nil, err
+			}
+			t, err := m.RCON(ctx, e.ServerID)
+			if err != nil {
+				return nil, err
+			}
+			reply, err := rconManage(ctx, t, o)
+			if err != nil {
+				return nil, err
+			}
+			return map[string]any{"reply": reply}, nil
+		}
 		if err := minecraft(ctx, e); err != nil {
 			return nil, err
 		}

@@ -139,8 +139,10 @@ func TestRaptorSettings(t *testing.T) {
 	e.Players.Query = "minecraft"
 	e.Addons = map[string]eggs.Addon{"plugins": {Loaders: []string{"paper"}, Dir: "plugins"}}
 	e.Workshop = &eggs.Workshop{AppID: 4000, Variable: "MESSAGE", Collection: true}
+	e.Reforger = &eggs.Reforger{Config: "config.json"}
 	b := eggs.JavaMinecraftBackup
 	e.Backup = &b
+	e.RCON = &eggs.RCON{Protocol: "source", PwVar: "MESSAGE", Port: "+1", Players: "source"}
 	if err := e.validate(); err != nil {
 		t.Fatal(err)
 	}
@@ -158,6 +160,9 @@ func TestRaptorSettings(t *testing.T) {
 	if w := egg.Raptor.Workshop; w == nil || *w != *e.Workshop {
 		t.Errorf("workshop %+v", w)
 	}
+	if r := egg.Raptor.Reforger; r == nil || r.Config != "config.json" {
+		t.Errorf("reforger %+v", r)
+	}
 	got := egg.Backup()
 	if !slices.Equal(got.Pre, b.Pre) || !slices.Equal(got.Post, b.Post) || got.WaitFor != b.WaitFor || got.WaitTimeout() != 5*time.Minute {
 		t.Errorf("backup %+v", got)
@@ -165,6 +170,26 @@ func TestRaptorSettings(t *testing.T) {
 	if egg.Raptor.Players.Query != "minecraft" {
 		t.Errorf("players %+v", egg.Raptor.Players)
 	}
+	// A config file round-trips too (#408).
+	e.Workshop = &eggs.Workshop{AppID: 4000, File: &eggs.WorkshopFile{Path: "a/{{MESSAGE}}.lua", Format: "dst", Overrides: []string{"b/modoverrides.lua"}}}
+	if file, err = e.ServerEgg(); err != nil {
+		t.Fatal(err)
+	}
+	if egg, err = eggs.Parse(file); err != nil {
+		t.Fatal(err)
+	}
+	if f := egg.Raptor.Workshop.File; f == nil || f.Path != "a/{{MESSAGE}}.lua" || f.Format != "dst" || !slices.Equal(f.Overrides, []string{"b/modoverrides.lua"}) || egg.Raptor.Workshop.Variable != "" {
+		t.Errorf("workshop file %+v", egg.Raptor.Workshop)
+	}
+	if r := egg.Raptor.RCON; r == nil || *r != *e.RCON {
+		t.Errorf("rcon %+v", r)
+	}
+	// An RCON password variable the egg doesn't have is refused.
+	e.RCON = &eggs.RCON{Protocol: "source", PwVar: "NOPE"}
+	if e.validate() == nil {
+		t.Error("an rcon variable the egg doesn't have: accepted")
+	}
+	e.RCON = nil
 	// A workshop variable the egg doesn't have is refused.
 	e.Workshop = &eggs.Workshop{AppID: 4000, Variable: "NOPE"}
 	if e.validate() == nil {

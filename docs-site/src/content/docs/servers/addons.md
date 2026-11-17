@@ -1,6 +1,6 @@
 ---
 title: Plugins, mods, and the Workshop
-description: Install Minecraft plugins, mods, and datapacks from Modrinth and Hangar, and Steam Workshop items, from the app.
+description: Install plugins and mods from Modrinth, Hangar, CurseForge, Thunderstore, and more, Steam Workshop items and Arma Reforger mods, and Counter-Strike 2's plugin frameworks, from the app.
 sidebar:
   order: 6
 ---
@@ -50,6 +50,28 @@ Factorio servers get a **Mods** section for mods from the [Factorio mod portal](
 - **Install** brings the mods it needs with it (and offers the optional ones), and says when it can't run beside one you have. Each download is checked against the portal's hash.
 - **Installed** names mods by their file and offers updates for your Factorio version. Factorio turns on every mod in the folder; to turn one off without removing it, use the game's mod settings or `mods/mod-list.json`.
 
+## Valheim and V Rising mods (Thunderstore)
+
+Valheim and V Rising servers get a **Mods** section for BepInEx mods from [Thunderstore](https://thunderstore.io), most downloaded first. Set **Mod loader** to BepInEx in Startup and reinstall the server first (on Valheim, Valheim Plus works too): the reinstall installs BepInEx, which loads the mods.
+
+- **Install** brings the mods it needs with it, each at its newest version. BepInEx itself isn't listed: the server already has it. Mods marked **Client-only** only run on players' computers.
+- Thunderstore doesn't publish hashes, so the Panel downloads the mod first and hashes it; the machine then downloads the same file from Thunderstore and keeps it only if it matches.
+- Each mod is unpacked into its own folder in `BepInEx/plugins`. **Remove** moves that folder to the trash; an update replaces it, with the old one in the trash.
+- Mods' settings are in `BepInEx/config` in the file manager, made when the server first starts with the mod.
+## Unturned plugins (OpenMod)
+
+:::note
+Coming with the next update of the Unturned egg: the plugin installer is in, but the egg that turns it on is still being tested.
+:::
+
+Unturned servers get a **Plugins** tab for [OpenMod](https://openmod.github.io/openmod-docs/) plugins, which are published on [NuGet](https://www.nuget.org/packages?q=Tags%3A%22openmod-plugin%22).
+
+- Turn on **OpenMod** in Startup and restart first. Servers made before OpenMod was in the Unturned egg need a reinstall to download it (saves and configs stay). It can run beside RocketMod.
+- **Install** brings the plugins it needs with it. Each package is checked against the hash NuGet lists, and only the plugin itself is copied into `Servers/Raptor/OpenMod/plugins`, named after the package and version (`Kr4ken.NewEssentials@1.5.1.dll`).
+- Some plugins need libraries Raptor can't install (ones made of several files). The install dialog names them: run `openmod install <name>` in the console and OpenMod installs them itself.
+- **Installed** names the plugins Raptor installed and offers updates. DLLs you uploaded yourself show as added by hand; plugins from `openmod install` live in OpenMod's own `packages` folder and are managed with its commands.
+- RocketMod's plugins aren't offered: there's no central site with hashes to check them against. Upload those to `Servers/Raptor/Rocket/Plugins` in the file manager.
+
 ## Rust plugins (uMod)
 
 Rust servers get a **Plugins** tab for Oxide and Carbon plugins from [uMod](https://umod.org). Set **Mod framework** to Oxide or Carbon in Startup first (vanilla Rust doesn't load plugins); the tab puts plugins in the folder that framework reads (`oxide/plugins` or `carbon/plugins`).
@@ -82,10 +104,44 @@ Raptor puts resource packs on the world's list, but players only download them i
 
 ## Steam Workshop
 
-Games that load Steam Workshop items themselves get a **Workshop** section in Add-ons: Garry's Mod (a collection), Counter-Strike 2 (a map collection), ARK (mods), Conan Exiles (mods, loaded in the order you list them), and Squad (items).
+Games that load Steam Workshop items themselves get a **Workshop** section in Add-ons: Garry's Mod (a collection), Counter-Strike 2 (a map collection), ARK (mods), Conan Exiles (mods, loaded in the order you list them), and Squad (items). Project Zomboid and Don't Starve Together get one too ([below](#games-that-list-mods-in-a-file)); Unturned comes with its egg's next update.
 
 - Paste a Workshop link or ID: Raptor shows what it is, and refuses items for another game.
 - For games that take a list, a collection's link adds its items.
 - The page says whether a **restart** or a **reinstall** picks the change up.
 
 The game downloads the items itself; Raptor only changes the setting that lists them. It needs the **Startup settings** permission.
+
+### Games that list mods in a file
+
+Project Zomboid, Don't Starve Together, and Unturned read their Workshop items from a config file, so their Workshop section edits that file, the same way Files does. Seeing the items needs **See files**, and changing them needs **Change files**. Only the list changes: the rest of the file, comments included, stays as it is. The game downloads new items the next time it starts.
+
+- **Project Zomboid** (`.cache/Server/<server name>.ini`): two lists. **Workshop items** are what the game downloads, and **Mods to load** are the mod IDs inside them, which aren't the same numbers. Once the game has downloaded an item, its mod IDs show as buttons to add, so a new item takes one restart before its mods can be picked. You can also type a mod ID from the item's Steam page. Start the server once first, because the game makes the file on its first start.
+- **Don't Starve Together**: the items go in `mods/dedicated_server_mods_setup.lua` (which downloads them) and in each shard's `modoverrides.lua` (which turns them on). A mod's settings in `modoverrides.lua` are kept, and removing an item removes its entry. Leave **Validate** off: a validated update puts back the game's own setup file.
+- **Unturned** (`Servers/<server ID>/WorkshopDownloadConfig.json`, `File_IDs`), coming with its egg's next update: start the server once first, because the game makes the file on its first start.
+## Counter-Strike 2 plugins
+
+Counter-Strike 2 servers get a **Frameworks** section in Add-ons, for the two frameworks CS2 server plugins run on:
+
+- **Metamod:Source**, the plugin loader every CS2 server plugin needs.
+- **CounterStrikeSharp**, which runs C# plugins. It runs on Metamod, so turning it on loads Metamod too.
+
+Turn one on and choose **Save and reinstall**: Raptor backs up the server's files, reinstalls it, and downloads the framework into `game/csgo/addons`. Your maps, configs, and plugins stay. Each has a **Version**: `latest` (the newest, updated at every reinstall), or a Metamod build number (`1491`) or CounterStrikeSharp release (`1.0.380`) to stay on.
+
+Raptor adds Metamod to `gameinfo.gi` every time the server starts, so a game update (which replaces that file) doesn't turn it off. When a CS2 update breaks the frameworks, reinstall once their authors have released a fix to get the newest builds.
+
+Turning one off takes effect at the next start, and nothing is deleted. Raptor only undoes what it did, so Metamod or CounterStrikeSharp you installed by hand is left alone.
+
+Then put CounterStrikeSharp plugins in `game/csgo/addons/counterstrikesharp/plugins` with the file manager, and restart. The page needs the **Startup settings** permission, and **Reinstall** to install.
+
+The same switches are in **Startup** as **Metamod:Source** and **CounterStrikeSharp**. Servers made before they existed get them once they move to the egg's new version (see [Egg library](/eggs/library/)).
+## Arma Reforger mods
+
+Arma Reforger servers get a **Mods** section in Add-ons for mods from the [Arma Reforger Workshop](https://reforger.armaplatform.com/workshop).
+
+- **Search** the Workshop, or paste a mod's link or ID (the 16 letters and digits in its link). Adding a mod adds the mods it needs too.
+- Each mod shows its newest version. **Pin** one to keep it on the version it's on; unpinned mods always get the newest.
+- If the Workshop doesn't know an ID (an unlisted mod), type its name and add it anyway.
+- **Save** writes the list to the server's `config.json` (its `game.mods`); everything else in the file stays as it is. Restart the server: it downloads the mods itself when it starts.
+
+It needs the **Files** permissions, since it edits a file. To change the file by hand, use **Edit config.json as text**.

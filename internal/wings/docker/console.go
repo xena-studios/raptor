@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net/netip"
 	"strconv"
 	"strings"
 	"time"
@@ -124,7 +125,18 @@ func (c *Client) Inspect(ctx context.Context, id string) (containers.State, erro
 		return containers.State{}, errors.New("container has no state")
 	}
 	started, _ := time.Parse(time.RFC3339Nano, st.StartedAt)
-	return containers.State{Running: st.Running, ExitCode: int64(st.ExitCode), OOMKilled: st.OOMKilled, StartedAt: started, Pid: st.Pid}, nil
+	out := containers.State{Running: st.Running, ExitCode: int64(st.ExitCode), OOMKilled: st.OOMKilled, StartedAt: started, Pid: st.Pid}
+	if ns := res.Container.NetworkSettings; ns != nil {
+		for name, ep := range ns.Networks {
+			if ep != nil && ep.IPAddress.IsValid() {
+				if out.Networks == nil {
+					out.Networks = map[string]netip.Addr{}
+				}
+				out.Networks[name] = ep.IPAddress
+			}
+		}
+	}
+	return out, nil
 }
 
 // Stats samples a container's usage. One-shot: Docker returns immediately

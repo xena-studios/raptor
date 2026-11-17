@@ -306,6 +306,109 @@ func TestParseWorkshop(t *testing.T) {
 	}
 }
 
+func TestParseWorkshopFile(t *testing.T) {
+	base := `{"meta": {"version": "PTDL_v2"}, "docker_images": {"a": "a"}, "startup": "x",
+		"variables": [{"env_variable": "NAME"}], "x-raptor": {"workshop": {"app_id": 108600, "file": %s}}}`
+	e, err := Parse(fmt.Appendf(nil, base, `{"path": ".cache/Server/{{NAME}}.ini", "format": "ini", "key": "WorkshopItems", "mods_key": "Mods"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f := e.Raptor.Workshop.File; f == nil || f.Path != ".cache/Server/{{NAME}}.ini" || f.Key != "WorkshopItems" || f.ModsKey != "Mods" {
+		t.Errorf("file: %+v", f)
+	}
+	if _, err := Parse(fmt.Appendf(nil, base, `{"path": "mods/setup.lua", "format": "dst", "overrides": ["a/modoverrides.lua"]}`)); err != nil {
+		t.Errorf("dst: %v", err)
+	}
+	if _, err := Parse(fmt.Appendf(nil, base, `{"path": "c.json", "format": "json", "key": "File_IDs"}`)); err != nil {
+		t.Errorf("json: %v", err)
+	}
+	for _, bad := range []string{
+		`{"path": "a.ini", "format": "ini"}`,                                // no key
+		`{"path": "a.ini", "format": "yaml", "key": "k"}`,                   // unknown format
+		`{"path": "../a.ini", "format": "ini", "key": "k"}`,                 // outside
+		`{"path": "/a.ini", "format": "ini", "key": "k"}`,                   // absolute
+		`{"path": "a/./b.ini", "format": "ini", "key": "k"}`,                // not clean
+		`{"path": "{{OTHER}}.ini", "format": "ini", "key": "k"}`,            // not the egg's
+		`{"path": "a.lua", "format": "dst"}`,                                // no overrides
+		`{"path": "a.json", "format": "json", "key": "k", "mods_key": "m"}`, // ini only
+		`{"path": "a.ini", "format": "ini", "key": "k", "separator": ";;"}`,
+	} {
+		if _, err := Parse(fmt.Appendf(nil, base, bad)); err == nil {
+			t.Errorf("%s: expected an error", bad)
+		}
+	}
+	both := `{"meta": {"version": "PTDL_v2"}, "docker_images": {"a": "a"}, "startup": "x",
+		"variables": [{"env_variable": "NAME"}], "x-raptor": {"workshop": {"app_id": 1, "variable": "NAME", "file": {"path": "a.ini", "format": "ini", "key": "k"}}}}`
+	if _, err := Parse([]byte(both)); err == nil {
+		t.Error("variable and file: expected an error")
+	}
+}
+
+func TestParseReforger(t *testing.T) {
+	base := `{"meta": {"version": "PTDL_v2"}, "docker_images": {"a": "a"}, "startup": "x",
+		"x-raptor": {"reforger": %s}}`
+	e, err := Parse(fmt.Appendf(nil, base, `{"config": "config.json"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r := e.Raptor.Reforger; r == nil || r.Config != "config.json" {
+		t.Errorf("reforger: %+v", r)
+	}
+	for _, bad := range []string{`{}`, `{"config": "/config.json"}`, `{"config": "../config.json"}`, `{"config": "server.cfg"}`} {
+		if _, err := Parse(fmt.Appendf(nil, base, bad)); err == nil {
+			t.Errorf("%s: expected an error", bad)
+		}
+	}
+}
+
+func TestParseRCON(t *testing.T) {
+	base := `{"meta": {"version": "PTDL_v2"}, "docker_images": {"a": "a"}, "startup": "x",
+		"variables": [{"env_variable": "RCON_PORT"}, {"env_variable": "RCON_PASS"}, {"env_variable": "RCON_ON"}], "x-raptor": {"rcon": %s}}`
+	e, err := Parse(fmt.Appendf(nil, base, `{"protocol": "webrcon", "port": "RCON_PORT", "password": "RCON_PASS", "players": "rust"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := e.Raptor.RCON
+	if r == nil || r.Protocol != "webrcon" || r.Players != "rust" {
+		t.Fatalf("rcon: %+v", r)
+	}
+	vars := map[string]string{"RCON_PORT": "28016", "RCON_PASS": "pw", "RCON_ON": "0"}
+	if p := r.PortFor(28015, vars); p != 28016 {
+		t.Errorf("port %d", p)
+	}
+	if pw := r.PasswordFor(vars); pw != "pw" {
+		t.Errorf("password %q", pw)
+	}
+	r.Enabled = "RCON_ON"
+	if pw := r.PasswordFor(vars); pw != "" {
+		t.Errorf("off, but password %q", pw)
+	}
+	for port, want := range map[string]int{"": 27015, "+1": 27016, "RCON_PORT": 28016, "MISSING": 0} {
+		if got := (&RCON{Port: port}).PortFor(27015, vars); got != want {
+			t.Errorf("port %q: %d, want %d", port, got, want)
+		}
+	}
+	// A newer protocol or command set is left out, not refused.
+	if e, err := Parse(fmt.Appendf(nil, base, `{"protocol": "battleye", "password": "RCON_PASS"}`)); err != nil || e.Raptor.RCON != nil {
+		t.Errorf("unknown protocol: %v, %+v", err, e)
+	}
+	if e, err := Parse(fmt.Appendf(nil, base, `{"protocol": "source", "password": "RCON_PASS", "players": "future"}`)); err != nil || e.Raptor.RCON.Players != "" {
+		t.Errorf("unknown players: %v", err)
+	}
+	for _, bad := range []string{
+		`{"protocol": "source"}`,                                          // no password
+		`{"protocol": "source", "password": "OTHER"}`,                     // not the egg's
+		`{"protocol": "source", "password": "RCON_PASS", "port": "NOPE"}`, // not the egg's
+		`{"protocol": "source", "password": "RCON_PASS", "port": "+x"}`,
+		`{"protocol": "source", "password": "RCON_PASS", "enabled": "NOPE"}`,
+		`{"protocol": "source", "password": "RCON_PASS", "players": "rust"}`, // rust is webrcon
+	} {
+		if _, err := Parse(fmt.Appendf(nil, base, bad)); err == nil {
+			t.Errorf("%s: expected an error", bad)
+		}
+	}
+}
+
 func TestParseRulesKeepsRegexPipes(t *testing.T) {
 	e, err := Parse([]byte(`{"meta":{"version":"PTDL_v2"},"docker_images":{"a":"b"},"startup":"x",
 		"variables":[{"env_variable":"V","rules":"required|regex:/^(a|b)$/i|max:5"}]}`))

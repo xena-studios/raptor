@@ -19,7 +19,17 @@ The tiles at the top update every 10 seconds:
 
 Below the console, **Resources** charts CPU, memory, disk, network, and players over the last hour, 6 hours, day, or week. The machine keeps a minute-by-minute history for a day and 15-minute points for a week.
 
-Servers with a web page of their own (FiveM's txAdmin when it's on, Grafana, code-server, Uptime Kuma, and other apps) get an **Open …** button under Details. If its port isn't one of the server's ports yet, it says to add it on **Network** first.
+Servers with a web page of their own (FiveM's txAdmin when it's on, Grafana, code-server, Uptime Kuma, and other apps) get an **Open …** button under Details. If its port isn't one of the server's ports yet, it says to add it on **Network** first. The first time txAdmin starts, it prints a PIN in the console to create its admin account with; it's shown under **Open txAdmin** too.
+
+## Resource scan
+
+FiveM servers get a **Resource scan** card. Resources that were leaked or bought from strangers sometimes hide a backdoor: code that downloads and runs someone else's code, or gives them the console. **Scan resources** checks the Lua and JavaScript files in `resources` and `txData` for the patterns these backdoors use. The scan runs on the machine, so your files never leave it, and it changes nothing.
+
+- Each file it flags is listed with the lines and how sure the scan is. **High** means honest resources almost never do this (code fetched from the internet and run, a known backdoor panel's address, a shell command, names hidden in escape codes). **Medium** is unusual and worth a look (obfuscated code, granting admin rights from code). **Low** is common in honest code too (running a config file as code).
+- **Open** shows the file in the file manager. **Move to trash** (with the **Change files** permission) moves it to the [trash](/servers/files/#the-trash) after you confirm, so you can restore it. Restart the server afterwards. Raptor never deletes anything on its own.
+- A flagged line isn't proof. Look at it, and if a resource you didn't write talks to an address you don't know, remove the whole resource and get it from its author.
+- `node_modules` folders and escrowed (encrypted) resources aren't read. Very large servers may hit the scan's limits; it says so.
+- Scanning needs the **See files** permission.
 
 ## Needs attention
 
@@ -31,6 +41,7 @@ When something about the server needs you, a **Needs attention** list sits at th
 - **An add-on missing what it needs:** a mod or plugin that needs another one that isn't installed.
 - **Add-on updates:** how many plugins, mods, or datapacks have a newer version.
 - **A newer version of its egg** (admins and owners).
+- **A possible backdoor:** what the last resource scan found, if anything high or medium (FiveM).
 
 The worst comes first: what stops the server starting, then what stops players joining, then updates. If you can't do the fix yourself, the line says which permission can, so you know who to ask.
 

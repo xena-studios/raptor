@@ -13,6 +13,12 @@ backup:
   pre: ["Save"]
   wait_for: "Complete Save"
   timeout: 5m
+# The Players tab talks to the game over RCON with the admin password.
+rcon:
+  protocol: source
+  port: RCON_PORT
+  password: ADMIN_PASSWORD
+  players: palworld
 test:
   tier: slow
   memory_mib: 12288

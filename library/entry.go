@@ -66,12 +66,22 @@ type Meta struct {
 	// Workshop says where the game takes Steam Workshop items (the egg's
 	// x-raptor.workshop, docs/EGGS.md#steam-workshop), added like Players.
 	Workshop *eggs.Workshop `yaml:"workshop"`
+	// Reforger says where Arma Reforger takes Bohemia Workshop mods (the
+	// egg's x-raptor.reforger, docs/EGGS.md#arma-reforger-mods), added
+	// like Players.
+	Reforger *eggs.Reforger `yaml:"reforger"`
 	// Web is a web dashboard the server serves (the egg's x-raptor.web),
 	// for the app's link to it.
 	Web *eggs.Web `yaml:"web"`
 	// Modpack says which variables pick a modpack (the egg's
 	// x-raptor.modpack), for the app's pack picker.
 	Modpack *eggs.Modpack `yaml:"modpack"`
+	// RCON is how to reach the game's remote console (the egg's
+	// x-raptor.rcon), for the Players tab (#423).
+	RCON *eggs.RCON `yaml:"rcon"`
+	// Scan turns on the backdoor scan of the server's scripts (the egg's
+	// x-raptor.scan).
+	Scan *eggs.Scan `yaml:"scan"`
 	// Backup is what's sent to the game's console around a backup (the
 	// egg's x-raptor.backup, docs/EGGS.md#backup-hooks), added like
 	// Players: save-off and save-all flush, then save-on, for Minecraft.
@@ -269,7 +279,16 @@ func (e *Entry) validate() error {
 	if err := eggs.CheckModpack(e.Modpack, egg.Variables); err != nil {
 		return err
 	}
+	if err := eggs.CheckScan(e.Scan); err != nil {
+		return err
+	}
 	if err := eggs.CheckWorkshop(e.Workshop, egg.Variables); err != nil {
+		return err
+	}
+	if err := eggs.CheckReforger(e.Reforger); err != nil {
+		return err
+	}
+	if err := eggs.CheckRCON(e.RCON, egg.Variables); err != nil {
 		return err
 	}
 	if b := e.Backup; b != nil {
@@ -381,7 +400,25 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 	if w := e.Workshop; w != nil {
 		n := &yaml.Node{Kind: yaml.MappingNode}
 		set(n, "app_id", &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!int", Value: strconv.FormatInt(w.AppID, 10)})
-		set(n, "variable", str(w.Variable))
+		if w.Variable != "" {
+			set(n, "variable", str(w.Variable))
+		}
+		if f := w.File; f != nil {
+			fn := &yaml.Node{Kind: yaml.MappingNode}
+			for _, kv := range [][2]string{{"path", f.Path}, {"format", f.Format}, {"key", f.Key}, {"separator", f.Separator}, {"mods_key", f.ModsKey}} {
+				if kv[1] != "" {
+					set(fn, kv[0], str(kv[1]))
+				}
+			}
+			if len(f.Overrides) > 0 {
+				seq := &yaml.Node{Kind: yaml.SequenceNode}
+				for _, o := range f.Overrides {
+					seq.Content = append(seq.Content, str(o))
+				}
+				set(fn, "overrides", seq)
+			}
+			set(n, "file", fn)
+		}
 		if w.Collection {
 			set(n, "collection", &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!bool", Value: "true"})
 		}
@@ -389,6 +426,11 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 			set(n, "apply", str(w.Apply))
 		}
 		set(ext, "workshop", n)
+	}
+	if r := e.Reforger; r != nil {
+		n := &yaml.Node{Kind: yaml.MappingNode}
+		set(n, "config", str(r.Config))
+		set(ext, "reforger", n)
 	}
 	if w := e.Web; w != nil {
 		n := &yaml.Node{Kind: yaml.MappingNode}
@@ -410,6 +452,31 @@ func (e *Entry) ServerEgg() ([]byte, error) {
 			set(n, "game_version", str(m.GameVersion))
 		}
 		set(ext, "modpack", n)
+	}
+	if r := e.RCON; r != nil {
+		n := &yaml.Node{Kind: yaml.MappingNode}
+		set(n, "protocol", str(r.Protocol))
+		if r.Port != "" {
+			set(n, "port", str(r.Port))
+		}
+		set(n, "password", str(r.PwVar))
+		if r.Enabled != "" {
+			set(n, "enabled", str(r.Enabled))
+		}
+		if r.Players != "" {
+			set(n, "players", str(r.Players))
+		}
+		set(ext, "rcon", n)
+	}
+	if sc := e.Scan; sc != nil {
+		n := &yaml.Node{Kind: yaml.MappingNode}
+		set(n, "rules", str(sc.Rules))
+		dirs := &yaml.Node{Kind: yaml.SequenceNode}
+		for _, d := range sc.Dirs {
+			dirs.Content = append(dirs.Content, str(d))
+		}
+		set(n, "dirs", dirs)
+		set(ext, "scan", n)
 	}
 	if b := e.Backup; b != nil {
 		n := &yaml.Node{Kind: yaml.MappingNode}
