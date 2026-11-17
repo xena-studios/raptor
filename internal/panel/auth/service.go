@@ -269,6 +269,9 @@ func sessionProto(sess store.Session, current pgtype.UUID) *panelv1.Session {
 // GetSession returns who's signed in.
 func (s *Service) GetSession(ctx context.Context, _ *panelv1.GetSessionRequest) (*panelv1.GetSessionResponse, error) {
 	sess, err := s.Current(ctx)
+	if c, ok := callOf(ctx); ok {
+		s.syncHint(c.req, c.resp, err == nil)
+	}
 	if err != nil {
 		return nil, err
 	}

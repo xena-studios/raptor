@@ -145,6 +145,21 @@ func (s *Service) setHint(h http.Header, on bool) {
 	h.Add("Set-Cookie", c.String())
 }
 
+// syncHint brings HintCookie in line with whether this browser is signed
+// in. The web app asks GetSession on every load, so sessions from before
+// the hint existed get it, and a hint left behind by a session that ended
+// elsewhere (an idle expiry, "sign out everywhere") is cleared. It only
+// writes when the cookie is wrong, and never for the phone app, which
+// signs in with a bearer token and never visits the site.
+func (s *Service) syncHint(req, resp http.Header, signedIn bool) {
+	if _, bearer := bearerToken(req); bearer {
+		return
+	}
+	if has := namedCookie(req, HintCookie) == "1"; has != signedIn {
+		s.setHint(resp, signedIn)
+	}
+}
+
 // cookieToken reads the session token from a request's headers.
 func cookieToken(h http.Header) string { return namedCookie(h, CookieName) }
 
