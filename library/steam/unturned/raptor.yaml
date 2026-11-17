@@ -8,6 +8,15 @@ credits:
 certified: true
 # Unturned ships x86-64 Linux builds only.
 arch: [amd64]
+# Workshop items are listed in the server's WorkshopDownloadConfig.json,
+# which the game makes on its first start.
+workshop:
+  app_id: 304930
+  file:
+    path: Servers/{{SRV_ID}}/WorkshopDownloadConfig.json
+    format: json
+    key: File_IDs
+  apply: restart
 # Unturned can't pause saving, so a backup saves first and has nothing to undo.
 backup:
   pre: ["save"]
