@@ -36,7 +36,7 @@ You need:
 
 | What | Notes |
 |---|---|
-| A Linux server | Debian 12 or 13, or Ubuntu 24.04, x86-64 or arm64, at any provider: production is an Oracle Cloud Ampere A1 (2 OCPU, 12 GB, the Always Free allowance) in Ashburn. 2 vCPU and 4 GB is enough at launch (Postgres's settings assume 4 GB or more), with 40 GB of disk. Its public IPv4 is all `bootstrap.sh` needs; nothing else about the provider matters. On Oracle, see [Oracle Cloud](#oracle-cloud) first. |
+| A Linux server | Debian 12 or 13, or Ubuntu 24.04, x86-64 or arm64, at any provider: production is an Oracle Cloud Ampere A1 (2 OCPU, 12 GB, the Always Free allowance) in Ashburn. 2 vCPU and 4 GB is enough at launch, with 40 GB of disk, on an SSD. Postgres's settings assume 4 GB unless `deploy/panel/.env` sizes them for more ([Postgres memory](#postgres-memory)). Its public IPv4 is all `bootstrap.sh` needs; nothing else about the provider matters. On Oracle, see [Oracle Cloud](#oracle-cloud) first. |
 | Object storage | S3-compatible, at a **different provider** from the server (a provider outage or account problem mustn't take the database and its backups together). Backblaze B2 or Wasabi are fine. One bucket (production: `raptor-panel-backups` on B2), private, and an access key that can only use that bucket. On B2, its lifecycle is **"Keep prior versions for this number of days: 7"**: pgBackRest's own expiry still frees the space within a week, but someone on the server can't destroy the backups at once. Set a storage cap with an alert at 80% (Caps & Alerts), so a runaway repository is noticed before uploads are refused. |
 | Cloudflare | `raptorpanel.net` as a zone, on the free plan. |
 | AWS Route 53 | `raptornodes.net`: registered there, and its hosted zone, which holds one record per node (10,000 by default). [Below](#raptornodesnet). |
@@ -183,6 +183,42 @@ Production runs on Oracle Cloud's Always Free tier (DECISIONS #344): one `VM.Sta
 - **Networking:** one VCN with a public subnet and an internet gateway. In its security list (or a network security group on the instance): ingress TCP 22 from anywhere, TCP 443 from anywhere (the server's own firewall narrows it to Cloudflare, and keeps doing so when Cloudflare's list changes, which a security list wouldn't), nothing else. Reserve a public IP and attach it, so the address survives stopping the instance.
 - **Out of host capacity:** Arm machines in Ashburn often aren't available. Try each availability domain, and try again later; Pay As You Go accounts get them far more easily.
 - `bootstrap.sh` removes the image's own iptables rules (`netfilter-persistent`), which otherwise reject everything but SSH and fight with Docker.
+- **Postgres is sized for 12 GB** in `deploy/panel/.env` ([below](#postgres-memory)): `PG_SHARED_BUFFERS=3GB`, `PG_EFFECTIVE_CACHE_SIZE=8GB`, `PG_MAINTENANCE_WORK_MEM=512MB`. With each Panel capped at 1.5 GB, that leaves about 6 GB for Postgres's own processes, the monthly restore test (capped at 2 GB), the page cache, and the OS.
+
+### Postgres memory
+
+[`postgresql.conf`](../deploy/panel/postgresql.conf) is sized for a 4 GB server. On a bigger one, set the three memory settings in `deploy/panel/.env` (compose.yaml passes them to Postgres; deploys keep the file's other lines), then recreate Postgres, which restarts it (a few seconds without the database; the Panels reconnect):
+
+| Setting | 4 GB (default) | 12 GB (production) | Roughly |
+|---|---|---|---|
+| `PG_SHARED_BUFFERS` | `1GB` | `3GB` | a quarter of the memory |
+| `PG_EFFECTIVE_CACHE_SIZE` | `3GB` | `8GB` | what Postgres and the page cache can hold |
+| `PG_MAINTENANCE_WORK_MEM` | `256MB` | `512MB` | for vacuum and index builds |
+
+```bash
+cd /opt/raptor/deploy/panel && docker compose up -d --no-deps postgres
+docker compose exec -u postgres postgres psql -d raptor -c 'SHOW shared_buffers'
+```
+
+Deploys recreate the Panels, and Caddy only when the Caddyfile changes, never Postgres: a release that changes Postgres's part of `compose.yaml` or `postgresql.conf` takes effect when you run that (and Caddy's logging, `docker compose up -d --no-deps caddy`). The Panels are capped at 1.5 GB each (`mem_limit`, with `GOMEMLIMIT` under it), and every container's log is rotated (three 20 MB files), so neither a leak nor a chatty log fills the server.
+
+### Query statistics
+
+`pg_stat_statements` records how long each query takes, and `track_io_timing` how much of that is waiting on the disk. A new server creates the extension on its first start ([`initdb/30-extensions.sql`](../deploy/panel/initdb/30-extensions.sql)). A server set up before Nov 2026 needs it once, after Postgres has restarted with the new `postgresql.conf` (it preloads the library), as the superuser, since the `panel` role can't:
+
+```bash
+cd /opt/raptor/deploy/panel
+docker compose exec -u postgres postgres psql -d raptor -c 'CREATE EXTENSION IF NOT EXISTS pg_stat_statements'
+```
+
+To read it (the `panel` role can too, through `pg_monitor`):
+
+```sql
+SELECT calls, round(total_exec_time) AS ms, round(mean_exec_time, 1) AS mean_ms, left(query, 80)
+FROM pg_stat_statements ORDER BY total_exec_time DESC LIMIT 20;
+```
+
+`SELECT pg_stat_statements_reset()` starts the counts again.
 
 ## Support bundles
 
@@ -429,8 +465,8 @@ Then open https://app.raptorpanel.net/demo in a private window and check: the ba
 ## Backups
 
 - **WAL:** every change is archived within 60 seconds (`archive_timeout`), so the most you can lose to losing the server is about a minute.
-- **Backups:** daily at 04:15 UTC, full on Sundays, differential otherwise. Four weeks of fulls are kept, with all the WAL between them, so you can restore to any moment in the last four weeks.
-- **Restore test:** monthly, on the 1st. It restores the latest backup into a scratch container (never touching the live database or the archive), starts it, and compares the migration version and the count of users, nodes, and orgs with the live database. A failed run exits non-zero: `systemctl status raptor-restore-test`.
+- **Backups:** daily at 10:15 UTC (the quietest hours: late night in the Americas, morning in Europe), full on Sundays, differential otherwise. Four weeks of fulls are kept, with all the WAL between them, so you can restore to any moment in the last four weeks.
+- **Restore test:** monthly, on the 1st at 10:45 UTC. It restores the latest backup into a scratch container (never touching the live database or the archive; capped at 1 CPU and 2 GB, and behind the live stack for CPU and disk), starts it, and compares the migration version and the count of users, nodes, and orgs with the live database. A failed run exits non-zero: `systemctl status raptor-restore-test`.
 - **Status:** `docker compose -f /opt/raptor/deploy/panel/compose.yaml exec -u postgres postgres pgbackrest --stanza=raptor info`.
 
 ## Rebuilding
