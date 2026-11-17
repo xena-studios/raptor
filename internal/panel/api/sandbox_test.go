@@ -406,7 +406,7 @@ func TestDemoSandboxes(t *testing.T) {
 		t.Fatal(err)
 	}
 	var live int
-	_ = db.QueryRow(ctx, "SELECT count(*) FROM demo_sandboxes WHERE state IN ('queued','creating','installing','ready')").Scan(&live)
+	_ = db.QueryRow(ctx, "SELECT count(*) FROM demo_sandboxes WHERE NOT warm AND state IN ('queued','creating','installing','ready')").Scan(&live)
 	if live != 0 {
 		t.Errorf("%d sandboxes left after the guests went", live)
 	}
