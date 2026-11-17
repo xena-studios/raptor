@@ -6,3 +6,8 @@ After=raptor-stack.service
 Type=oneshot
 EnvironmentFile=-/etc/raptor/stack.env
 ExecStart=/opt/raptor/deploy/scripts/restore-test.sh
+# Behind the live stack for CPU and disk. This covers the script and its
+# docker commands; the scratch containers themselves are capped in
+# restore-test.sh, since Docker starts them outside this unit.
+Nice=10
+IOSchedulingClass=idle

@@ -1,9 +1,11 @@
-# Daily at 04:15 UTC: full on Sundays, differential otherwise.
+# Daily at 10:15 UTC: full on Sundays, differential otherwise. The quietest
+# hours for the Panel's users (late night in the Americas, before midday in
+# Europe), so a backup's disk and CPU load meets the least traffic.
 [Unit]
 Description=Daily Raptor Postgres backup
 
 [Timer]
-OnCalendar=*-*-* 04:15:00 UTC
+OnCalendar=*-*-* 10:15:00 UTC
 RandomizedDelaySec=10m
 Persistent=true
 
