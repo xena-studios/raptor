@@ -301,6 +301,13 @@ type ServerSpec struct {
 	// ("" = none). Some servers need one (Hytale encrypts its tokens with
 	// it); Pterodactyl mounts one too.
 	MachineID string
+	// Pull pulls Image before creating the container even if it's on the
+	// node already: the first start after an install, or after the image
+	// changed. Otherwise a local image is used at once and refreshed in
+	// the background (docs/DECISIONS.md #386).
+	Pull bool
+	// Pulling, if set, is called before a pull the start waits on.
+	Pulling func()
 }
 
 // Limits are a server's resource limits.
