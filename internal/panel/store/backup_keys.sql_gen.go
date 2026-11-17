@@ -41,6 +41,8 @@ const nodesWithoutBackupKey = `-- name: NodesWithoutBackupKey :many
 SELECT n.id, n.org_id FROM nodes n
 WHERE n.deleted_at IS NULL AND n.org_id IS NOT NULL
   AND NOT EXISTS (SELECT 1 FROM backup_keys k WHERE k.node_id = n.id)
+  AND EXISTS (SELECT 1 FROM node_connections c JOIN panel_instances i ON i.id = c.instance_id
+              WHERE c.node_id = n.id AND i.seen_at > now() - interval '20 seconds')
 `
 
 type NodesWithoutBackupKeyRow struct {
@@ -48,7 +50,10 @@ type NodesWithoutBackupKeyRow struct {
 	OrgID pgtype.UUID
 }
 
-// Linked nodes whose key the Panel hasn't asked for yet.
+// Connected, linked nodes whose key the Panel hasn't asked for yet.
+// "Connected" is MachinesToSync's test: offline nodes would only make the
+// keeper wait out a timeout each. One that reconnects still has no key, so
+// it's asked on connect (Keeper.Connected) or by the next tick.
 func (q *Queries) NodesWithoutBackupKey(ctx context.Context) ([]NodesWithoutBackupKeyRow, error) {
 	rows, err := q.db.Query(ctx, nodesWithoutBackupKey)
 	if err != nil {

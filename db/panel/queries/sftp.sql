@@ -29,12 +29,17 @@ SELECT n.sftp_enabled,
 FROM nodes n WHERE n.id = $1 AND n.deleted_at IS NULL;
 
 -- name: NodesSFTPOutOfStep :many
--- Nodes whose SFTP port is open when it shouldn't be, or the other way.
+-- Connected nodes whose SFTP port is open when it shouldn't be, or the
+-- other way. "Connected" is MachinesToSync's test: offline nodes would only
+-- make the gate wait out a timeout each. One that reconnects is still out
+-- of step, so the next tick after it connects picks it up.
 SELECT n.id FROM nodes n
 WHERE n.deleted_at IS NULL
   AND n.sftp_enabled <> (n.sftp_allowed AND EXISTS (
       SELECT 1 FROM sftp_passwords p WHERE p.node_id = n.id AND p.expires_at > now()
-  ));
+  ))
+  AND EXISTS (SELECT 1 FROM node_connections c JOIN panel_instances i ON i.id = c.instance_id
+              WHERE c.node_id = n.id AND i.seen_at > now() - interval '20 seconds');
 
 -- name: SetNodeSFTPAllowed :execrows
 UPDATE nodes SET sftp_allowed = $2 WHERE id = $1 AND deleted_at IS NULL;

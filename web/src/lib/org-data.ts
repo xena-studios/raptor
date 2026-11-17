@@ -1,8 +1,7 @@
-import { useQuery } from "@connectrpc/connect-query";
+import { createQueryOptions, useQuery, useTransport } from "@connectrpc/connect-query";
 import { useQueries } from "@tanstack/react-query";
 
 import { type Node, OrgService, type Server } from "@/gen/raptor/panel/v1/org_pb";
-import { orgClient } from "@/lib/transport";
 
 export type OrgServer = Server & { node: Node };
 
@@ -14,17 +13,18 @@ export function useOrgNodes(orgId: string) {
 // useOrgServers is every server the user can see in the org, across its
 // nodes (one ListServers per node), with each server's node. every is how
 // often it's refreshed (the sidebar asks less often than pages; a shared
-// query refreshes as often as its most eager user).
+// query refreshes as often as its most eager user). Each node's list is
+// the same query useServer and the node pages use, so it's fetched once.
 export function useOrgServers(
   orgId: string,
   every = 5_000,
 ): { servers: OrgServer[]; pending: boolean } {
   const nodes = useOrgNodes(orgId);
   const list = nodes.data?.nodes ?? [];
+  const transport = useTransport();
   const results = useQueries({
     queries: list.map((n) => ({
-      queryKey: ["org-servers", orgId, n.id],
-      queryFn: () => orgClient.listServers({ orgId, nodeId: n.id }),
+      ...createQueryOptions(OrgService.method.listServers, { orgId, nodeId: n.id }, { transport }),
       refetchInterval: every,
     })),
   });

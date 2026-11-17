@@ -74,6 +74,7 @@ The Panel is one process role (`serve api`), deployed with zero downtime for bro
 - **One server, no standby** (#344). The Panel's Postgres is on the same server as the Panels. If the server dies, a new one is made and restored from the archive with one command (`bootstrap.sh restore`, [DEPLOY.md](DEPLOY.md#rebuilding)), at the same provider or any other: about 15 minutes down, at most a minute of writes lost. Game servers keep running throughout; only managing them waits.
 - WAL archiving (pgBackRest) to object storage **at a different provider**, so an account or provider problem can't take the database and its backups together. Restores are **tested monthly**, by a timer: the latest backup is restored into a scratch container and compared with the live database (`deploy/scripts/restore-test.sh`). The rehearsal (`task deploy:rehearse`) rebuilds a whole server from the archive and checks a write made after the last backup survives.
 - Connection pooling via `pgxpool`. Every query has a context timeout.
+- **Sharing one server** (DECISIONS #387): each Panel instance is capped at 1.5 GB (`mem_limit`, with `GOMEMLIMIT` at 1200 MiB under it, so the Go runtime collects harder before the kernel kills it), Postgres's memory is sized for the machine from `.env`, every container's log is rotated, and backups (10:15 UTC) and the monthly restore test (10:45 UTC on the 1st, capped at 1 CPU and 2 GB) run in the quietest hours. `pg_stat_statements` and `track_io_timing` show which queries take the time ([DEPLOY.md](DEPLOY.md#query-statistics)).
 - Event ingestion from Wings is **batched** (multi-row inserts / `COPY`), not one transaction per event.
 - No live stats in Postgres. Only downsampled summaries.
 
@@ -84,7 +85,7 @@ The Panel is one process role (`serve api`), deployed with zero downtime for bro
 
 ### Frontend
 - Route-based code splitting; the console (xterm.js) and editor (Monaco, with its workers) load lazily.
-- TanStack Query caching with mirror data, so page navigation is instant.
+- TanStack Query caching with mirror data, so page navigation is instant: data is fresh for 20 seconds unless a query polls, changes invalidate what they touch, and each node's server list is one shared query. Pointing at a link preloads its page, and the route guards cache who's signed in for 30 seconds (decision 385). The page preconnects to the API's origin while the app loads.
 - One WebSocket per tab, multiplexing all subscriptions.
 - The UI shows **live / stale / pending / failed** states explicitly. Stale data never looks live.
 

@@ -612,6 +612,12 @@ func (m *Manager) Update(ctx context.Context, id string, cfg Config) error {
 			m.log.Warn("applying the new disk limit failed; it's applied on the next start", "server", id, "err", err)
 		}
 	}
+	// A new image is pulled on the next start, even if it's on the node.
+	if cfg.Image != old.Image {
+		i.mu.Lock()
+		i.pullImage = true
+		i.mu.Unlock()
+	}
 	m.emit(updated)
 	return nil
 }

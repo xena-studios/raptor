@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/json"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/uuid"
@@ -83,5 +84,61 @@ func TestKeeper(t *testing.T) {
 	}
 	if (&Keeper{}).Enabled() || !k.Enabled() {
 		t.Fatal("enabled")
+	}
+}
+
+// counting answers like node and counts what it was sent.
+type counting struct {
+	node
+	sent atomic.Int32
+}
+
+func (c *counting) Execute(ctx context.Context, id string, raw []byte) (*nodev1.ExecuteResponse, error) {
+	c.sent.Add(1)
+	return c.node.Execute(ctx, id, raw)
+}
+
+// Tick asks only connected nodes; an offline one is asked once it's back.
+func TestKeeperTickConnectedOnly(t *testing.T) {
+	db := paneltest.NewDB(t)
+	ctx := context.Background()
+	_, pk, _ := ed25519.GenerateKey(rand.Reader)
+	dk := make([]byte, 32)
+	_, _ = rand.Read(dk)
+	n := &counting{node: node{mode: "panel"}}
+	k := &Keeper{DB: db, Sender: n, PanelKey: pk, DataKey: dk}
+	exec := func(sql string, args ...any) {
+		t.Helper()
+		if _, err := db.Exec(ctx, sql, args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var org, on, off string
+	if err := db.QueryRow(ctx, "INSERT INTO orgs (name) VALUES ('org') RETURNING id").Scan(&org); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []*string{&on, &off} {
+		if err := db.QueryRow(ctx, `INSERT INTO nodes (org_id, name, public_key) VALUES ($1, 'box', decode(repeat('00', 32), 'hex')) RETURNING id`, org).Scan(id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	exec("INSERT INTO panel_instances (id) VALUES ('test')")
+	exec("INSERT INTO node_connections (node_id, instance_id) VALUES ($1, 'test')", on)
+
+	if err := k.Tick(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := n.sent.Load(); got != 1 {
+		t.Fatalf("sent %d, want 1 (the connected node)", got)
+	}
+	exec("INSERT INTO node_connections (node_id, instance_id) VALUES ($1, 'test')", off)
+	if err := k.Tick(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := n.sent.Load(); got != 2 {
+		t.Fatalf("sent %d, want 2 once the other reconnected", got)
+	}
+	if st, _ := k.Info(ctx, uuid.MustParse(off)); st == nil {
+		t.Fatal("no copy for the reconnected node")
 	}
 }

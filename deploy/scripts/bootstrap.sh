@@ -80,6 +80,16 @@ if [ ! -f /etc/apt/sources.list.d/1password.list ]; then
   echo "deb [arch=$arch signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/$arch stable main" \
     >/etc/apt/sources.list.d/1password.list
 fi
+# Rotated container logs by default (like a node, cmd/raptor/bootstrap.go),
+# for containers outside the stack too (the restore test's); compose.yaml
+# sets the same for its own. Merged into whatever daemon.json has. Written
+# before Docker is installed, so it starts with them; on a server where
+# Docker already runs, they apply from its next restart, not now.
+install -d -m 0755 /etc/docker
+daemon=/etc/docker/daemon.json
+[ -s "$daemon" ] || echo '{}' >"$daemon"
+jq '. + {"log-driver": "local", "log-opts": {"max-size": "20m", "max-file": "3"}}' "$daemon" >"$daemon.new"
+if cmp -s "$daemon" "$daemon.new"; then rm "$daemon.new"; else mv "$daemon.new" "$daemon"; fi
 apt-get update -q
 apt-get install -yq docker-ce docker-ce-cli containerd.io docker-compose-plugin 1password-cli
 cat >/etc/apt/apt.conf.d/20auto-upgrades <<'APT'

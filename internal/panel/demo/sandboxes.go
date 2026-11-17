@@ -452,7 +452,8 @@ func (s *Sandboxes) warm(ctx context.Context, q *store.Queries, n store.DemoNode
 		}
 		if _, err := q.QueueSandbox(ctx, store.QueueSandboxParams{
 			OrgID: n.OrgID, NodeID: n.NodeID, EggID: t.EggID, LibraryID: t.LibraryID, EggName: egg.Name,
-			AcceptEula: eula, Warm: true,
+			// No guest, so no address: empty, not NULL (the column is NOT NULL).
+			AcceptEula: eula, Warm: true, IpHash: []byte{},
 		}); err != nil {
 			return err
 		}
@@ -474,7 +475,7 @@ func (s *Sandboxes) end(ctx context.Context, q *store.Queries, r store.DemoSandb
 func (s *Sandboxes) ipHash(ip string) []byte {
 	key, err := hkdf.Key(sha256.New, s.PanelKey.Seed(), nil, "raptor demo address v1", 32)
 	if err != nil {
-		return nil
+		return []byte{} // never NULL: the column is NOT NULL
 	}
 	m := hmac.New(sha256.New, key)
 	m.Write([]byte(ip))
