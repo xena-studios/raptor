@@ -70,6 +70,9 @@ type Rules struct {
 	// Open what stays open when it blocks incoming connections.
 	Host *HostRules
 	Open []OpenPort
+	// Demo is the public demo node's egress policy (demo.go); nil on
+	// every other node.
+	Demo *Demo
 }
 
 // Network is one of the owner's networks.
@@ -140,11 +143,17 @@ func (r Rules) Render() string {
 	w("table inet %s", Table)
 	w("delete table inet %s", Table)
 	w("table inet %s {", Table)
+	if r.Demo != nil {
+		r.renderDemoSets(w)
+	}
 
 	w("\tchain forward {")
 	w("\t\ttype filter hook forward priority filter - 1; policy accept;")
 	rule(whyMetadata, "iifname { %s, %q } ip daddr { %s } drop", quote(servers), r.InstallBridge, join(v4))
 	rule(whyMetadata, "iifname { %s, %q } ip6 daddr { %s } drop", quote(servers), r.InstallBridge, join(v6))
+	if r.Demo != nil {
+		rule(whyDemoJump, "iifname %q jump demo_out", r.Demo.Bridge)
+	}
 	rule(whyInstallJump, "iifname %q jump install_out", r.InstallBridge)
 	// Before anything accepts traffic between networks, so a rule between
 	// them can't reach an instance either.
@@ -176,7 +185,14 @@ func (r Rules) Render() string {
 		w("\t}")
 	}
 
+	if r.Demo != nil {
+		r.renderDemo(w, rule)
+	}
+
 	w("\tchain install_out {")
+	if r.Demo != nil && r.Demo.LimitInstalls {
+		renderDemoInstalls(rule)
+	}
 	dns4, dns6 := split(r.DNS)
 	if len(dns4) > 0 {
 		rule(whyDNS, "ip daddr { %s } meta l4proto { tcp, udp } th dport 53 accept", join(dns4))

@@ -101,6 +101,10 @@ const (
 	// LocalServiceSetSupportEnabledProcedure is the fully-qualified name of the LocalService's
 	// SetSupportEnabled RPC.
 	LocalServiceSetSupportEnabledProcedure = "/raptor.wings.local.v1.LocalService/SetSupportEnabled"
+	// LocalServiceGetDemoProcedure is the fully-qualified name of the LocalService's GetDemo RPC.
+	LocalServiceGetDemoProcedure = "/raptor.wings.local.v1.LocalService/GetDemo"
+	// LocalServiceSetDemoProcedure is the fully-qualified name of the LocalService's SetDemo RPC.
+	LocalServiceSetDemoProcedure = "/raptor.wings.local.v1.LocalService/SetDemo"
 	// LocalServiceListNetworksProcedure is the fully-qualified name of the LocalService's ListNetworks
 	// RPC.
 	LocalServiceListNetworksProcedure = "/raptor.wings.local.v1.LocalService/ListNetworks"
@@ -195,6 +199,15 @@ type LocalServiceClient interface {
 	// SetSupportEnabled turns support access off (ending every grant) or
 	// back on. Root only.
 	SetSupportEnabled(context.Context, *v1.SetSupportEnabledRequest) (*v1.SetSupportEnabledResponse, error)
+	// GetDemo reports whether this is the public demo's node (#449,
+	// docs/WINGS.md#demo-node): its settings and its sandboxes. The raptor
+	// group may look.
+	GetDemo(context.Context, *v1.GetDemoRequest) (*v1.GetDemoResponse, error)
+	// SetDemo makes this node the public demo's node, trusting the Panel's
+	// demo key for sandboxes and the showcase servers' restores, or stops
+	// (docs/SECURITY-MODEL.md#the-demo-key). Root only; Wings restarts to
+	// apply it.
+	SetDemo(context.Context, *v1.SetDemoRequest) (*v1.SetDemoResponse, error)
 	// ListNetworks lists the owner's networks (docs/NETWORKS.md), as Wings
 	// keeps them, for raptor doctor to compare with Docker.
 	ListNetworks(context.Context, *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error)
@@ -377,6 +390,19 @@ func NewLocalServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(localServiceMethods.ByName("SetSupportEnabled")),
 			connect.WithClientOptions(opts...),
 		),
+		getDemo: connect.NewClient[v1.GetDemoRequest, v1.GetDemoResponse](
+			httpClient,
+			baseURL+LocalServiceGetDemoProcedure,
+			connect.WithSchema(localServiceMethods.ByName("GetDemo")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		setDemo: connect.NewClient[v1.SetDemoRequest, v1.SetDemoResponse](
+			httpClient,
+			baseURL+LocalServiceSetDemoProcedure,
+			connect.WithSchema(localServiceMethods.ByName("SetDemo")),
+			connect.WithClientOptions(opts...),
+		),
 		listNetworks: connect.NewClient[v1.ListNetworksRequest, v1.ListNetworksResponse](
 			httpClient,
 			baseURL+LocalServiceListNetworksProcedure,
@@ -421,6 +447,8 @@ type localServiceClient struct {
 	listSupport           *connect.Client[v1.ListSupportRequest, v1.ListSupportResponse]
 	revokeSupport         *connect.Client[v1.RevokeSupportRequest, v1.RevokeSupportResponse]
 	setSupportEnabled     *connect.Client[v1.SetSupportEnabledRequest, v1.SetSupportEnabledResponse]
+	getDemo               *connect.Client[v1.GetDemoRequest, v1.GetDemoResponse]
+	setDemo               *connect.Client[v1.SetDemoRequest, v1.SetDemoResponse]
 	listNetworks          *connect.Client[v1.ListNetworksRequest, v1.ListNetworksResponse]
 	listDatabaseInstances *connect.Client[v1.ListDatabaseInstancesRequest, v1.ListDatabaseInstancesResponse]
 }
@@ -644,6 +672,24 @@ func (c *localServiceClient) SetSupportEnabled(ctx context.Context, req *v1.SetS
 	return nil, err
 }
 
+// GetDemo calls raptor.wings.local.v1.LocalService.GetDemo.
+func (c *localServiceClient) GetDemo(ctx context.Context, req *v1.GetDemoRequest) (*v1.GetDemoResponse, error) {
+	response, err := c.getDemo.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// SetDemo calls raptor.wings.local.v1.LocalService.SetDemo.
+func (c *localServiceClient) SetDemo(ctx context.Context, req *v1.SetDemoRequest) (*v1.SetDemoResponse, error) {
+	response, err := c.setDemo.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // ListNetworks calls raptor.wings.local.v1.LocalService.ListNetworks.
 func (c *localServiceClient) ListNetworks(ctx context.Context, req *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error) {
 	response, err := c.listNetworks.CallUnary(ctx, connect.NewRequest(req))
@@ -748,6 +794,15 @@ type LocalServiceHandler interface {
 	// SetSupportEnabled turns support access off (ending every grant) or
 	// back on. Root only.
 	SetSupportEnabled(context.Context, *v1.SetSupportEnabledRequest) (*v1.SetSupportEnabledResponse, error)
+	// GetDemo reports whether this is the public demo's node (#449,
+	// docs/WINGS.md#demo-node): its settings and its sandboxes. The raptor
+	// group may look.
+	GetDemo(context.Context, *v1.GetDemoRequest) (*v1.GetDemoResponse, error)
+	// SetDemo makes this node the public demo's node, trusting the Panel's
+	// demo key for sandboxes and the showcase servers' restores, or stops
+	// (docs/SECURITY-MODEL.md#the-demo-key). Root only; Wings restarts to
+	// apply it.
+	SetDemo(context.Context, *v1.SetDemoRequest) (*v1.SetDemoResponse, error)
 	// ListNetworks lists the owner's networks (docs/NETWORKS.md), as Wings
 	// keeps them, for raptor doctor to compare with Docker.
 	ListNetworks(context.Context, *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error)
@@ -926,6 +981,19 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(localServiceMethods.ByName("SetSupportEnabled")),
 		connect.WithHandlerOptions(opts...),
 	)
+	localServiceGetDemoHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceGetDemoProcedure,
+		svc.GetDemo,
+		connect.WithSchema(localServiceMethods.ByName("GetDemo")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	localServiceSetDemoHandler := connect.NewUnaryHandlerSimple(
+		LocalServiceSetDemoProcedure,
+		svc.SetDemo,
+		connect.WithSchema(localServiceMethods.ByName("SetDemo")),
+		connect.WithHandlerOptions(opts...),
+	)
 	localServiceListNetworksHandler := connect.NewUnaryHandlerSimple(
 		LocalServiceListNetworksProcedure,
 		svc.ListNetworks,
@@ -992,6 +1060,10 @@ func NewLocalServiceHandler(svc LocalServiceHandler, opts ...connect.HandlerOpti
 			localServiceRevokeSupportHandler.ServeHTTP(w, r)
 		case LocalServiceSetSupportEnabledProcedure:
 			localServiceSetSupportEnabledHandler.ServeHTTP(w, r)
+		case LocalServiceGetDemoProcedure:
+			localServiceGetDemoHandler.ServeHTTP(w, r)
+		case LocalServiceSetDemoProcedure:
+			localServiceSetDemoHandler.ServeHTTP(w, r)
 		case LocalServiceListNetworksProcedure:
 			localServiceListNetworksHandler.ServeHTTP(w, r)
 		case LocalServiceListDatabaseInstancesProcedure:
@@ -1103,6 +1175,14 @@ func (UnimplementedLocalServiceHandler) RevokeSupport(context.Context, *v1.Revok
 
 func (UnimplementedLocalServiceHandler) SetSupportEnabled(context.Context, *v1.SetSupportEnabledRequest) (*v1.SetSupportEnabledResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.SetSupportEnabled is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) GetDemo(context.Context, *v1.GetDemoRequest) (*v1.GetDemoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.GetDemo is not implemented"))
+}
+
+func (UnimplementedLocalServiceHandler) SetDemo(context.Context, *v1.SetDemoRequest) (*v1.SetDemoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.wings.local.v1.LocalService.SetDemo is not implemented"))
 }
 
 func (UnimplementedLocalServiceHandler) ListNetworks(context.Context, *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error) {

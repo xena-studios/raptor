@@ -138,6 +138,18 @@ service LocalService {
   // back on. Root only.
   rpc SetSupportEnabled(SetSupportEnabledRequest) returns (SetSupportEnabledResponse) {}
 
+  // GetDemo reports whether this is the public demo's node (#449,
+  // docs/WINGS.md#demo-node): its settings and its sandboxes. The raptor
+  // group may look.
+  rpc GetDemo(GetDemoRequest) returns (GetDemoResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  // SetDemo makes this node the public demo's node, trusting the Panel's
+  // demo key for sandboxes and the showcase servers' restores, or stops
+  // (docs/SECURITY-MODEL.md#the-demo-key). Root only; Wings restarts to
+  // apply it.
+  rpc SetDemo(SetDemoRequest) returns (SetDemoResponse) {}
+
   // ListNetworks lists the owner's networks (docs/NETWORKS.md), as Wings
   // keeps them, for raptor doctor to compare with Docker.
   rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse) {
@@ -738,3 +750,43 @@ message InstanceNetwork {
   bool attached = 5;
   string actual_address = 6;
 }
+
+message GetDemoRequest {}
+
+message GetDemoResponse {
+  bool enabled = 1;
+  // The Panel's demo key this node trusts (base64 Ed25519 public key).
+  string key = 2;
+  int32 max_sandboxes = 3;
+  int32 port_min = 4;
+  int32 port_max = 5;
+  int32 templates = 6;
+  repeated DemoSandbox sandboxes = 7;
+}
+
+message DemoSandbox {
+  string server_id = 1;
+  string egg_id = 2;
+  google.protobuf.Timestamp created_at = 3;
+  // Unset until its install finished.
+  google.protobuf.Timestamp ready_at = 4;
+  google.protobuf.Timestamp deadline = 5;
+  bool extended = 6;
+  // A warm template being built.
+  bool warm = 7;
+}
+
+message SetDemoRequest {
+  bool enabled = 1;
+  // With enabled: the Panel's demo key for this node, from
+  // `panel staff demo node` (base64 Ed25519 public key).
+  string key = 2;
+  // Zero: the default.
+  int32 max_sandboxes = 3;
+  int32 port_min = 4;
+  int32 port_max = 5;
+  // Warm templates to keep; -1 for none, 0 for the default.
+  int32 templates = 6;
+}
+
+message SetDemoResponse {}

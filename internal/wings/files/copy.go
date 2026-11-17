@@ -97,7 +97,14 @@ func (f *FS) copyFile(src *os.Root, p string, fi fs.FileInfo) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	n, err := io.Copy(out, in)
+	// A reflink where the volume supports it (the demo's warm templates,
+	// imports on the same volume), the bytes otherwise.
+	var n int64
+	if clone(out, in) {
+		n = fi.Size()
+	} else {
+		n, err = io.Copy(out, in)
+	}
 	if err == nil {
 		err = out.Chmod(fi.Mode().Perm())
 	}

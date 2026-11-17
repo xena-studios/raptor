@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -241,6 +242,15 @@ const (
 	// NuGet packages from api.nuget.org, checked by SHA-512, with the
 	// plugin's assembly taken out).
 	CapAddonsOpenMod = "addons-openmod"
+	// CapDemo: this is the public demo's node (#449): its owner ran
+	// `raptor demo on`, so it takes the Panel's demo key for sandboxes and
+	// the showcase servers' restores (docs/SECURITY-MODEL.md#the-demo-key),
+	// and answers node.demo and node.demo.extend. Listed only by that node,
+	// never by a build alone.
+	CapDemo = "demo"
+	// CapNetOutAlerts: node.alerts takes node_net_out_high, the machine's
+	// outbound traffic above a rate (MB/s).
+	CapNetOutAlerts = "net-out-alerts"
 )
 
 // nodeCapabilities is what this build of Wings lists in its Hello.
@@ -249,16 +259,17 @@ var nodeCapabilities = []string{
 	CapDatabaseTransfers, CapDatabaseVersions, CapDatabaseBackups, CapDatabaseExternal, CapDatabaseDocuments, CapDatabaseAlerts,
 	CapDatabaseSettings, CapDatabaseQueryStream, CapDatabaseInstanceBrowser, CapDatabaseRedisExternal,
 	CapDatabaseUsage, CapDatabaseShared, CapDatabaseInstanceBackups, CapRaptorEggs, CapAddonsUMod, CapAddonsFactorio,
-	CapAddonsCurseForge, CapAddonsThunderstore, CapAddonsOpenMod,
+	CapAddonsCurseForge, CapAddonsThunderstore, CapAddonsOpenMod, CapNetOutAlerts,
 }
 
-// NewHello starts a handshake for a node.
-func NewHello(nodeID, purpose, software string) (Hello, error) {
+// NewHello starts a handshake for a node. extra are capabilities this node
+// has beyond its build's (CapDemo).
+func NewHello(nodeID, purpose, software string, extra ...string) (Hello, error) {
 	n := make([]byte, nonceSize)
 	if _, err := rand.Read(n); err != nil {
 		return Hello{}, err
 	}
-	return Hello{NodeID: nodeID, Version: Version, Purpose: purpose, Nonce: n, Software: software, Capabilities: nodeCapabilities}, nil
+	return Hello{NodeID: nodeID, Version: Version, Purpose: purpose, Nonce: n, Software: software, Capabilities: append(slices.Clone(nodeCapabilities), extra...)}, nil
 }
 
 // Validate checks a Hello's shape (the Panel's side).

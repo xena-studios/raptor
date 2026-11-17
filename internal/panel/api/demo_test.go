@@ -169,7 +169,7 @@ func TestDemo(t *testing.T) {
 	}
 	// What guests are there to try.
 	for _, c := range []struct{ action, params string }{
-		{"server.command", `{"command":"say hi"}`},
+		{"server.command", `{"command":"list"}`},
 		{"server.start", `{}`},
 		{"files.list", `{"dir":"/"}`},
 		{"files.write", `{"path":"server.properties","content":""}`},

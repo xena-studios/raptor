@@ -21,6 +21,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/server"
 	"github.com/xena-studios/raptor/internal/wings/sftp"
 	"github.com/xena-studios/raptor/internal/wings/storage"
+	"github.com/xena-studios/raptor/internal/wings/store"
 	"github.com/xena-studios/raptor/internal/wings/support"
 )
 
@@ -53,6 +54,11 @@ type Service struct {
 	Disk      *host.DiskGuard  // nil in tests
 	Link      Link             // nil if the node isn't linked
 	Support   *support.Manager // nil in tests
+	// State is Wings' state database, for the demo settings (demo.go).
+	State *store.DB
+	// Restart restarts Wings, for settings it reads only when it starts
+	// (`raptor demo on`). Servers keep running.
+	Restart func()
 
 	mu       sync.RWMutex
 	commands *command.Executor
@@ -64,6 +70,7 @@ type Service struct {
 	// networks and databases, once the runtime is ready (databases.go).
 	networks  Networks
 	databases Databases
+	demo      Demo
 }
 
 // Link reports the node connection (*link.Link).

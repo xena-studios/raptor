@@ -4,6 +4,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "cn";
 import { BadgeCheck, Plus, Search, Server } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
+import { DemoNewServer } from "@/components/demo-sandbox";
 import { EggIcon } from "@/components/eggs/library";
 import { ModpackButton } from "@/components/modpack-picker";
 import { EmptyState, PageHeader } from "@/components/page";
@@ -23,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { CatalogEgg } from "@/gen/raptor/panel/v1/catalog_pb";
 import { EggService } from "@/gen/raptor/panel/v1/egg_pb";
-import { type Node, OrgService } from "@/gen/raptor/panel/v1/org_pb";
+import { type Node, OrgService, Role } from "@/gen/raptor/panel/v1/org_pb";
 import { diskName, diskSpace, serverDisks, useNodeDisks } from "@/lib/disks";
 import { sortEggs } from "@/lib/egg-sort";
 import { categoryName } from "@/lib/eggs";
@@ -72,7 +73,10 @@ function NewServerPage() {
         title="Deploy a server"
         description="Pick a node and a game; Raptor installs it and starts it."
       />
-      {org && !isAdmin(org.role) ? (
+      {org?.demo && org.role !== Role.OWNER ? (
+        // The public demo: a sandbox of your own from a library egg.
+        <DemoNewServer orgId={orgId} />
+      ) : org && !isAdmin(org.role) ? (
         <p className="text-sm text-muted-foreground">
           Only the org's admins and owners can create servers.
         </p>

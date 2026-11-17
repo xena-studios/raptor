@@ -3,6 +3,8 @@ package perms
 import (
 	"encoding/json"
 	"strings"
+
+	"github.com/xena-studios/raptor/internal/shared/demo"
 )
 
 // The public demo's deny list for commands (#449,
@@ -64,6 +66,17 @@ func DemoRefuses(action string, params json.RawMessage, signed bool) bool {
 			return true
 		}
 	}
+	// A locked backup is one retention never deletes: only staff make the
+	// showcase servers' known-good ones.
+	if action == "backup.create" {
+		var p struct {
+			Locked bool `json:"locked"`
+		}
+		if len(params) > 0 && json.Unmarshal(params, &p) != nil {
+			return true
+		}
+		return p.Locked
+	}
 	if action == "server.update" {
 		var p struct {
 			Egg       json.RawMessage `json:"egg"`
@@ -96,4 +109,49 @@ func DemoGrantable(p string) bool {
 		return false
 	}
 	return Valid(p)
+}
+
+// DemoUploadTooBig reports whether a files.upload is over the demo's upload
+// limit (demo.UploadLimit, 10 MB): the demo is for trying Raptor, not for
+// keeping files.
+func DemoUploadTooBig(action string, params json.RawMessage) bool {
+	if action != "files.upload" {
+		return false
+	}
+	var p struct {
+		Size int64 `json:"size"`
+	}
+	if len(params) > 0 && json.Unmarshal(params, &p) != nil {
+		return true
+	}
+	return p.Size > demo.UploadLimit
+}
+
+// demoConsoleDenied are console commands guests can't send to the shared
+// showcase servers (Phase 3): making anyone an operator or changing
+// permissions or the whitelist (directly, or through execute or sudo), and
+// broadcasting to the players there. On their own sandbox, anything goes.
+var demoConsoleDenied = map[string]bool{
+	"op": true, "deop": true, "whitelist": true, "execute": true, "sudo": true,
+	"lp": true, "luckperms": true, "perm": true, "perms": true, "permissions": true, "pex": true,
+	"say": true, "tellraw": true, "me": true, "msg": true, "tell": true, "w": true, "broadcast": true, "bc": true,
+	"title": true, "plugman": true, "reload": true, "rl": true,
+}
+
+// DemoConsoleRefuses reports whether a guest's console command to a
+// showcase server is one of those. The command's first word decides, with
+// any slash and plugin prefix ("minecraft:op") taken off.
+func DemoConsoleRefuses(params json.RawMessage) bool {
+	var p struct {
+		Command string `json:"command"`
+	}
+	if len(params) > 0 && json.Unmarshal(params, &p) != nil {
+		return true
+	}
+	word, _, _ := strings.Cut(strings.TrimSpace(p.Command), " ")
+	word = strings.ToLower(strings.TrimLeft(word, "/"))
+	if i := strings.LastIndex(word, ":"); i >= 0 {
+		word = word[i+1:]
+	}
+	return demoConsoleDenied[word]
 }

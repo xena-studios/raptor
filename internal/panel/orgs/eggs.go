@@ -11,6 +11,7 @@ import (
 
 	"connectrpc.com/connect"
 
+	"github.com/xena-studios/raptor/internal/eggs/spec"
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/panel/catalog"
 	"github.com/xena-studios/raptor/internal/panel/eggimport"
@@ -106,4 +107,21 @@ func eggName(name string) string {
 		name = string([]rune(name)[:maxEggName])
 	}
 	return name
+}
+
+// PreviewEgg reads an egg file for the public demo's egg editor (#449):
+// what it would run, and the editor's view of it. Nothing is saved.
+func PreviewEgg(file []byte) (*panelv1.EggReview, *panelv1.EggSpec, error) {
+	if len(file) == 0 || len(file) > eggimport.MaxSize {
+		return nil, nil, invalid(errors.New("choose an egg file of up to 1 MiB"))
+	}
+	r, err := eggimport.Parse(file)
+	if err != nil {
+		return nil, nil, invalid(err)
+	}
+	sp, err := spec.Read(file)
+	if err != nil {
+		return nil, nil, invalid(err)
+	}
+	return review(r), specProto(sp), nil
 }

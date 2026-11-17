@@ -11,10 +11,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"go.opentelemetry.io/otel/metric"
 
 	panelv1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1"
 	"github.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1/panelv1connect"
 	"github.com/xena-studios/raptor/internal/panel/store"
+	"github.com/xena-studios/raptor/internal/panel/telemetry"
 )
 
 // The public demo, Phase 1 (#449, docs/PANEL.md#the-public-demo): anyone
@@ -129,8 +131,13 @@ func (s *Service) StartDemo(ctx context.Context, req *panelv1.StartDemoRequest) 
 	if err != nil {
 		return nil, err
 	}
+	demoSessions.Add(ctx, 1)
 	return out, nil
 }
+
+// demoSessions counts guest sessions started (raptor.demo.sessions), for
+// the demo's analytics: a count, nothing about who.
+var demoSessions, _ = telemetry.Meter.Int64Counter("raptor.demo.sessions", metric.WithDescription("Guest sessions started in the public demo"))
 
 // guestEmail is a guest's placeholder address: users.email is required and
 // unique, and nothing is sent there.
@@ -149,6 +156,13 @@ var guestCalls = map[string]bool{
 	panelv1connect.OrgServiceTestConnectionProcedure:         true,
 	panelv1connect.AlertServiceSeeNotificationsProcedure:     true,
 	panelv1connect.AlertServiceDismissNotificationsProcedure: true,
+	// Their own sandbox, the egg editor's preview (nothing is saved), and
+	// the demo's page counts (Phase 2 and 3).
+	panelv1connect.DemoServiceCreateSandboxProcedure:  true,
+	panelv1connect.DemoServiceExtendSandboxProcedure:  true,
+	panelv1connect.DemoServiceDeleteSandboxProcedure:  true,
+	panelv1connect.DemoServicePreviewEggProcedure:     true,
+	panelv1connect.DemoServiceRecordDemoPageProcedure: true,
 }
 
 // Reads a guest may not make: who else is in the org and how to reach

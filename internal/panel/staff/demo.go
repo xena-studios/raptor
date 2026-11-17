@@ -2,11 +2,16 @@ package staff
 
 import (
 	"context"
+	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
+	"os"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -14,6 +19,9 @@ import (
 
 	"github.com/xena-studios/raptor/internal/panel/perms"
 	"github.com/xena-studios/raptor/internal/panel/store"
+	"github.com/xena-studios/raptor/internal/shared/demo"
+	"github.com/xena-studios/raptor/internal/shared/nodecmd"
+	"github.com/xena-studios/raptor/internal/shared/nodelink"
 )
 
 // demoUsage is `panel staff demo`'s help (docs/DEPLOY.md#public-demo).
@@ -21,6 +29,8 @@ const demoUsage = `usage: panel staff demo on|off <org-id>
        panel staff demo server <org-id> <node-id> <server-id> [permission,...]
        panel staff demo backup <node-id> <server-id> <backup-id>
        panel staff demo remove <node-id> <server-id>
+       panel staff demo node <node-id> [-sandboxes 4] [-ports 30000-30099] [-warm 6]
+       panel staff demo node-remove <node-id>
        panel staff demo status`
 
 // demoCLI is `panel staff demo`: making an org Raptor's public demo
@@ -110,7 +120,26 @@ func demoCLI(ctx context.Context, q *store.Queries, by string, out io.Writer, ar
 			return err
 		}
 		_, _ = fmt.Fprintf(out, "%s's known-good backup is %s. Lock it in the app so it's never pruned.\n", args[2], row.KnownGoodBackup)
-		_, _ = fmt.Fprintln(out, "The hourly reset doesn't restore it yet: that needs the demo key (Phase 2, DECISIONS #375).")
+		_, _ = fmt.Fprintln(out, "The hourly reset restores it once the node is the demo node (panel staff demo node, then raptor demo on).")
+		return nil
+	case len(args) >= 2 && args[0] == "node":
+		return demoNodeCLI(ctx, q, out, args[1:], logged)
+	case len(args) == 2 && args[0] == "node-remove":
+		node, err := parseUUID(args[1], "node")
+		if err != nil {
+			return err
+		}
+		n, err := q.DeleteDemoNode(ctx, node)
+		if err != nil {
+			return err
+		}
+		if n == 0 {
+			return fmt.Errorf("%s isn't a demo node", args[1])
+		}
+		if err := logged("demo.node.remove", "node", args[1], nil); err != nil {
+			return err
+		}
+		_, _ = fmt.Fprintln(out, "No more sandboxes go to that node. Run `sudo raptor demo off` on it so it stops trusting the demo key.")
 		return nil
 	case len(args) == 3 && args[0] == "remove":
 		node, err := parseUUID(args[1], "node")
@@ -157,6 +186,16 @@ func demoCLI(ctx context.Context, q *store.Queries, by string, out io.Writer, ar
 			}
 			if len(servers) == 0 {
 				_, _ = fmt.Fprintln(out, "  no showcase servers: guests see nothing")
+			}
+			if n, err := q.DemoNodeOf(ctx, o.ID); err == nil {
+				on := "it hasn't said it's a demo node yet: run raptor demo on there"
+				if slices.Contains(n.Capabilities, nodelink.CapDemo) {
+					on = "raptor demo on"
+				}
+				_, _ = fmt.Fprintf(out, "  sandboxes on node %s: up to %d, ports %d-%d, %d warm templates (%s)\n",
+					uuid.UUID(n.NodeID.Bytes), n.MaxSandboxes, n.PortMin, n.PortMax, n.WarmEggs, on)
+			} else {
+				_, _ = fmt.Fprintln(out, "  no demo node: guests can't make sandboxes (panel staff demo node <node-id>)")
 			}
 		}
 		return nil
@@ -210,4 +249,83 @@ func parseUUID(s, what string) (pgtype.UUID, error) {
 		return pgtype.UUID{}, fmt.Errorf("bad %s ID %q", what, s)
 	}
 	return pgtype.UUID{Bytes: id, Valid: true}, nil
+}
+
+// demoNodeCLI is `panel staff demo node`: sandboxes go to this node of the
+// demo org, and it prints the node's demo key for `raptor demo on`, which
+// only root on the node can run (docs/DEPLOY.md#public-demo).
+func demoNodeCLI(ctx context.Context, q *store.Queries, out io.Writer, args []string, logged func(action, targetType, target string, meta map[string]any) error) error {
+	node, err := parseUUID(args[0], "node")
+	if err != nil {
+		return err
+	}
+	fs := flag.NewFlagSet("demo node", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	sandboxes := fs.Int("sandboxes", demo.DefaultMaxSandboxes, "sandboxes at once")
+	ports := fs.String("ports", fmt.Sprintf("%d-%d", demo.DefaultPortMin, demo.DefaultPortMax), "the sandboxes' ports")
+	warm := fs.Int("warm", demo.DefaultTemplates, "eggs to keep warm templates of")
+	if err := fs.Parse(args[1:]); err != nil {
+		return errors.New(demoUsage)
+	}
+	from, to, ok := strings.Cut(*ports, "-")
+	// Ports fit in 16 bits; parsing to that size bounds the conversion.
+	pmin, errA := strconv.ParseUint(from, 10, 16)
+	pmax, errB := strconv.ParseUint(to, 10, 16)
+	switch {
+	case !ok || errA != nil || errB != nil || pmin < 1024 || pmax > 65535 || pmin > pmax:
+		return errors.New("-ports is a range like 30000-30099")
+	case *sandboxes < 0 || *sandboxes > demo.MaxSandboxes:
+		return fmt.Errorf("-sandboxes is 0 to %d", demo.MaxSandboxes)
+	case *warm < 0 || *warm > 32:
+		return errors.New("-warm is 0 to 32")
+	}
+	org, err := q.NodeOrg(ctx, node)
+	if err != nil {
+		return fmt.Errorf("no node %s", args[0])
+	}
+	if d, err := q.DemoOrgs(ctx); err != nil || !slices.ContainsFunc(d, func(o store.DemoOrgsRow) bool { return o.ID == org }) {
+		return errors.New("that node isn't in a demo org: panel staff demo on <org-id> first")
+	}
+	key, err := demoKey(node)
+	if err != nil {
+		return err
+	}
+	if err := q.SetDemoNode(ctx, store.SetDemoNodeParams{
+		NodeID: node, OrgID: org, MaxSandboxes: int32(*sandboxes), PortMin: int32(pmin), PortMax: int32(pmax), WarmEggs: int32(*warm), //nolint:gosec // checked above
+	}); err != nil {
+		return err
+	}
+	if err := logged("demo.node", "node", args[0], map[string]any{"sandboxes": *sandboxes, "ports": *ports, "warm": *warm}); err != nil {
+		return err
+	}
+	_, _ = fmt.Fprintf(out, "Sandboxes in the demo go to node %s: up to %d at once, on ports %s, with %d warm templates.\n", args[0], *sandboxes, *ports, *warm)
+	_, _ = fmt.Fprintln(out, "On the node, as root (it trusts the demo key from then on, on that machine only):")
+	templates := *warm
+	if templates == 0 {
+		templates = -1 // none; 0 is Wings' default
+	}
+	_, _ = fmt.Fprintf(out, "  sudo raptor demo on -key %s -sandboxes %d -ports %s -templates %d\n", key, *sandboxes, *ports, templates)
+	_, _ = fmt.Fprintf(out, "Open the ports to the internet: %s TCP and UDP.\n", *ports)
+	return nil
+}
+
+// demoKey is the node's demo key's public half, from the Panel's signing
+// key (PANEL_SIGNING_KEY): nodecmd.DemoKey.
+func demoKey(node pgtype.UUID) (string, error) {
+	path := os.Getenv("PANEL_SIGNING_KEY")
+	if path == "" {
+		return "", errors.New("PANEL_SIGNING_KEY is not set: the demo key comes from the Panel's signing key")
+	}
+	panelKey, err := nodelink.LoadKey(path)
+	if err != nil {
+		return "", err
+	}
+	if panelKey == nil {
+		return "", fmt.Errorf("%s doesn't exist", path)
+	}
+	k, err := nodecmd.DemoKey(panelKey, uuid.UUID(node.Bytes).String())
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(k.Public().(ed25519.PublicKey)), nil
 }

@@ -90,4 +90,14 @@ Power actions and commands from here are recorded in the server's activity, as d
 | `sudo raptor support off` / `sudo raptor support on` | Refuse all support access, or allow requests again |
 | `sudo raptor import pterodactyl -key ptla_…` | Move servers from Pterodactyl on this machine. See [Move from Pterodactyl](/install/from-pterodactyl/) |
 
+## Raptor's demo node
+
+Only for the machine behind Raptor's [public demo](/start/demo/). Don't run these on your own nodes.
+
+| Command | Does |
+|---|---|
+| `raptor demo status` | Whether this is the demo node, and its sandboxes |
+| `sudo raptor demo on -key <base64>` | Trust the Panel's demo key on this machine only, for guests' sandboxes and the showcase servers' restores |
+| `sudo raptor demo off` | Stop trusting it. Leftover sandboxes are deleted |
+
 Run `raptor <command> -h` for every flag a command takes.

@@ -71,6 +71,8 @@ func run(args []string) error {
 		return keysCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "support":
 		return supportCmd(ctx, args[1:])
+	case len(args) >= 1 && args[0] == "demo":
+		return demoCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "audit":
 		return auditCmd(ctx, args[1:])
 	case len(args) >= 1 && args[0] == "import":

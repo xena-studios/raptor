@@ -1,0 +1,145 @@
+syntax = "proto3";
+
+package raptor.panel.v1;
+
+import "google/protobuf/timestamp.proto";
+import "raptor/panel/v1/egg.proto";
+
+// DemoService is the public demo's sandboxes (#449, docs/PANEL.md#sandboxes):
+// a guest picks a library egg, waits in the queue if the demo node is
+// full, and gets a server of their own for 15 minutes (once 15 more),
+// which the node deletes itself when the time is up. Guests and the demo
+// org's members call it; it answers "not found" in any other org.
+service DemoService {
+  // ListDemoEggs says which of the official library's eggs a sandbox can be
+  // made from in the demo, and why the others can't (too big). The app
+  // shows them with the catalog it already has.
+  rpc ListDemoEggs(ListDemoEggsRequest) returns (ListDemoEggsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  // GetSandbox returns the caller's sandbox: queued, installing, ready, or
+  // the last one that ended. Unset if they never made one.
+  rpc GetSandbox(GetSandboxRequest) returns (GetSandboxResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  // CreateSandbox queues a sandbox from a library egg that fits. One per
+  // guest and per address at a time.
+  rpc CreateSandbox(CreateSandboxRequest) returns (CreateSandboxResponse) {}
+  // ExtendSandbox gives a ready sandbox 15 more minutes, once, if nobody is
+  // waiting.
+  rpc ExtendSandbox(ExtendSandboxRequest) returns (ExtendSandboxResponse) {}
+  // DeleteSandbox deletes the caller's sandbox now, or takes it out of the
+  // queue.
+  rpc DeleteSandbox(DeleteSandboxRequest) returns (DeleteSandboxResponse) {}
+  // PreviewEgg reads an egg file for the demo's egg editor: what it would
+  // run and the editor's view of it. Nothing is saved, and it can't be run
+  // in the demo.
+  rpc PreviewEgg(PreviewEggRequest) returns (PreviewEggResponse) {}
+  // RecordDemoPage counts a page a guest reached (the route, never who or
+  // what's on it), for the demo's analytics.
+  rpc RecordDemoPage(RecordDemoPageRequest) returns (RecordDemoPageResponse) {}
+}
+
+message DemoEgg {
+  // The official egg's ID, as in EggService.ListEggs.
+  string egg_id = 1;
+  // Its ID in Raptor's egg library ("minecraft/paper").
+  string library_id = 2;
+  bool fits = 3;
+  // Why it doesn't fit ("too big for the demo: ...").
+  string why = 4;
+}
+
+message ListDemoEggsRequest {
+  string org_id = 1;
+}
+
+message ListDemoEggsResponse {
+  repeated DemoEgg eggs = 1;
+  // Whether sandboxes can be made: the demo node is set up and connected.
+  bool open = 2;
+  // The demo node's architecture; eggs that don't run on it aren't listed.
+  string arch = 3;
+  int32 max_sandboxes = 4;
+  // Sandboxes running or being made, and waiting.
+  int32 running = 5;
+  int32 queued = 6;
+}
+
+message Sandbox {
+  string id = 1;
+  // queued, creating, installing, ready, gone (deleted), or failed.
+  string state = 2;
+  string egg_id = 3;
+  string egg_name = 4;
+  string library_id = 5;
+  string node_id = 6;
+  // Set once the node made it.
+  string server_id = 7;
+  // Where players join: the demo node's hostname and the sandbox's port.
+  string address = 8;
+  int32 port = 9;
+  // While queued: how many are ahead, and about how long until it starts.
+  int32 queue_position = 10;
+  int32 wait_seconds = 11;
+  // Once its install finished: when it's deleted.
+  google.protobuf.Timestamp ready_at = 12;
+  google.protobuf.Timestamp deadline = 13;
+  bool extended = 14;
+  // Whether ExtendSandbox would work now.
+  bool can_extend = 15;
+  string error = 16;
+}
+
+message GetSandboxRequest {
+  string org_id = 1;
+}
+
+message GetSandboxResponse {
+  Sandbox sandbox = 1;
+}
+
+message CreateSandboxRequest {
+  string org_id = 1;
+  // An official egg's ID, from ListDemoEggs.
+  string egg_id = 2;
+  // The game's EULA, for eggs that have one (Minecraft).
+  bool accept_eula = 3;
+}
+
+message CreateSandboxResponse {
+  Sandbox sandbox = 1;
+}
+
+message ExtendSandboxRequest {
+  string org_id = 1;
+}
+
+message ExtendSandboxResponse {
+  Sandbox sandbox = 1;
+}
+
+message DeleteSandboxRequest {
+  string org_id = 1;
+}
+
+message DeleteSandboxResponse {}
+
+message PreviewEggRequest {
+  string org_id = 1;
+  // An egg file, up to 1 MiB.
+  bytes file = 2;
+}
+
+message PreviewEggResponse {
+  EggReview review = 1;
+  EggSpec spec = 2;
+}
+
+message RecordDemoPageRequest {
+  // The app's route ("/orgs/$orgId/servers/$serverId/console"), never a
+  // URL with IDs in it.
+  string page = 1;
+}
+
+message RecordDemoPageResponse {}

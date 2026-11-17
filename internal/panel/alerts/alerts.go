@@ -1043,6 +1043,9 @@ func (s *Service) syncNode(ctx context.Context, q *store.Queries, n store.Connec
 	if !slices.Contains(n.Capabilities, nodelink.CapDatabaseAlerts) {
 		conditions = slices.DeleteFunc(conditions, func(c string) bool { return slices.Contains(InstanceConditions(), c) })
 	}
+	if !slices.Contains(n.Capabilities, nodelink.CapNetOutAlerts) {
+		conditions = slices.DeleteFunc(conditions, func(c string) bool { return c == "node_net_out_high" })
+	}
 	rows, err := q.NodeThresholdRules(ctx, store.NodeThresholdRulesParams{ID: n.ID, Conditions: conditions})
 	if err != nil {
 		return err

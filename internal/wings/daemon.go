@@ -4,6 +4,7 @@ package wings
 import (
 	"bytes"
 	"context"
+	"crypto/ed25519"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -35,6 +36,7 @@ import (
 	"github.com/xena-studios/raptor/internal/wings/config"
 	"github.com/xena-studios/raptor/internal/wings/containers"
 	"github.com/xena-studios/raptor/internal/wings/databases"
+	"github.com/xena-studios/raptor/internal/wings/demo"
 	"github.com/xena-studios/raptor/internal/wings/docker"
 	"github.com/xena-studios/raptor/internal/wings/events"
 	"github.com/xena-studios/raptor/internal/wings/files"
@@ -136,6 +138,7 @@ func Run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		Updates:   updates,
 	}
 	svc.Disk = disk
+	svc.State, svc.Restart = db, restart
 	rt, err := newRuntimeSetup(dc, cfg, log, db, svc)
 	if err == nil {
 		rt.disk = disk
@@ -246,6 +249,8 @@ type runtimeSetup struct {
 	disks          *system.DiskManager
 	fwMu           sync.Mutex        // guards rules after setup
 	commands       *command.Executor // receives Panel commands (connected in Phase 3)
+	demoCfg        *demo.Config      // nil unless this is the demo's node
+	demoNode       *actions.DemoNode // once the sandboxes started
 }
 
 func newRuntimeSetup(rt containers.Runtime, cfg config.Config, log *slog.Logger, db *store.DB, svc *localapi.Service) (*runtimeSetup, error) {
@@ -268,6 +273,16 @@ func newRuntimeSetup(rt containers.Runtime, cfg config.Config, log *slog.Logger,
 		Limits: map[string]int{"install": cfg.Limits.ConcurrentInstalls, "backup": cfg.Limits.ConcurrentBackups, "schedule": 32, "files": 2, "pull": 4, "database": 1},
 	})
 	r.commands = &command.Executor{DB: db, NodeID: cfg.NodeID, RP: rp, PanelKey: panelKey, Log: log, Pairing: &command.Pairing{}}
+	// The public demo's node trusts the Panel's demo key, after its owner
+	// ran `raptor demo on`; no other node does (docs/SECURITY-MODEL.md#the-demo-key).
+	if r.demoCfg, err = demo.Load(context.Background(), db); err != nil {
+		log.Error("the demo settings are unreadable; this node isn't a demo node until `raptor demo on` is run again", "err", err)
+		r.demoCfg = nil
+	}
+	if r.demoCfg != nil {
+		r.commands.DemoKey = ed25519.PublicKey(r.demoCfg.Key)
+		log.Warn("this is Raptor's public demo node: the Panel's demo key is trusted for sandboxes and the showcase servers' restores")
+	}
 	svc.SetCommands(r.commands)
 	r.system = &system.Manager{
 		DB: db, Log: log, Hosts: "/etc/hosts", SSHConfig: "/etc/ssh/sshd_config",
@@ -670,6 +685,9 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	if err := nsvc.Reconcile(ctx); err != nil {
 		return fmt.Errorf("networks: %w", err)
 	}
+	// The demo's sandboxes have a network of their own, whose outbound
+	// traffic the demo's egress policy limits.
+	demoNet := r.demoNetwork(ctx, nsvc)
 	ownNets, between := nsvc.Firewall(ctx)
 	rules := firewall.Rules{
 		ServerBridge:  nets.Server.Bridge,
@@ -679,6 +697,9 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 		Between:       between,
 		DNS:           firewall.HostResolvers(),
 		InstallAllow:  r.cfg.Docker.AllowedPrefixes(),
+	}
+	if demoNet != "" {
+		rules.Demo = &firewall.Demo{Bridge: networks.Bridge(demoNet), LimitInstalls: true}
 	}
 	if nets.CgroupParent != "" {
 		limit, err := host.ApplySlice(ctx, int64(r.cfg.Limits.ReservedMemory))
@@ -825,6 +846,8 @@ func (r *runtimeSetup) setup(ctx context.Context) error {
 	actions.RegisterDatabaseDocuments(r.commands, dbsvc)
 	actions.RegisterDatabaseBackups(r.commands, dbsvc, bk)
 	actions.RegisterBackups(r.commands, bk)
+	dm := r.startDemo(ctx, mgr, demoNet, uid, gid)
+	actions.RegisterDemo(r.commands, mgr, bk, dm)
 	fsvc := files.NewService(files.Options{
 		Servers: mgr, Store: r.db, Jobs: r.jobs, Events: r.events, Log: r.log, UID: uid, GID: gid,
 		GzipLevel: r.cfg.Archives.GzipLevel, Threads: r.cfg.Archives.Threads,
@@ -901,7 +924,8 @@ func newLink(cfg config.Config, rt *runtimeSetup, log *slog.Logger) *link.Link {
 	return link.New(link.Config{
 		PanelURL: cfg.Panel.URL, NodeID: cfg.NodeID, NodeKey: nodeKey, PanelKey: rt.commands.PanelKey,
 		Software: buildinfo.Version, Commands: rt.commands, CommandsReady: rt.commandsReady.Load,
-		Events: rt.events, Jobs: rt.jobs, Log: log,
+		Capabilities: rt.extraCapabilities(),
+		Events:       rt.events, Jobs: rt.jobs, Log: log,
 		// A version on trial is healthy only once it's connected again.
 		OnConnected: rt.ready,
 		Servers: func() link.Servers {

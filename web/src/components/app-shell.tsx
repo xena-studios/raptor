@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@connectrpc/connect-query";
-import { Link, type LinkProps, useLocation, useNavigate } from "@tanstack/react-router";
+import { Link, type LinkProps, useLocation, useMatches, useNavigate } from "@tanstack/react-router";
 import { cn } from "cn";
 import {
   BookOpen,
@@ -24,7 +24,7 @@ import {
   Users,
   WifiOff,
 } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { AlertsBell } from "@/components/alerts-bell";
 import { Announcements } from "@/components/announcements";
@@ -72,7 +72,7 @@ import { AuthService, type GetSessionResponse } from "@/gen/raptor/panel/v1/auth
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 import { useApiDown } from "@/lib/connection";
-import { isGuest, showBanner } from "@/lib/demo";
+import { demoPage, isGuest, showBanner } from "@/lib/demo";
 import { isAdmin, roleNames } from "@/lib/format";
 import { discordUrl, docsUrl } from "@/lib/help";
 import { shortId } from "@/lib/ids";
@@ -86,6 +86,7 @@ import {
   setTheme,
   setThemeStyle,
 } from "@/lib/theme";
+import { demoClient } from "@/lib/transport";
 
 // The org the app shows when a page isn't about one (the last one opened).
 const lastOrgKey = "raptor.org";
@@ -204,7 +205,8 @@ export function AppShell({
             </div>
           </header>
           <ConnectionBanner />
-          {demo && <DemoBanner />}
+          {demo && <DemoBanner orgId={!admin && current?.demo ? current.id : undefined} />}
+          {demo && isGuest(session.user) && <DemoPages />}
           <Announcements />
           {orgId && !admin && !demo && <BillingBanner orgId={orgId} />}
           <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 p-6">
@@ -721,4 +723,18 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
       </SidebarMenuItem>
     </SidebarMenu>
   );
+}
+
+// DemoPages counts the pages a guest reaches in the demo (the route's
+// template, never IDs), once each time it changes. Nothing waits for it.
+function DemoPages() {
+  const route = useMatches({ select: (m) => m[m.length - 1]?.fullPath ?? "" });
+  const last = useRef("");
+  useEffect(() => {
+    const page = demoPage(String(route));
+    if (!page || page === last.current) return;
+    last.current = page;
+    demoClient.recordDemoPage({ page }).catch(() => {});
+  }, [route]);
+  return null;
 }

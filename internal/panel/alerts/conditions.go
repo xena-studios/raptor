@@ -48,6 +48,7 @@ var Conditions = []Condition{
 	{ID: "node_cpu_high", Label: "Node CPU above", Scope: "node", Threshold: true, Unit: "%", Resolves: true},
 	{ID: "node_memory_high", Label: "Node memory above", Scope: "node", Threshold: true, Unit: "%", Resolves: true},
 	{ID: "node_disk_high", Label: "Node disk above", Scope: "node", Threshold: true, Unit: "%", Resolves: true},
+	{ID: "node_net_out_high", Label: "Node outbound traffic above", Scope: "node", Threshold: true, Unit: " MB/s", Resolves: true},
 	{ID: "wings_update", Label: "Wings updated or rolled back", Scope: "node"},
 	{ID: "security", Label: "Signed actions and passkey changes", Scope: "node"},
 	{ID: "db_down", Label: "Database instance down or restarting", Scope: "instance", Resolves: true},

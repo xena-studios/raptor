@@ -1,6 +1,7 @@
 package perms
 
 import (
+	"encoding/json"
 	"slices"
 	"testing"
 )
@@ -90,6 +91,43 @@ func TestDemoGuestGrants(t *testing.T) {
 	for _, p := range []string{SFTP, Reinstall, DatabasesRead, DatabasesWrite, "nope"} {
 		if DemoGrantable(p) || slices.Contains(DemoGuest, p) {
 			t.Errorf("%q is grantable in the demo", p)
+		}
+	}
+}
+
+// Phase 2: a guest's backups aren't locked (only staff make the known-good
+// ones the hourly reset restores), and uploads are up to 10 MB.
+func TestDemoLockedBackupsAndUploads(t *testing.T) {
+	if !DemoRefuses("backup.create", json.RawMessage(`{"locked":true}`), false) {
+		t.Error("a guest's locked backup")
+	}
+	if DemoRefuses("backup.create", json.RawMessage(`{}`), false) || DemoRefuses("backup.create", nil, false) {
+		t.Error("a guest's ordinary backup is refused")
+	}
+	for size, big := range map[int64]bool{0: false, 10 << 20: false, 10<<20 + 1: true, 1 << 30: true} {
+		p, _ := json.Marshal(map[string]int64{"size": size})
+		if got := DemoUploadTooBig("files.upload", p); got != big {
+			t.Errorf("upload of %d bytes: too big %v", size, got)
+		}
+	}
+	if DemoUploadTooBig("files.write", json.RawMessage(`{"size":999999999}`)) {
+		t.Error("only uploads are limited")
+	}
+	if !DemoUploadTooBig("files.upload", json.RawMessage(`not json`)) {
+		t.Error("unreadable params pass")
+	}
+}
+
+func TestDemoConsoleRefuses(t *testing.T) {
+	for cmd, refused := range map[string]bool{
+		"op Steve": true, "/op Steve": true, "minecraft:op Steve": true, "OP Steve": true, "deop x": true,
+		"whitelist add x": true, "execute as @a run op @s": true, "lp user x permission set *": true,
+		"say hi": true, "tellraw @a {}": true, "sudo x op x": true,
+		"list": false, "time set day": false, "weather clear": false, "tps": false, "": false, "  list ": false,
+	} {
+		p, _ := json.Marshal(map[string]string{"command": cmd})
+		if got := DemoConsoleRefuses(p); got != refused {
+			t.Errorf("%q: refused %v, want %v", cmd, got, refused)
 		}
 	}
 }
