@@ -402,10 +402,14 @@ Raptor's public demo (#449, docs/PANEL.md#the-public-demo) runs in the productio
 2. **The org.** Signed in as that account, make an org named "Raptor demo". Its full ID is on its page in the admin panel (Orgs, search for it), as are its node's ID and its servers' IDs once they exist. Give it a billing waiver there so it never goes read-only.
 3. **The node.** On the demo VPS, link it to that org the usual way (`curl -fsSL https://get.raptorpanel.net | sh`, then `raptor bootstrap` with a join token from the org's Add node page), with the demo account's passkey pinned. Keep SSH key-only. Leave SFTP off on the node.
 4. **The showcase servers**, from the app as the owner (each is passkey-signed):
-   - **Paper**, with a few plugins installed (LuckPerms, EssentialsX, a map plugin), `online-mode` on, and guests not in `ops.json`.
+   - **Paper**, with a few plugins installed (LuckPerms, EssentialsX, a map plugin), `online-mode` on, and no guest ever op:
+     - `white-list=true` and `enforce-whitelist=true` in server.properties, with only the bot's account (and staff's) on the whitelist, so players who join through a guest's console can't (the Panel refuses `whitelist`, `op`, `execute`, permission commands, and broadcasts to guests on showcase servers anyway).
+     - `ops.json` empty.
+     - LuckPerms' `default` group with no permissions beyond Paper's defaults (`lp group default permission info`), so a player gets nothing a plugin gives.
+     Take the known-good backup after this, so the hourly restore puts it back.
    - **Fabric**, with a handful of mods, including one with a dependency and one with an update available, so the badges show.
    - **Uptime Kuma**, a software egg with a web page, so the dashboard link shows. Make its admin account first so a guest can't claim it.
-   Keep each at modest memory (Paper 2 GB, Fabric 2 GB, Uptime Kuma 512 MB) to leave room for Phase 2's sandboxes.
+   Keep each at modest memory (Paper 2 GB, Fabric 2 GB, Uptime Kuma 512 MB): with four 1.5 GB sandboxes that's most of the 8 GB node.
 5. **Known-good backups.** When each server looks right, take a backup, **lock** it (so retention never prunes it), and note its ID (Backups tab).
 6. **Turn it on**, on the Panel's server:
 
@@ -420,11 +424,41 @@ docker compose exec panel-a panel staff demo backup <node-id> <paper-server-id> 
 docker compose exec panel-a panel staff demo status
 ```
 
-Then open https://app.raptorpanel.net/demo in a private window and check: the banner shows, the console streams, a file saves, an add-on installs, and creating a server, SFTP, Upload from a link, and the org's Members page all say they're off in the demo.
+7. **Sandboxes (Phase 2).** Make the node the demo node: on the Panel's server, `panel staff demo node <node-id>` (flags `-sandboxes 4 -ports 30000-30099 -warm 6`; raise `-sandboxes` only with more memory) prints a `sudo raptor demo on -key …` line. Run that on the demo node over SSH, as root: only root on that box can make it trust the demo key (docs/SECURITY-MODEL.md#the-demo-key). Wings restarts, makes the "Demo sandboxes" network and its egress policy, and the node shows the `demo` capability. Open the sandbox ports (TCP and UDP) in any provider firewall; Contabo has none by default.
+8. **Alerts (Phase 3).** In the demo org's Alerts, add rules for the demo node to a staff channel: **Node CPU above 95% for 10 minutes**, and **Node outbound traffic above 20 MB/s for 10 minutes** (a 200 Mbit/s port is 25 MB/s; sandboxes' running traffic is only to games' hosts, so sustained traffic out means something's wrong).
+9. **Status page.** Add the demo node to the status page as its own check (it's in a separate repository, raptor-status): its Wings health through the Panel, apart from the Panel's own checks, so the demo being down doesn't look like Raptor being down.
 
-**Each hour** the Panel removes the demo's guests and empties the showcase servers' trash (`demo reset` in the Panel's log, with how many guests went and which servers' trash failed). It doesn't restore the servers from their known-good backups yet (that needs Phase 2's demo key, DECISIONS #375), so **when a showcase server is broken**, restore it by hand: signed in as the demo account, open the server's Backups tab and restore its locked known-good backup (passkey-signed).
+```bash
+docker compose exec panel-a panel staff demo node <node-id>
+ssh root@<demo-node> raptor demo on -key <key-it-printed> -sandboxes 4 -ports 30000-30099 -templates 6
+ssh root@<demo-node> raptor demo status
+docker compose exec panel-a panel staff demo status   # "sandboxes on node …(raptor demo on)"
+```
 
-**To close the demo** (abuse, or maintenance): `panel staff demo off <org-id>`. New guests are refused at once; guests already in stay until their hour is up, or delete them with the next reset by turning it back on. `panel staff demo remove <node-id> <server-id>` stops giving guests a server.
+Then open https://app.raptorpanel.net/demo in a private window and check: the banner shows, the console streams, a file saves, an add-on installs, and SFTP, Upload from a link, and the org's Members page all say they're off in the demo; `op` in the Paper console is refused. Then New server: pick Paper, accept the EULA, and watch it queue, install, and show its countdown and address; join it from Minecraft; extend it; delete it. Eggs → New egg imports an egg file and shows it in the editor, without a save button.
+
+**Each hour** the Panel removes the demo's guests, restores each showcase server from its locked known-good backup with the demo key, and empties their trash (`demo reset` in the Panel's log: guests, restored, restores failed or skipped, trash). A restore that failed (the backup was pruned or unlocked, say) is in the log; restore it by hand from the server's Backups tab as the demo account, then mark a new known-good backup.
+
+**Sandboxes** are worked by the leader every 5 seconds (`demo:` lines in the Panel's log). The node deletes each one when its time is up, Panel or not (`demo: sandbox deleted` in Wings' log, `journalctl -u raptor-wings`); `raptor demo status` on the node lists them with their time left. Between 03:00 and 05:00 UTC the node builds warm templates of the month's most-picked eggs. If the queue is often full, the node is the bottleneck: move to a 16 GB plan and `-sandboxes 8` (a resize, then `panel staff demo node` and `raptor demo on` again with the new number).
+
+**What to watch:** Grafana's `raptor.demo.sessions`, `raptor.demo.pages` by page, and `raptor.demo.sandboxes` by egg and outcome (failed sandboxes are worth a look: usually an egg that changed after the node's Wings was built, which updating Wings fixes).
+
+**To close the demo** (abuse, or maintenance): `panel staff demo off <org-id>`. New guests are refused at once; guests already in stay until their hour is up, or delete them with the next reset by turning it back on. `panel staff demo remove <node-id> <server-id>` stops giving guests a server; `panel staff demo node-remove <node-id>` stops sandboxes (and `sudo raptor demo off` on the node stops it trusting the demo key, deleting the sandboxes left).
+
+### Rebuilding the demo node
+
+Rebuild the demo node from scratch **monthly** (the first Monday, say) and at once if it may be compromised: nothing a guest left survives, and it tests the install path. `deploy/demo/rebuild.sh` does it from an operator's machine, for any provider:
+
+```bash
+# A join token from the demo org's Add node page (as the demo account).
+deploy/demo/rebuild.sh -host <demo-node-address> -token rpt_join_… -identity ~/.ssh/demo
+```
+
+1. **The OS is reinstalled** by the provider: set `DEMO_REINSTALL_CMD` to a command that does it through the provider's API (it gets the host), or the script asks you to do it in the provider's panel and waits (Contabo: Your services → the VPS → Reinstall → Ubuntu 24.04, with the demo SSH key from 1Password).
+2. It waits for SSH, makes SSH key-only, and updates the OS.
+3. It installs Raptor and links it with the join token (`get.raptorpanel.net`, then `raptor bootstrap`). That's a new node in the demo org.
+4. It asks for the new node's demo key: run the `panel staff demo node <new-node-id> …` line it prints on the Panel's server and paste the key (or set `DEMO_KEY_CMD` to a command that prints it). Then it runs `raptor demo on`.
+5. What's left is in the Panel, as the script says: remove the old node (Nodes, and `panel staff demo node-remove <old-node-id>`), make the showcase servers again (step 4 above) or recover them from their offsite backups, take and lock their known-good backups, `panel staff demo server` and `backup` for each, the alert rules (step 8), and check the status page's check (step 9).
 
 ## Backups
 
