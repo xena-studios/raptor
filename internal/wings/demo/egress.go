@@ -66,26 +66,32 @@ func ResolveAllowed(ctx context.Context, r Resolver, log *slog.Logger) []netip.A
 // addresses move.
 const EgressEvery = 10 * time.Minute
 
+// egressRetry is how soon a load that failed is tried again.
+var egressRetry = 15 * time.Second
+
 // RunEgress looks the allowed hosts up now and every EgressEvery, and
 // hands the addresses to apply (which reloads the firewall), until ctx
 // ends.
 func RunEgress(ctx context.Context, r Resolver, log *slog.Logger, apply func(ctx context.Context, allow []netip.Addr) error) {
-	t := time.NewTicker(EgressEvery)
-	defer t.Stop()
 	var last []netip.Addr
+	loaded := false
 	for {
+		wait := EgressEvery
 		allow := ResolveAllowed(ctx, r, log)
-		if !slices.Equal(allow, last) {
+		if !loaded || !slices.Equal(allow, last) {
 			if err := apply(ctx, allow); err != nil {
-				log.Error("demo: loading the sandboxes' allowed hosts into the firewall failed", "err", err)
+				// The firewall isn't loaded yet (Wings is starting), or
+				// nft failed: soon again, not in 10 minutes.
+				log.Warn("demo: loading the sandboxes' allowed hosts into the firewall failed; trying again", "err", err)
+				wait = egressRetry
 			} else {
-				last = allow
+				last, loaded = allow, true
 			}
 		}
 		select {
 		case <-ctx.Done():
 			return
-		case <-t.C:
+		case <-time.After(wait):
 		}
 	}
 }

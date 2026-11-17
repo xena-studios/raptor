@@ -2,6 +2,7 @@ package wings
 
 import (
 	"context"
+	"errors"
 	"net/netip"
 	"path/filepath"
 
@@ -104,7 +105,7 @@ func (r *runtimeSetup) applyDemoEgress(ctx context.Context, allow []netip.Addr) 
 	r.fwMu.Lock()
 	defer r.fwMu.Unlock()
 	if r.rules == nil || r.rules.Demo == nil {
-		return nil
+		return errors.New("the firewall isn't loaded yet")
 	}
 	next := *r.rules
 	d := *next.Demo
