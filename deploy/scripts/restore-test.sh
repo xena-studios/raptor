@@ -31,9 +31,13 @@ if [ "$(q "$primary_ctr" "SELECT coalesce(last_archived_wal >= '$seg', false) FR
   exit 1
 fi
 
+# The scratch copy shares the server with the live stack: capped, so the
+# restore and its startup can't starve the Panels or the database.
+limits=(--cpus=1 --memory=2g)
+
 echo "restore-test: restoring into a scratch volume"
 docker volume create "$vol" >/dev/null
-docker run --rm --env-file "${ENV_FILE:-/run/raptor/postgres.env}" ${NETWORK:+--network "$NETWORK"} \
+docker run --rm "${limits[@]}" --env-file "${ENV_FILE:-/run/raptor/postgres.env}" ${NETWORK:+--network "$NETWORK"} \
   -v "$vol":/var/lib/postgresql -v "$CONF/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro" \
   --entrypoint bash "$image" -c '
     install -d -o postgres -g postgres -m 0700 /var/lib/postgresql/18/docker
@@ -43,8 +47,9 @@ docker run --rm --env-file "${ENV_FILE:-/run/raptor/postgres.env}" ${NETWORK:+--
 
 echo "restore-test: starting the restored copy"
 # The primary's settings (a restore refuses to run with smaller ones), minus
-# archiving: this copy must never write to the real archive.
-docker run -d --name "$name" --env-file "${ENV_FILE:-/run/raptor/postgres.env}" ${NETWORK:+--network "$NETWORK"} --shm-size 256m \
+# archiving: this copy must never write to the real archive. Its memory
+# settings are postgresql.conf's (sized for 4 GB, not .env's), within the cap.
+docker run -d --name "$name" "${limits[@]}" --env-file "${ENV_FILE:-/run/raptor/postgres.env}" ${NETWORK:+--network "$NETWORK"} --shm-size 256m \
   -v "$vol":/var/lib/postgresql -v "$CONF/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro" \
   -v "$CONF/postgresql.conf:/etc/raptor/postgresql.conf:ro" \
   "$image" postgres -c config_file=/etc/raptor/postgresql.conf -c archive_mode=off -c listen_addresses=localhost >/dev/null
