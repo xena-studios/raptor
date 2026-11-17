@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/xena-studios/raptor/internal/shared/nodecmd"
 	"github.com/xena-studios/raptor/internal/wings/store"
 )
 
@@ -44,7 +45,17 @@ var (
 	ErrSignatureInvalid = errBadAssertion
 	ErrNoSupport        = errors.New("this node doesn't take support access")
 	ErrSupportSigned    = errors.New("staff can't send actions that need the owner's passkey")
+	// ErrDemoOff: a command signed with the demo key on a node that isn't
+	// a demo node (`raptor demo on`), which is every node but one.
+	ErrDemoOff = errors.New("this node isn't a demo node: it doesn't take the Panel's demo key")
+	// ErrDemoRefused: the demo node doesn't take the demo key for this
+	// command (docs/SECURITY-MODEL.md#the-demo-key).
+	ErrDemoRefused = errors.New("the demo key can't sign this")
 )
+
+// DemoCredential is what the audit log and the command log record as the
+// signer of a command signed with the demo key.
+const DemoCredential = "demo-key"
 
 // RunError is a command that ran and failed (as opposed to one that was
 // refused before running).
@@ -69,6 +80,12 @@ type Handler struct {
 	// enough (e.g. restoring a deleted server's backup, whose files the
 	// delegate may never have had access to).
 	OwnerOnly func(ctx context.Context, e Envelope) (bool, error)
+	// Demo, if set, lets a demo node take this signed command with the
+	// Panel's demo key in place of a passkey, when it returns nil: it
+	// checks the command is one the demo may make (a sandbox within its
+	// limits, say). Nil, the demo key is refused, which is the case for
+	// every action but three (docs/SECURITY-MODEL.md#the-demo-key).
+	Demo func(ctx context.Context, e Envelope) error
 }
 
 // Always and Never are Signed functions.
@@ -83,8 +100,12 @@ type Executor struct {
 	NodeID   string
 	RP       RelyingParty
 	PanelKey ed25519.PublicKey // nil until the node is linked
-	Log      *slog.Logger
-	Now      func() time.Time
+	// DemoKey is the Panel's demo key for this node, trusted only after
+	// `raptor demo on` (docs/SECURITY-MODEL.md#the-demo-key). Nil on every
+	// other node, which then refuses commands signed with it.
+	DemoKey ed25519.PublicKey
+	Log     *slog.Logger
+	Now     func() time.Time
 	// Pairing is the key reset in progress (`raptor keys reset`), if any.
 	Pairing *Pairing
 	// OnAudit, if set, is called with every finished audit entry: signed
@@ -254,7 +275,16 @@ func (x *Executor) execute(ctx context.Context, e Envelope) (Result, error) {
 		return Result{}, ErrSupportSigned
 	}
 	var signer []byte
-	if signed {
+	switch {
+	case signed && e.Signature == nil && len(e.Demo) > 0:
+		// The Panel's demo key instead of a passkey: a demo node, and an
+		// action that takes it, or nothing.
+		if err := x.checkDemo(ctx, h, e, hash); err != nil {
+			x.audit(ctx, e, hash, AuditRejected, err.Error())
+			return Result{}, err
+		}
+		signer = []byte(DemoCredential)
+	case signed:
 		owner := false
 		if h.OwnerOnly != nil {
 			if owner, err = h.OwnerOnly(ctx, e); err != nil {
@@ -419,6 +449,26 @@ func (x *Executor) checkSignature(ctx context.Context, e Envelope, hash []byte, 
 		if err := x.DB.Write.SetSignCount(ctx, store.SetSignCountParams{SignCount: int64(counter), CredentialID: k.CredentialID}); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// checkDemo verifies a command signed with the Panel's demo key: this node
+// trusts the key (`raptor demo on`), the action takes it, the signature
+// is the key's over this exact command, and the action's own check passes
+// (a library egg within the sandbox limits, a sandbox, a locked backup).
+func (x *Executor) checkDemo(ctx context.Context, h Handler, e Envelope, hash []byte) error {
+	if len(x.DemoKey) != ed25519.PublicKeySize {
+		return ErrDemoOff
+	}
+	if h.Demo == nil {
+		return fmt.Errorf("%w: %s needs a person's passkey", ErrDemoRefused, e.Action)
+	}
+	if !ed25519.Verify(x.DemoKey, nodecmd.DemoPayload(hash), e.Demo) {
+		return fmt.Errorf("%w: the demo key's signature doesn't match", ErrSignatureInvalid)
+	}
+	if err := h.Demo(ctx, e); err != nil {
+		return fmt.Errorf("%w: %w", ErrDemoRefused, err)
 	}
 	return nil
 }

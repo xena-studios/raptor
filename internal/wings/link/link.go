@@ -38,6 +38,9 @@ type Config struct {
 	NodeKey  ed25519.PrivateKey
 	PanelKey ed25519.PublicKey
 	Software string // Wings' version
+	// Capabilities are this node's beyond its build's: CapDemo on the
+	// demo node.
+	Capabilities []string
 
 	Commands *command.Executor
 	// CommandsReady reports whether commands can run yet (Wings registers
@@ -192,6 +195,7 @@ func (l *Link) connect(ctx context.Context) error {
 	s, err := nodelink.Dial(ctx, nodelink.DialConfig{
 		URL: l.cfg.PanelURL, NodeID: l.cfg.NodeID, NodeKey: l.cfg.NodeKey, PanelKey: l.cfg.PanelKey,
 		Purpose: nodelink.PurposeControl, Software: l.cfg.Software, HTTPClient: l.cfg.HTTPClient, Keepalive: l.cfg.Keepalive,
+		Capabilities: l.cfg.Capabilities,
 	})
 	if err != nil {
 		return err

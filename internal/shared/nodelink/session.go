@@ -243,6 +243,8 @@ type DialConfig struct {
 	HTTPClient *http.Client
 	Keepalive  Keepalive
 	Now        func() time.Time
+	// Capabilities are this node's beyond its build's (CapDemo).
+	Capabilities []string
 }
 
 // RefusedError is the Panel turning the node away after the handshake
@@ -284,7 +286,7 @@ func Dial(ctx context.Context, cfg DialConfig) (*Session, error) {
 	if err != nil {
 		return nil, err
 	}
-	hello, err := NewHello(cfg.NodeID, cfg.Purpose, cfg.Software)
+	hello, err := NewHello(cfg.NodeID, cfg.Purpose, cfg.Software, cfg.Capabilities...)
 	if err != nil {
 		return nil, err
 	}

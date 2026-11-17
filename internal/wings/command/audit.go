@@ -57,11 +57,14 @@ func KeyFingerprint(coseKey []byte) string {
 func (x *Executor) audit(ctx context.Context, e Envelope, hash []byte, outcome, detail string) int64 {
 	var cred []byte
 	name := ""
-	if e.Signature != nil {
+	switch {
+	case e.Signature != nil:
 		cred = e.Signature.CredentialID
 		if k, err := x.DB.Write.GetTrustedKey(ctx, cred); err == nil {
 			name = k.Name
 		}
+	case len(e.Demo) > 0:
+		cred, name = []byte(DemoCredential), "Panel's demo key"
 	}
 	id, err := x.DB.Write.InsertAudit(context.WithoutCancel(ctx), store.InsertAuditParams{
 		At: x.now().UnixMilli(), CommandID: e.CommandID, Action: e.Action, ServerID: e.ServerID, UserID: e.UserID,

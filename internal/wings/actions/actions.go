@@ -146,6 +146,9 @@ type CreateParams struct {
 	// Networks are the owner's networks it's on, its primary first; none
 	// is the server network (docs/NETWORKS.md).
 	Networks []string `json:"networks,omitempty"`
+	// Demo makes a sandbox on the public demo's node (RegisterDemo); it's
+	// taken only with the Panel's demo key.
+	Demo *DemoParams `json:"demo,omitempty"`
 }
 
 // Defaults are what new servers get.

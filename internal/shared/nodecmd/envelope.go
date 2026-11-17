@@ -26,6 +26,10 @@ type Envelope struct {
 
 	Grant     Grant             `json:"grant"`
 	Signature *PasskeySignature `json:"signature,omitempty"`
+	// Demo is the Panel's demo key's signature (SignDemo), in place of a
+	// passkey's, for the few commands a demo node takes it for
+	// (docs/SECURITY-MODEL.md#the-demo-key). Every other node refuses it.
+	Demo []byte `json:"demo,omitempty"`
 }
 
 // Grant is the Panel's authorization of one command for one user.
