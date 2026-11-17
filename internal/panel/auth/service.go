@@ -61,12 +61,21 @@ func (s *Service) sendEmailCode(ctx context.Context, email, purpose string) erro
 		return connect.NewError(connect.CodeUnavailable, errors.New("email isn't set up on this Panel"))
 	}
 	code, link := newCode(), newToken()
+	review := s.Review.matches(email) && (purpose == purposeSignIn || purpose == purposeReauth)
+	if review {
+		code = s.Review.Code
+	}
 	linkHash := hash(link)
 	if err := s.q().CreateEmailCode(ctx, store.CreateEmailCodeParams{
 		Email: email, CodeHash: hash(string(linkHash), code), LinkTokenHash: linkHash,
 		ExpiresAt: pgtype.Timestamptz{Time: s.now().Add(CodeTTL), Valid: true}, Purpose: purpose,
 	}); err != nil {
 		return err
+	}
+	if review {
+		// The reviewer has the code already, and the address has no inbox.
+		s.log().Info("app review code", "purpose", purpose)
+		return nil
 	}
 	minutes := int(CodeTTL.Minutes())
 	var e mail.Email
@@ -147,6 +156,9 @@ func (s *Service) FinishEmailSignIn(ctx context.Context, req *panelv1.FinishEmai
 		case *panelv1.FinishEmailSignInRequest_Code:
 			email, err := normalizeEmail(p.Code.GetEmail())
 			if err != nil {
+				return err
+			}
+			if err := lockCodeChecks(ctx, tx, email); err != nil {
 				return err
 			}
 			if over, err := s.over(ctx, "fail:email:"+email, limitFailedCodesPerEmail); err != nil {

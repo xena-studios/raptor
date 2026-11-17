@@ -808,6 +808,76 @@ func (q *Queries) InsertTelegramLink(ctx context.Context, arg InsertTelegramLink
 	return err
 }
 
+const muteAlerts = `-- name: MuteAlerts :exec
+INSERT INTO alert_mutes (user_id, org_id, target, until) VALUES ($1, $2, $3, $4)
+ON CONFLICT (user_id, org_id, target) DO UPDATE SET until = EXCLUDED.until
+`
+
+type MuteAlertsParams struct {
+	UserID pgtype.UUID
+	OrgID  pgtype.UUID
+	Target string
+	Until  pgtype.Timestamptz
+}
+
+func (q *Queries) MuteAlerts(ctx context.Context, arg MuteAlertsParams) error {
+	_, err := q.db.Exec(ctx, muteAlerts,
+		arg.UserID,
+		arg.OrgID,
+		arg.Target,
+		arg.Until,
+	)
+	return err
+}
+
+const mutedUsers = `-- name: MutedUsers :many
+SELECT DISTINCT user_id FROM alert_mutes
+WHERE org_id = $1 AND user_id = ANY ($2::uuid[]) AND target = ANY ($3::text[]) AND until > now()
+`
+
+type MutedUsersParams struct {
+	OrgID   pgtype.UUID
+	Users   []pgtype.UUID
+	Targets []string
+}
+
+// Of these people, who muted alerts about any of these targets.
+func (q *Queries) MutedUsers(ctx context.Context, arg MutedUsersParams) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, mutedUsers, arg.OrgID, arg.Users, arg.Targets)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []pgtype.UUID
+	for rows.Next() {
+		var user_id pgtype.UUID
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const nodeInOrg = `-- name: NodeInOrg :one
+SELECT EXISTS (SELECT 1 FROM nodes WHERE id = $1 AND org_id = $2)
+`
+
+type NodeInOrgParams struct {
+	ID    pgtype.UUID
+	OrgID pgtype.UUID
+}
+
+func (q *Queries) NodeInOrg(ctx context.Context, arg NodeInOrgParams) (bool, error) {
+	row := q.db.QueryRow(ctx, nodeInOrg, arg.ID, arg.OrgID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const nodeThresholdRules = `-- name: NodeThresholdRules :many
 SELECT r.id, r.condition, r.server_id, r.threshold, r.for_minutes
 FROM alert_rules r JOIN nodes n ON n.org_id = r.org_id
@@ -1114,6 +1184,35 @@ func (q *Queries) OrgMembersExist(ctx context.Context, arg OrgMembersExistParams
 	return count, err
 }
 
+const phoneChannelBySession = `-- name: PhoneChannelBySession :one
+SELECT id, org_id, type, name, config, secret, hint, failing_since, last_error, last_sent_at, disabled_at, created_by, created_at, user_id, session_id FROM alert_channels WHERE session_id = $1 AND type = 'phone'
+`
+
+// An app session's phone, for a push that isn't an alert (an approval
+// request): sent even when the person turned the phone's alerts off.
+func (q *Queries) PhoneChannelBySession(ctx context.Context, sessionID pgtype.UUID) (AlertChannel, error) {
+	row := q.db.QueryRow(ctx, phoneChannelBySession, sessionID)
+	var i AlertChannel
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Type,
+		&i.Name,
+		&i.Config,
+		&i.Secret,
+		&i.Hint,
+		&i.FailingSince,
+		&i.LastError,
+		&i.LastSentAt,
+		&i.DisabledAt,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UserID,
+		&i.SessionID,
+	)
+	return i, err
+}
+
 const phoneSessionLive = `-- name: PhoneSessionLive :one
 SELECT EXISTS (SELECT 1 FROM alert_channels c JOIN sessions s ON s.id = c.session_id
     WHERE c.id = $1 AND s.revoked_at IS NULL AND s.expires_at > now())
@@ -1132,6 +1231,15 @@ DELETE FROM alert_deliveries WHERE status <> 'pending' AND created_at < now() - 
 
 func (q *Queries) PruneAlertDeliveries(ctx context.Context) error {
 	_, err := q.db.Exec(ctx, pruneAlertDeliveries)
+	return err
+}
+
+const pruneAlertMutes = `-- name: PruneAlertMutes :exec
+DELETE FROM alert_mutes WHERE until < now()
+`
+
+func (q *Queries) PruneAlertMutes(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, pruneAlertMutes)
 	return err
 }
 
@@ -1177,6 +1285,23 @@ func (q *Queries) SeeNotifications(ctx context.Context, userID pgtype.UUID) erro
 	return err
 }
 
+const serverInOrg = `-- name: ServerInOrg :one
+SELECT EXISTS (SELECT 1 FROM m_servers s JOIN nodes n ON n.id = s.node_id WHERE n.org_id = $1 AND s.server_id = $2)
+`
+
+type ServerInOrgParams struct {
+	OrgID    pgtype.UUID
+	ServerID string
+}
+
+// Whether a server (by its ID on its node) is on one of the org's nodes.
+func (q *Queries) ServerInOrg(ctx context.Context, arg ServerInOrgParams) (bool, error) {
+	row := q.db.QueryRow(ctx, serverInOrg, arg.OrgID, arg.ServerID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const setNodeAlerts = `-- name: SetNodeAlerts :exec
 UPDATE nodes SET alerts_hash = $2, alerts_error = $3 WHERE id = $1
 `
@@ -1203,6 +1328,21 @@ type SetTelegramLinkChannelParams struct {
 
 func (q *Queries) SetTelegramLinkChannel(ctx context.Context, arg SetTelegramLinkChannelParams) error {
 	_, err := q.db.Exec(ctx, setTelegramLinkChannel, arg.TokenHash, arg.ChannelID)
+	return err
+}
+
+const unmuteAlerts = `-- name: UnmuteAlerts :exec
+DELETE FROM alert_mutes WHERE user_id = $1 AND org_id = $2 AND target = $3
+`
+
+type UnmuteAlertsParams struct {
+	UserID pgtype.UUID
+	OrgID  pgtype.UUID
+	Target string
+}
+
+func (q *Queries) UnmuteAlerts(ctx context.Context, arg UnmuteAlertsParams) error {
+	_, err := q.db.Exec(ctx, unmuteAlerts, arg.UserID, arg.OrgID, arg.Target)
 	return err
 }
 
@@ -1347,7 +1487,7 @@ func (q *Queries) UseTelegramLink(ctx context.Context, tokenHash []byte) (UseTel
 }
 
 const userAlertChannels = `-- name: UserAlertChannels :many
-SELECT id, type, name, config, hint, failing_since, last_error, last_sent_at, disabled_at, created_at
+SELECT id, type, name, config, hint, failing_since, last_error, last_sent_at, disabled_at, created_at, session_id
 FROM alert_channels WHERE user_id = $1 ORDER BY created_at
 `
 
@@ -1362,6 +1502,7 @@ type UserAlertChannelsRow struct {
 	LastSentAt   pgtype.Timestamptz
 	DisabledAt   pgtype.Timestamptz
 	CreatedAt    pgtype.Timestamptz
+	SessionID    pgtype.UUID
 }
 
 // A user's own channels, for them (row-level security).
@@ -1385,6 +1526,52 @@ func (q *Queries) UserAlertChannels(ctx context.Context, userID pgtype.UUID) ([]
 			&i.LastSentAt,
 			&i.DisabledAt,
 			&i.CreatedAt,
+			&i.SessionID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const userAlertMutes = `-- name: UserAlertMutes :many
+SELECT m.org_id, o.name AS org_name, m.target, m.until,
+    -- Names only from the mute's own org.
+    coalesce((SELECT s.name FROM m_servers s JOIN nodes sn ON sn.id = s.node_id
+              WHERE sn.org_id = m.org_id AND 'server:' || s.server_id = m.target LIMIT 1),
+             (SELECT n.name FROM nodes n WHERE n.org_id = m.org_id AND 'node:' || n.id::text = m.target), '')::text AS name
+FROM alert_mutes m JOIN orgs o ON o.id = m.org_id
+WHERE m.user_id = $1 AND m.until > now() ORDER BY m.until
+`
+
+type UserAlertMutesRow struct {
+	OrgID   pgtype.UUID
+	OrgName string
+	Target  string
+	Until   pgtype.Timestamptz
+	Name    string
+}
+
+// A person's mutes still running, with what they're about.
+func (q *Queries) UserAlertMutes(ctx context.Context, userID pgtype.UUID) ([]UserAlertMutesRow, error) {
+	rows, err := q.db.Query(ctx, userAlertMutes, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UserAlertMutesRow
+	for rows.Next() {
+		var i UserAlertMutesRow
+		if err := rows.Scan(
+			&i.OrgID,
+			&i.OrgName,
+			&i.Target,
+			&i.Until,
+			&i.Name,
 		); err != nil {
 			return nil, err
 		}

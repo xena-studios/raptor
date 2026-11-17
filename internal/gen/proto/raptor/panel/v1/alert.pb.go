@@ -35,10 +35,12 @@ type AlertChannel struct {
 	Enabled bool   `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// Failing since the first alert it couldn't deliver (turned off after 3
 	// days of it); error is the last failure.
-	FailingSince  *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=failing_since,json=failingSince,proto3" json:"failing_since,omitempty"`
-	Error         string                 `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
-	LastSentAt    *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=last_sent_at,json=lastSentAt,proto3" json:"last_sent_at,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	FailingSince *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=failing_since,json=failingSince,proto3" json:"failing_since,omitempty"`
+	Error        string                 `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
+	LastSentAt   *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=last_sent_at,json=lastSentAt,proto3" json:"last_sent_at,omitempty"`
+	CreatedAt    *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// A phone channel that's the calling app's own (this phone).
+	ThisDevice    bool `protobuf:"varint,11,opt,name=this_device,json=thisDevice,proto3" json:"this_device,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -134,6 +136,13 @@ func (x *AlertChannel) GetCreatedAt() *timestamppb.Timestamp {
 		return x.CreatedAt
 	}
 	return nil
+}
+
+func (x *AlertChannel) GetThisDevice() bool {
+	if x != nil {
+		return x.ThisDevice
+	}
+	return false
 }
 
 type ListAlertChannelsRequest struct {
@@ -2228,11 +2237,387 @@ func (*UnregisterPushDeviceResponse) Descriptor() ([]byte, []int) {
 	return file_raptor_panel_v1_alert_proto_rawDescGZIP(), []int{34}
 }
 
+type MuteAlertsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	OrgId string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	// A server (with its node), or a whole node.
+	NodeId   string `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	ServerId string `protobuf:"bytes,3,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty"`
+	// How long: 1 minute to 7 days.
+	Minutes       int32 `protobuf:"varint,4,opt,name=minutes,proto3" json:"minutes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MuteAlertsRequest) Reset() {
+	*x = MuteAlertsRequest{}
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MuteAlertsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MuteAlertsRequest) ProtoMessage() {}
+
+func (x *MuteAlertsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MuteAlertsRequest.ProtoReflect.Descriptor instead.
+func (*MuteAlertsRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_alert_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *MuteAlertsRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *MuteAlertsRequest) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *MuteAlertsRequest) GetServerId() string {
+	if x != nil {
+		return x.ServerId
+	}
+	return ""
+}
+
+func (x *MuteAlertsRequest) GetMinutes() int32 {
+	if x != nil {
+		return x.Minutes
+	}
+	return 0
+}
+
+type MuteAlertsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Until         *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=until,proto3" json:"until,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MuteAlertsResponse) Reset() {
+	*x = MuteAlertsResponse{}
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MuteAlertsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MuteAlertsResponse) ProtoMessage() {}
+
+func (x *MuteAlertsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MuteAlertsResponse.ProtoReflect.Descriptor instead.
+func (*MuteAlertsResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_alert_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *MuteAlertsResponse) GetUntil() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Until
+	}
+	return nil
+}
+
+type UnmuteAlertsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	NodeId        string                 `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	ServerId      string                 `protobuf:"bytes,3,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnmuteAlertsRequest) Reset() {
+	*x = UnmuteAlertsRequest{}
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnmuteAlertsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnmuteAlertsRequest) ProtoMessage() {}
+
+func (x *UnmuteAlertsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnmuteAlertsRequest.ProtoReflect.Descriptor instead.
+func (*UnmuteAlertsRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_alert_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *UnmuteAlertsRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *UnmuteAlertsRequest) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *UnmuteAlertsRequest) GetServerId() string {
+	if x != nil {
+		return x.ServerId
+	}
+	return ""
+}
+
+type UnmuteAlertsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnmuteAlertsResponse) Reset() {
+	*x = UnmuteAlertsResponse{}
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnmuteAlertsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnmuteAlertsResponse) ProtoMessage() {}
+
+func (x *UnmuteAlertsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnmuteAlertsResponse.ProtoReflect.Descriptor instead.
+func (*UnmuteAlertsResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_alert_proto_rawDescGZIP(), []int{38}
+}
+
+type ListAlertMutesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAlertMutesRequest) Reset() {
+	*x = ListAlertMutesRequest{}
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAlertMutesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAlertMutesRequest) ProtoMessage() {}
+
+func (x *ListAlertMutesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAlertMutesRequest.ProtoReflect.Descriptor instead.
+func (*ListAlertMutesRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_alert_proto_rawDescGZIP(), []int{39}
+}
+
+type AlertMute struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	OrgId   string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	OrgName string                 `protobuf:"bytes,2,opt,name=org_name,json=orgName,proto3" json:"org_name,omitempty"`
+	// One of these: the server, or the node.
+	NodeId   string `protobuf:"bytes,3,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	ServerId string `protobuf:"bytes,4,opt,name=server_id,json=serverId,proto3" json:"server_id,omitempty"`
+	// The server's or node's name.
+	Name          string                 `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
+	Until         *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=until,proto3" json:"until,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AlertMute) Reset() {
+	*x = AlertMute{}
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AlertMute) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AlertMute) ProtoMessage() {}
+
+func (x *AlertMute) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AlertMute.ProtoReflect.Descriptor instead.
+func (*AlertMute) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_alert_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *AlertMute) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *AlertMute) GetOrgName() string {
+	if x != nil {
+		return x.OrgName
+	}
+	return ""
+}
+
+func (x *AlertMute) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *AlertMute) GetServerId() string {
+	if x != nil {
+		return x.ServerId
+	}
+	return ""
+}
+
+func (x *AlertMute) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *AlertMute) GetUntil() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Until
+	}
+	return nil
+}
+
+type ListAlertMutesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Mutes         []*AlertMute           `protobuf:"bytes,1,rep,name=mutes,proto3" json:"mutes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAlertMutesResponse) Reset() {
+	*x = ListAlertMutesResponse{}
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAlertMutesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAlertMutesResponse) ProtoMessage() {}
+
+func (x *ListAlertMutesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_alert_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAlertMutesResponse.ProtoReflect.Descriptor instead.
+func (*ListAlertMutesResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_alert_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *ListAlertMutesResponse) GetMutes() []*AlertMute {
+	if x != nil {
+		return x.Mutes
+	}
+	return nil
+}
+
 var File_raptor_panel_v1_alert_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_alert_proto_rawDesc = "" +
 	"\n" +
-	"\x1braptor/panel/v1/alert.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd8\x02\n" +
+	"\x1braptor/panel/v1/alert.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf9\x02\n" +
 	"\fAlertChannel\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x12\n" +
@@ -2244,7 +2629,9 @@ const file_raptor_panel_v1_alert_proto_rawDesc = "" +
 	"\flast_sent_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"lastSentAt\x129\n" +
 	"\n" +
-	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtJ\x04\b\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x1f\n" +
+	"\vthis_device\x18\v \x01(\bR\n" +
+	"thisDeviceJ\x04\b\n" +
 	"\x10\vR\bemail_to\"1\n" +
 	"\x18ListAlertChannelsRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"\x82\x01\n" +
@@ -2401,7 +2788,29 @@ const file_raptor_panel_v1_alert_proto_rawDesc = "" +
 	"\x1aRegisterPushDeviceResponse\x127\n" +
 	"\achannel\x18\x01 \x01(\v2\x1d.raptor.panel.v1.AlertChannelR\achannel\"\x1d\n" +
 	"\x1bUnregisterPushDeviceRequest\"\x1e\n" +
-	"\x1cUnregisterPushDeviceResponse2\x80\r\n" +
+	"\x1cUnregisterPushDeviceResponse\"z\n" +
+	"\x11MuteAlertsRequest\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x17\n" +
+	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12\x1b\n" +
+	"\tserver_id\x18\x03 \x01(\tR\bserverId\x12\x18\n" +
+	"\aminutes\x18\x04 \x01(\x05R\aminutes\"F\n" +
+	"\x12MuteAlertsResponse\x120\n" +
+	"\x05until\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x05until\"b\n" +
+	"\x13UnmuteAlertsRequest\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x17\n" +
+	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12\x1b\n" +
+	"\tserver_id\x18\x03 \x01(\tR\bserverId\"\x16\n" +
+	"\x14UnmuteAlertsResponse\"\x17\n" +
+	"\x15ListAlertMutesRequest\"\xb9\x01\n" +
+	"\tAlertMute\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x19\n" +
+	"\borg_name\x18\x02 \x01(\tR\aorgName\x12\x17\n" +
+	"\anode_id\x18\x03 \x01(\tR\x06nodeId\x12\x1b\n" +
+	"\tserver_id\x18\x04 \x01(\tR\bserverId\x12\x12\n" +
+	"\x04name\x18\x05 \x01(\tR\x04name\x120\n" +
+	"\x05until\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x05until\"J\n" +
+	"\x16ListAlertMutesResponse\x120\n" +
+	"\x05mutes\x18\x01 \x03(\v2\x1a.raptor.panel.v1.AlertMuteR\x05mutes2\xa0\x0f\n" +
 	"\fAlertService\x12o\n" +
 	"\x11ListAlertChannels\x12).raptor.panel.v1.ListAlertChannelsRequest\x1a*.raptor.panel.v1.ListAlertChannelsResponse\"\x03\x90\x02\x01\x12o\n" +
 	"\x12CreateAlertChannel\x12*.raptor.panel.v1.CreateAlertChannelRequest\x1a+.raptor.panel.v1.CreateAlertChannelResponse\"\x00\x12o\n" +
@@ -2417,7 +2826,11 @@ const file_raptor_panel_v1_alert_proto_rawDesc = "" +
 	"\x10SeeNotifications\x12(.raptor.panel.v1.SeeNotificationsRequest\x1a).raptor.panel.v1.SeeNotificationsResponse\"\x00\x12u\n" +
 	"\x14DismissNotifications\x12,.raptor.panel.v1.DismissNotificationsRequest\x1a-.raptor.panel.v1.DismissNotificationsResponse\"\x00\x12o\n" +
 	"\x12RegisterPushDevice\x12*.raptor.panel.v1.RegisterPushDeviceRequest\x1a+.raptor.panel.v1.RegisterPushDeviceResponse\"\x00\x12u\n" +
-	"\x14UnregisterPushDevice\x12,.raptor.panel.v1.UnregisterPushDeviceRequest\x1a-.raptor.panel.v1.UnregisterPushDeviceResponse\"\x00B\xca\x01\n" +
+	"\x14UnregisterPushDevice\x12,.raptor.panel.v1.UnregisterPushDeviceRequest\x1a-.raptor.panel.v1.UnregisterPushDeviceResponse\"\x00\x12W\n" +
+	"\n" +
+	"MuteAlerts\x12\".raptor.panel.v1.MuteAlertsRequest\x1a#.raptor.panel.v1.MuteAlertsResponse\"\x00\x12]\n" +
+	"\fUnmuteAlerts\x12$.raptor.panel.v1.UnmuteAlertsRequest\x1a%.raptor.panel.v1.UnmuteAlertsResponse\"\x00\x12f\n" +
+	"\x0eListAlertMutes\x12&.raptor.panel.v1.ListAlertMutesRequest\x1a'.raptor.panel.v1.ListAlertMutesResponse\"\x03\x90\x02\x01B\xca\x01\n" +
 	"\x13com.raptor.panel.v1B\n" +
 	"AlertProtoP\x01ZIgithub.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1;panelv1\xa2\x02\x03RPX\xaa\x02\x0fRaptor.Panel.V1\xca\x02\x0fRaptor\\Panel\\V1\xe2\x02\x1bRaptor\\Panel\\V1\\GPBMetadata\xea\x02\x11Raptor::Panel::V1b\x06proto3"
 
@@ -2433,7 +2846,7 @@ func file_raptor_panel_v1_alert_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_alert_proto_rawDescData
 }
 
-var file_raptor_panel_v1_alert_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
+var file_raptor_panel_v1_alert_proto_msgTypes = make([]protoimpl.MessageInfo, 42)
 var file_raptor_panel_v1_alert_proto_goTypes = []any{
 	(*AlertChannel)(nil),                 // 0: raptor.panel.v1.AlertChannel
 	(*ListAlertChannelsRequest)(nil),     // 1: raptor.panel.v1.ListAlertChannelsRequest
@@ -2470,62 +2883,78 @@ var file_raptor_panel_v1_alert_proto_goTypes = []any{
 	(*RegisterPushDeviceResponse)(nil),   // 32: raptor.panel.v1.RegisterPushDeviceResponse
 	(*UnregisterPushDeviceRequest)(nil),  // 33: raptor.panel.v1.UnregisterPushDeviceRequest
 	(*UnregisterPushDeviceResponse)(nil), // 34: raptor.panel.v1.UnregisterPushDeviceResponse
-	(*timestamppb.Timestamp)(nil),        // 35: google.protobuf.Timestamp
+	(*MuteAlertsRequest)(nil),            // 35: raptor.panel.v1.MuteAlertsRequest
+	(*MuteAlertsResponse)(nil),           // 36: raptor.panel.v1.MuteAlertsResponse
+	(*UnmuteAlertsRequest)(nil),          // 37: raptor.panel.v1.UnmuteAlertsRequest
+	(*UnmuteAlertsResponse)(nil),         // 38: raptor.panel.v1.UnmuteAlertsResponse
+	(*ListAlertMutesRequest)(nil),        // 39: raptor.panel.v1.ListAlertMutesRequest
+	(*AlertMute)(nil),                    // 40: raptor.panel.v1.AlertMute
+	(*ListAlertMutesResponse)(nil),       // 41: raptor.panel.v1.ListAlertMutesResponse
+	(*timestamppb.Timestamp)(nil),        // 42: google.protobuf.Timestamp
 }
 var file_raptor_panel_v1_alert_proto_depIdxs = []int32{
-	35, // 0: raptor.panel.v1.AlertChannel.failing_since:type_name -> google.protobuf.Timestamp
-	35, // 1: raptor.panel.v1.AlertChannel.last_sent_at:type_name -> google.protobuf.Timestamp
-	35, // 2: raptor.panel.v1.AlertChannel.created_at:type_name -> google.protobuf.Timestamp
+	42, // 0: raptor.panel.v1.AlertChannel.failing_since:type_name -> google.protobuf.Timestamp
+	42, // 1: raptor.panel.v1.AlertChannel.last_sent_at:type_name -> google.protobuf.Timestamp
+	42, // 2: raptor.panel.v1.AlertChannel.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 3: raptor.panel.v1.ListAlertChannelsResponse.channels:type_name -> raptor.panel.v1.AlertChannel
 	0,  // 4: raptor.panel.v1.CreateAlertChannelResponse.channel:type_name -> raptor.panel.v1.AlertChannel
 	0,  // 5: raptor.panel.v1.UpdateAlertChannelResponse.channel:type_name -> raptor.panel.v1.AlertChannel
-	35, // 6: raptor.panel.v1.ConnectTelegramResponse.expires_at:type_name -> google.protobuf.Timestamp
-	35, // 7: raptor.panel.v1.AlertRule.created_at:type_name -> google.protobuf.Timestamp
+	42, // 6: raptor.panel.v1.ConnectTelegramResponse.expires_at:type_name -> google.protobuf.Timestamp
+	42, // 7: raptor.panel.v1.AlertRule.created_at:type_name -> google.protobuf.Timestamp
 	14, // 8: raptor.panel.v1.ListAlertRulesResponse.rules:type_name -> raptor.panel.v1.AlertRule
 	13, // 9: raptor.panel.v1.ListAlertRulesResponse.conditions:type_name -> raptor.panel.v1.AlertCondition
 	14, // 10: raptor.panel.v1.SaveAlertRuleRequest.rule:type_name -> raptor.panel.v1.AlertRule
 	14, // 11: raptor.panel.v1.SaveAlertRuleResponse.rule:type_name -> raptor.panel.v1.AlertRule
-	35, // 12: raptor.panel.v1.AlertHistoryEntry.at:type_name -> google.protobuf.Timestamp
-	35, // 13: raptor.panel.v1.AlertHistoryEntry.sent_at:type_name -> google.protobuf.Timestamp
+	42, // 12: raptor.panel.v1.AlertHistoryEntry.at:type_name -> google.protobuf.Timestamp
+	42, // 13: raptor.panel.v1.AlertHistoryEntry.sent_at:type_name -> google.protobuf.Timestamp
 	21, // 14: raptor.panel.v1.ListAlertHistoryResponse.entries:type_name -> raptor.panel.v1.AlertHistoryEntry
-	35, // 15: raptor.panel.v1.Notification.at:type_name -> google.protobuf.Timestamp
+	42, // 15: raptor.panel.v1.Notification.at:type_name -> google.protobuf.Timestamp
 	24, // 16: raptor.panel.v1.ListNotificationsResponse.notifications:type_name -> raptor.panel.v1.Notification
 	0,  // 17: raptor.panel.v1.RegisterPushDeviceResponse.channel:type_name -> raptor.panel.v1.AlertChannel
-	1,  // 18: raptor.panel.v1.AlertService.ListAlertChannels:input_type -> raptor.panel.v1.ListAlertChannelsRequest
-	3,  // 19: raptor.panel.v1.AlertService.CreateAlertChannel:input_type -> raptor.panel.v1.CreateAlertChannelRequest
-	5,  // 20: raptor.panel.v1.AlertService.UpdateAlertChannel:input_type -> raptor.panel.v1.UpdateAlertChannelRequest
-	7,  // 21: raptor.panel.v1.AlertService.DeleteAlertChannel:input_type -> raptor.panel.v1.DeleteAlertChannelRequest
-	9,  // 22: raptor.panel.v1.AlertService.TestAlertChannel:input_type -> raptor.panel.v1.TestAlertChannelRequest
-	11, // 23: raptor.panel.v1.AlertService.ConnectTelegram:input_type -> raptor.panel.v1.ConnectTelegramRequest
-	15, // 24: raptor.panel.v1.AlertService.ListAlertRules:input_type -> raptor.panel.v1.ListAlertRulesRequest
-	17, // 25: raptor.panel.v1.AlertService.SaveAlertRule:input_type -> raptor.panel.v1.SaveAlertRuleRequest
-	19, // 26: raptor.panel.v1.AlertService.DeleteAlertRule:input_type -> raptor.panel.v1.DeleteAlertRuleRequest
-	22, // 27: raptor.panel.v1.AlertService.ListAlertHistory:input_type -> raptor.panel.v1.ListAlertHistoryRequest
-	25, // 28: raptor.panel.v1.AlertService.ListNotifications:input_type -> raptor.panel.v1.ListNotificationsRequest
-	27, // 29: raptor.panel.v1.AlertService.SeeNotifications:input_type -> raptor.panel.v1.SeeNotificationsRequest
-	29, // 30: raptor.panel.v1.AlertService.DismissNotifications:input_type -> raptor.panel.v1.DismissNotificationsRequest
-	31, // 31: raptor.panel.v1.AlertService.RegisterPushDevice:input_type -> raptor.panel.v1.RegisterPushDeviceRequest
-	33, // 32: raptor.panel.v1.AlertService.UnregisterPushDevice:input_type -> raptor.panel.v1.UnregisterPushDeviceRequest
-	2,  // 33: raptor.panel.v1.AlertService.ListAlertChannels:output_type -> raptor.panel.v1.ListAlertChannelsResponse
-	4,  // 34: raptor.panel.v1.AlertService.CreateAlertChannel:output_type -> raptor.panel.v1.CreateAlertChannelResponse
-	6,  // 35: raptor.panel.v1.AlertService.UpdateAlertChannel:output_type -> raptor.panel.v1.UpdateAlertChannelResponse
-	8,  // 36: raptor.panel.v1.AlertService.DeleteAlertChannel:output_type -> raptor.panel.v1.DeleteAlertChannelResponse
-	10, // 37: raptor.panel.v1.AlertService.TestAlertChannel:output_type -> raptor.panel.v1.TestAlertChannelResponse
-	12, // 38: raptor.panel.v1.AlertService.ConnectTelegram:output_type -> raptor.panel.v1.ConnectTelegramResponse
-	16, // 39: raptor.panel.v1.AlertService.ListAlertRules:output_type -> raptor.panel.v1.ListAlertRulesResponse
-	18, // 40: raptor.panel.v1.AlertService.SaveAlertRule:output_type -> raptor.panel.v1.SaveAlertRuleResponse
-	20, // 41: raptor.panel.v1.AlertService.DeleteAlertRule:output_type -> raptor.panel.v1.DeleteAlertRuleResponse
-	23, // 42: raptor.panel.v1.AlertService.ListAlertHistory:output_type -> raptor.panel.v1.ListAlertHistoryResponse
-	26, // 43: raptor.panel.v1.AlertService.ListNotifications:output_type -> raptor.panel.v1.ListNotificationsResponse
-	28, // 44: raptor.panel.v1.AlertService.SeeNotifications:output_type -> raptor.panel.v1.SeeNotificationsResponse
-	30, // 45: raptor.panel.v1.AlertService.DismissNotifications:output_type -> raptor.panel.v1.DismissNotificationsResponse
-	32, // 46: raptor.panel.v1.AlertService.RegisterPushDevice:output_type -> raptor.panel.v1.RegisterPushDeviceResponse
-	34, // 47: raptor.panel.v1.AlertService.UnregisterPushDevice:output_type -> raptor.panel.v1.UnregisterPushDeviceResponse
-	33, // [33:48] is the sub-list for method output_type
-	18, // [18:33] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	42, // 18: raptor.panel.v1.MuteAlertsResponse.until:type_name -> google.protobuf.Timestamp
+	42, // 19: raptor.panel.v1.AlertMute.until:type_name -> google.protobuf.Timestamp
+	40, // 20: raptor.panel.v1.ListAlertMutesResponse.mutes:type_name -> raptor.panel.v1.AlertMute
+	1,  // 21: raptor.panel.v1.AlertService.ListAlertChannels:input_type -> raptor.panel.v1.ListAlertChannelsRequest
+	3,  // 22: raptor.panel.v1.AlertService.CreateAlertChannel:input_type -> raptor.panel.v1.CreateAlertChannelRequest
+	5,  // 23: raptor.panel.v1.AlertService.UpdateAlertChannel:input_type -> raptor.panel.v1.UpdateAlertChannelRequest
+	7,  // 24: raptor.panel.v1.AlertService.DeleteAlertChannel:input_type -> raptor.panel.v1.DeleteAlertChannelRequest
+	9,  // 25: raptor.panel.v1.AlertService.TestAlertChannel:input_type -> raptor.panel.v1.TestAlertChannelRequest
+	11, // 26: raptor.panel.v1.AlertService.ConnectTelegram:input_type -> raptor.panel.v1.ConnectTelegramRequest
+	15, // 27: raptor.panel.v1.AlertService.ListAlertRules:input_type -> raptor.panel.v1.ListAlertRulesRequest
+	17, // 28: raptor.panel.v1.AlertService.SaveAlertRule:input_type -> raptor.panel.v1.SaveAlertRuleRequest
+	19, // 29: raptor.panel.v1.AlertService.DeleteAlertRule:input_type -> raptor.panel.v1.DeleteAlertRuleRequest
+	22, // 30: raptor.panel.v1.AlertService.ListAlertHistory:input_type -> raptor.panel.v1.ListAlertHistoryRequest
+	25, // 31: raptor.panel.v1.AlertService.ListNotifications:input_type -> raptor.panel.v1.ListNotificationsRequest
+	27, // 32: raptor.panel.v1.AlertService.SeeNotifications:input_type -> raptor.panel.v1.SeeNotificationsRequest
+	29, // 33: raptor.panel.v1.AlertService.DismissNotifications:input_type -> raptor.panel.v1.DismissNotificationsRequest
+	31, // 34: raptor.panel.v1.AlertService.RegisterPushDevice:input_type -> raptor.panel.v1.RegisterPushDeviceRequest
+	33, // 35: raptor.panel.v1.AlertService.UnregisterPushDevice:input_type -> raptor.panel.v1.UnregisterPushDeviceRequest
+	35, // 36: raptor.panel.v1.AlertService.MuteAlerts:input_type -> raptor.panel.v1.MuteAlertsRequest
+	37, // 37: raptor.panel.v1.AlertService.UnmuteAlerts:input_type -> raptor.panel.v1.UnmuteAlertsRequest
+	39, // 38: raptor.panel.v1.AlertService.ListAlertMutes:input_type -> raptor.panel.v1.ListAlertMutesRequest
+	2,  // 39: raptor.panel.v1.AlertService.ListAlertChannels:output_type -> raptor.panel.v1.ListAlertChannelsResponse
+	4,  // 40: raptor.panel.v1.AlertService.CreateAlertChannel:output_type -> raptor.panel.v1.CreateAlertChannelResponse
+	6,  // 41: raptor.panel.v1.AlertService.UpdateAlertChannel:output_type -> raptor.panel.v1.UpdateAlertChannelResponse
+	8,  // 42: raptor.panel.v1.AlertService.DeleteAlertChannel:output_type -> raptor.panel.v1.DeleteAlertChannelResponse
+	10, // 43: raptor.panel.v1.AlertService.TestAlertChannel:output_type -> raptor.panel.v1.TestAlertChannelResponse
+	12, // 44: raptor.panel.v1.AlertService.ConnectTelegram:output_type -> raptor.panel.v1.ConnectTelegramResponse
+	16, // 45: raptor.panel.v1.AlertService.ListAlertRules:output_type -> raptor.panel.v1.ListAlertRulesResponse
+	18, // 46: raptor.panel.v1.AlertService.SaveAlertRule:output_type -> raptor.panel.v1.SaveAlertRuleResponse
+	20, // 47: raptor.panel.v1.AlertService.DeleteAlertRule:output_type -> raptor.panel.v1.DeleteAlertRuleResponse
+	23, // 48: raptor.panel.v1.AlertService.ListAlertHistory:output_type -> raptor.panel.v1.ListAlertHistoryResponse
+	26, // 49: raptor.panel.v1.AlertService.ListNotifications:output_type -> raptor.panel.v1.ListNotificationsResponse
+	28, // 50: raptor.panel.v1.AlertService.SeeNotifications:output_type -> raptor.panel.v1.SeeNotificationsResponse
+	30, // 51: raptor.panel.v1.AlertService.DismissNotifications:output_type -> raptor.panel.v1.DismissNotificationsResponse
+	32, // 52: raptor.panel.v1.AlertService.RegisterPushDevice:output_type -> raptor.panel.v1.RegisterPushDeviceResponse
+	34, // 53: raptor.panel.v1.AlertService.UnregisterPushDevice:output_type -> raptor.panel.v1.UnregisterPushDeviceResponse
+	36, // 54: raptor.panel.v1.AlertService.MuteAlerts:output_type -> raptor.panel.v1.MuteAlertsResponse
+	38, // 55: raptor.panel.v1.AlertService.UnmuteAlerts:output_type -> raptor.panel.v1.UnmuteAlertsResponse
+	41, // 56: raptor.panel.v1.AlertService.ListAlertMutes:output_type -> raptor.panel.v1.ListAlertMutesResponse
+	39, // [39:57] is the sub-list for method output_type
+	21, // [21:39] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_alert_proto_init() }
@@ -2539,7 +2968,7 @@ func file_raptor_panel_v1_alert_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_alert_proto_rawDesc), len(file_raptor_panel_v1_alert_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   35,
+			NumMessages:   42,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
