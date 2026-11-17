@@ -21,7 +21,7 @@ Every activity list can be narrowed:
 - **Search:** words in emails, names, devices, and details.
 - **IP or range:** one address, or a range like `203.0.113.0/24`.
 - **When:** today, the last 7 or 30 days, or two dates.
-- **Kind of event:** power, console, files and SFTP, backups, schedules, server changes, access, members, nodes, eggs, support, and more.
+- **Kind of event:** power, console, files and SFTP, backups, schedules, databases, server changes, access, members and invitations, the node and machine, Raptor support, eggs, and the org.
 - **Who:** one member.
 - **Where:** in the org's log, one node or server.
 - **Failed only:** failed sign-ins, and commands that failed.

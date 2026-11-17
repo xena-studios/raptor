@@ -1,9 +1,11 @@
 ---
 title: Players
 description: Who's on your server, and a Minecraft server's whitelist, operators, and bans, from the app.
+sidebar:
+  order: 5
 ---
 
-Minecraft Java servers have a **Players** tab, next to Overview, for who may join and who runs the place: the whitelist, operators, banned players, and banned addresses, plus everyone who's joined before. Many Steam games have one too, over RCON: see [Steam games](#steam-games) below.
+Minecraft Java servers (not proxies) have a **Players** tab, after Game, for who's on now, who may join, and who runs the place: the whitelist, operators, banned players, and banned addresses, plus everyone who's joined before. It shows for anyone with **Manage players**, **See files**, or **Send console commands**. Many Steam games have one too, over RCON: see [Steam games](#steam-games) below.
 
 ## Running or stopped
 

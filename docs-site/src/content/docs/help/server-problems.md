@@ -7,11 +7,11 @@ sidebar:
 
 The console says most of what's wrong: open the server's **Overview** and read its last lines. Lines starting `[raptor]` are from Raptor itself.
 
-For the common ones, the Overview says it for you: a card above the console names the problem in a sentence, with a button to where it's fixed. It knows running out of memory, a port already in use, Minecraft's EULA, the wrong Java, a mod or plugin missing another it needs, a plugin made for another version, and a server that keeps crashing. **The console line** under it shows exactly what it matched.
+For the common ones, the Overview says it for you: the [Needs attention](/servers/overview/#needs-attention) list at the top names the problem in a sentence, with a button to where it's fixed. It knows running out of memory, a port already in use, Minecraft's EULA, the wrong Java, a mod or plugin missing another it needs, a plugin made for another version, and a server that keeps crashing. **The console line** under it shows exactly what it matched.
 
 ## It crashed
 
-A server that stops on its own is restarted, and after three crashes in ten minutes it's left **crashed** ([why](/servers/overview/#crashes)). The crash alert has its last 50 console lines.
+A server that stops on its own is restarted, and after three crashes in ten minutes it's left **crashed** ([why](/servers/overview/#crashes)). The crash alert has its last 10 console lines.
 
 - **"Out of memory"** (or `oom`): the game needed more than its memory limit. Raise **Memory** on [Settings](/servers/settings/#name-and-limits). Modded Minecraft often needs 6 GB or more.
 - **The server needs another Java** ("Choose Java 25 in Startup", or a Java error about the class file version): the server's Overview shows **This server needs Java 25** with a button that switches it and starts it again. Your passkey signs the switch, since it changes what the server runs. You can also pick the **Runtime** on Startup yourself.

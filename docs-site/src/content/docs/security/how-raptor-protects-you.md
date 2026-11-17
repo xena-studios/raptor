@@ -30,7 +30,7 @@ Everyday actions (power, console commands, files, backups) need only a session i
 
 ## Servers are kept apart
 
-- Each server runs in its own hardened container, as an unprivileged user, with its memory, CPU, and disk limits enforced by the kernel.
+- Each server runs on its own in Docker, hardened, as an unprivileged user, with its memory, CPU, and disk limits enforced by the kernel.
 - File access goes through code that can't be led outside the server's folder by a link, whatever the game does.
 - No server can reach your cloud provider's metadata service, where credentials live. Install scripts can't reach your private network or the machine itself.
 

@@ -17,6 +17,8 @@ If the result says **This node has no public IPv4 address**, Raptor has only see
 - **The game is listening on port …, not ….** The game opened a different port from the one players are given. Set the port in its config to the server's port (for Minecraft, `server-port` in `server.properties`), then restart it.
 - **The game only accepts connections from its own machine.** It's listening on 127.0.0.1. Clear the address it binds to (for Minecraft, leave `server-ip` in `server.properties` empty), then restart it.
 - **Players can't reach this server.** The game is listening, but connections don't get through. Something in front of the node is blocking the port, almost always your provider's firewall. Open it with the steps below.
+- **This port is local only.** The port is on 127.0.0.1, so only other servers on the node reach it. That's on purpose, so there's nothing to fix.
+- **Couldn't tell.** The port didn't answer, and the node didn't say why. Make sure the server is running, then test again.
 - **The game is listening, over UDP.** UDP can't be tested from outside unless the game answers. If players can't join, the port is probably blocked: open it for UDP with the steps below.
 
 The test picks your provider from the node's address and shows the matching steps under **How to open the port**. They're here too.

@@ -39,6 +39,9 @@ Members see only the servers they've been given access to. On a server's **Acces
 | **Reinstall** | Reinstall it |
 | **See databases** | See its [databases](/servers/databases/) and their connection details, and run read-only queries |
 | **Change databases** | Make, change, and delete its databases, and see and change their passwords |
+| **Manage players** | On a Minecraft server's [Players](/servers/players/) tab: see who's online, and whitelist, op, ban, unban, and kick, without the console or the files |
+
+Members who could send console commands before **Manage players** existed were given it too, since they could already do all of it from the console.
 
 Creating and deleting servers, backup destinations, and node settings are for admins and owners.
 
@@ -46,8 +49,10 @@ Creating and deleting servers, backup destinations, and node settings are for ad
 
 Some actions are signed with a passkey and checked by the node itself: restoring a backup over a server, wiping it, changing what it runs. An owner's passkey is trusted by the node from the start. For a member to do one of these on a node, an owner trusts their passkey there too, for just the actions they choose, on the node's **Settings → Trusted passkeys**. The node checks every signature itself, so nobody, Raptor included, can add trust without an owner's passkey. More in [How Raptor protects you](/security/how-raptor-protects-you/).
 
-## Deleting an org
+## The org's name and logo
 
 Admins and owners can rename the org and give it a logo on its **Settings** (PNG, JPEG, GIF, or WebP, cropped square); members see it in the org switcher. Without one, it shows the org's initials.
+
+## Deleting an org
 
 Owners can **Delete organization** from the org's **Settings**, once it has no nodes. Its members are removed, and its activity log is kept.

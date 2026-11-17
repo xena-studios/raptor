@@ -40,6 +40,10 @@ type Service struct {
 	// AppURL is the web app's origin, for sign-in links
 	// (https://app.raptorpanel.net).
 	AppURL string
+	// HintDomain, when set (raptorpanel.net), gets HintCookie at sign-in
+	// and loses it at sign-out, so the marketing site knows to offer the
+	// dashboard. Empty: no hint, as in development.
+	HintDomain string
 	// Review is the App Store reviewer's sign-in (both empty: off). Codes
 	// for Review.Email, to sign in or to confirm it's them, are
 	// Review.Code and aren't emailed; every other limit still applies.

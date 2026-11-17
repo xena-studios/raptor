@@ -15,11 +15,22 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "Raptor Docs",
-      description: "Pterodactyl had a good run. Run game servers on your own machines, with no panel to host.",
+      // "Backups · Raptor Docs", as raptorpanel.net writes "Pricing · Raptor".
+      titleDelimiter: "·",
+      description: "The owner's guide to Raptor: run game servers on your own machines, from your first node to backups, teams, and the command line.",
       // The full logo (the raptor is never without the wordmark,
       // docs/DESIGN.md#7-brand), with "Docs" after it from theme.css.
       logo: { dark: "./src/assets/logo-dark.svg", light: "./src/assets/logo-light.svg", replacesTitle: true },
       favicon: "/favicon.svg",
+      // The browser's toolbar in the header's colour (--sl-color-bg-nav).
+      head: [
+        { tag: "meta", attrs: { name: "theme-color", content: "#0a0505", media: "(prefers-color-scheme: dark)" } },
+        { tag: "meta", attrs: { name: "theme-color", content: "#f4efee", media: "(prefers-color-scheme: light)" } },
+      ],
+      // The header and footer link back to raptorpanel.net; the 404 page is
+      // the docs' own (src/pages/404.astro).
+      components: { Header: "./src/components/Header.astro", Footer: "./src/components/Footer.astro" },
+      disable404Route: true,
       customCss: ["./src/styles/theme.css"],
       // One dark theme in both modes: commands look like the terminal
       // they're pasted into, as the app's console does.

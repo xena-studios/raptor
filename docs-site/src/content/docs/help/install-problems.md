@@ -26,7 +26,7 @@ Reinstall the machine with one of those systems; most providers offer them. `-fo
 **`systemd isn't running; Raptor needs it`** or **`cgroups v2 isn't enabled`**
 This usually means a container too, or a very old system. A fresh install of a supported system has both.
 
-**`architecture … isn't supported (amd64 and arm64 are)`**
+**`… isn't supported (amd64 and arm64 are)`**
 Raptor runs on 64-bit x86 and ARM machines only.
 
 ## Docker

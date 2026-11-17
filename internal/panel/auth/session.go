@@ -20,6 +20,14 @@ import (
 // subdomain can't set or overwrite it (docs/DECISIONS.md #83).
 const CookieName = "__Host-raptor_session"
 
+// HintCookie tells raptorpanel.net that this browser is signed in, so the
+// site can offer the dashboard instead of "Start free" (DECISIONS #374). It
+// holds only "1", never the token: it's readable by scripts on every
+// subdomain of HintDomain, so it proves nothing and the API never reads it.
+// It can outlive the session (a sign-out elsewhere, an idle expiry); the
+// worst that does is a Dashboard button that leads to the sign-in page.
+const HintCookie = "raptor_signed_in"
+
 // Session is a signed-in session.
 type Session struct {
 	store.Session
@@ -83,6 +91,7 @@ func (s *Service) startSession(ctx context.Context, q *store.Queries, user store
 	}
 	if ok {
 		setCookie(c.resp, token, SessionMax)
+		s.setHint(c.resp, true)
 	}
 	if !newDevice {
 		return func() {}, nil
@@ -116,6 +125,22 @@ func setNamedCookie(h http.Header, name, token string, maxAge time.Duration) {
 	}
 	if maxAge <= 0 {
 		c.MaxAge = -1
+	}
+	h.Add("Set-Cookie", c.String())
+}
+
+// setHint sets or clears HintCookie, when HintDomain is set.
+func (s *Service) setHint(h http.Header, on bool) {
+	if s.HintDomain == "" {
+		return
+	}
+	// Not HttpOnly on purpose: the site's script reads it, and it holds no secret.
+	c := &http.Cookie{ //nolint:gosec // G124: a token-free hint the site must read (DECISIONS #374)
+		Name: HintCookie, Value: "1", Path: "/", Domain: s.HintDomain, MaxAge: int(SessionMax.Seconds()),
+		Secure: true, SameSite: http.SameSiteLaxMode,
+	}
+	if !on {
+		c.Value, c.MaxAge = "", -1
 	}
 	h.Add("Set-Cookie", c.String())
 }

@@ -23,7 +23,7 @@ It's created as already installed: the install script doesn't run again.
 
 ## Before you start
 
-1. [Connect the machine](/install/first-node/) to Raptor, with Pterodactyl's Wings still running on it. The installer keeps Raptor's networks, ports, and containers apart from Pterodactyl's.
+1. [Connect the machine](/install/first-node/) to Raptor, with Pterodactyl's Wings still running on it. The installer keeps Raptor's servers, networks, and ports apart from Pterodactyl's.
 2. In your Pterodactyl Panel, make an **application API key** (Admin → Application API). The importer uses it to read this node, its servers, and their eggs, and to suspend each server it moves, so give it read and write access to those.
 3. Make sure the machine has room for a copy of each server you're moving.
 
@@ -47,7 +47,7 @@ Or one server, by its UUID, short ID, or name, and start it in Raptor straight a
 sudo raptor import pterodactyl -key ptla_… -server survival -start
 ```
 
-For each server it stops it in Pterodactyl (waiting up to 2 minutes for it to shut down cleanly), copies it in, and suspends it in Pterodactyl. If a copy fails, the half-made server is removed and Pterodactyl's is left as it was.
+It lists what it's about to move and asks you to type `import`. Then, for each server, it stops it in Pterodactyl (waiting up to 2 minutes for it to shut down cleanly), copies it in, and suspends it in Pterodactyl. If a copy fails, the half-made server is removed and Pterodactyl's is left as it was.
 
 :::tip[Keep the key out of your shell history]
 Put it in `RAPTOR_PTERODACTYL_KEY` instead of `-key`. Raptor never stores it.
@@ -60,6 +60,8 @@ Put it in `RAPTOR_PTERODACTYL_KEY` instead of `-key`. Raptor never stores it.
 | `-dry-run` | List what would move, and stop |
 | `-start` | Start each server in Raptor once it's copied |
 | `-no-suspend` | Leave the server unsuspended in Pterodactyl |
+| `-yes` | Don't ask you to type `import` first, for scripts |
+| `-panel` | Your Pterodactyl Panel's URL, if Wings' config doesn't have the right one |
 
 ## Afterwards
 

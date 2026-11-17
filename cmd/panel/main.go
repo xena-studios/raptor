@@ -90,6 +90,8 @@ environment:
   PANEL_MAIL_REPLY_TO          where replies go, e.g. support@raptorpanel.net
   PANEL_MAIL_LOG=1             development only: write emails (codes included) to the log
   PANEL_MAIL_LOG_FILE          with PANEL_MAIL_LOG, also append them to this file as plain text
+  PANEL_SIGNED_IN_DOMAIN       the site's domain (raptorpanel.net): sets a "signed in" hint
+                               cookie there, holding no token, so the site offers the dashboard
   PANEL_CLIENT_IP_HEADER       header with the client's address (CF-Connecting-IP);
                                only when the origin accepts nothing but Cloudflare
   PANEL_NODE_DOMAIN            node hostnames' domain (default raptornodes.net)
@@ -293,7 +295,7 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		log.Info("panel instance", "id", router.ID)
 		reg.KeyChanged = cfg.Hub.Disconnect
 		cfg.AppOrigin = envOr("PANEL_APP_URL", "https://app.raptorpanel.net")
-		cfg.Auth = &auth.Service{DB: pool, AppURL: cfg.AppOrigin, ClientIPHeader: os.Getenv("PANEL_CLIENT_IP_HEADER"), Log: log}
+		cfg.Auth = &auth.Service{DB: pool, AppURL: cfg.AppOrigin, ClientIPHeader: os.Getenv("PANEL_CLIENT_IP_HEADER"), HintDomain: os.Getenv("PANEL_SIGNED_IN_DOMAIN"), Log: log}
 		if secret := os.Getenv("PANEL_TURNSTILE_SECRET"); secret != "" {
 			cfg.Auth.Turnstile = auth.Turnstile{Secret: secret, Hostname: os.Getenv("PANEL_TURNSTILE_HOSTNAME")}
 		}

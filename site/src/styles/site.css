@@ -94,13 +94,28 @@ code {
   top: 1rem;
 }
 
-/* Header */
+/* Signed in to the app (Base's head script): the dashboard instead of the
+   way in. */
+html:not(.signed-in) [data-in],
+html.signed-in [data-out] {
+  display: none !important;
+}
+
+/* Header: the logo, the main links, and the way in. On narrow screens the
+   links fold into a menu (a <details>, so it works without JavaScript). */
+.site-top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in oklch, var(--bg) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid transparent;
+}
 .top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 1rem;
-  padding-block: 1.25rem;
+  padding-block: 1rem;
 }
 .brand {
   display: inline-flex;
@@ -117,21 +132,128 @@ code {
   height: 0.875rem;
   width: auto;
 }
-.top nav {
+.nav-main {
   display: flex;
   align-items: center;
   gap: clamp(0.75rem, 2vw, 1.5rem);
+  margin-left: auto;
 }
-.top nav a:not(.button) {
+.nav-main a,
+.nav-end > a:not(.button) {
   color: var(--muted);
   text-decoration: none;
   font-size: 0.9375rem;
 }
-.top nav a:not(.button):hover {
+.nav-main a:hover,
+.nav-end > a:not(.button):hover,
+.nav-main a[aria-current="page"] {
   color: var(--text);
 }
-@media (max-width: 40rem) {
-  .top nav .wide {
+.nav-main a[aria-current="page"] {
+  text-decoration: underline;
+  text-decoration-color: var(--red);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.5rem;
+}
+.nav-end {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.75rem, 2vw, 1.25rem);
+  padding-left: clamp(0.75rem, 2vw, 1.5rem);
+  border-left: 1px solid var(--rule);
+}
+.menu {
+  display: none;
+  position: relative;
+}
+.menu summary {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  cursor: pointer;
+  list-style: none;
+}
+.menu summary::-webkit-details-marker {
+  display: none;
+}
+.menu summary span,
+.menu summary span::before,
+.menu summary span::after {
+  display: block;
+  width: 1rem;
+  height: 1.5px;
+  background: var(--text);
+  transition: transform 200ms var(--ease), opacity 200ms var(--ease);
+}
+.menu summary span {
+  position: relative;
+}
+.menu summary span::before,
+.menu summary span::after {
+  content: "";
+  position: absolute;
+  left: 0;
+}
+.menu summary span::before {
+  top: -5px;
+}
+.menu summary span::after {
+  top: 5px;
+}
+.menu[open] summary span {
+  background: transparent;
+}
+.menu[open] summary span::before {
+  transform: translateY(5px) rotate(45deg);
+}
+.menu[open] summary span::after {
+  transform: translateY(-5px) rotate(-45deg);
+}
+.menu nav {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  display: grid;
+  min-width: 14rem;
+  padding: 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--raised);
+  box-shadow: 0 6px 8px oklch(0 0 0 / 0.25);
+}
+.menu nav a {
+  padding: 0.625rem 0.75rem;
+  border-radius: 4px;
+  color: var(--text);
+  text-decoration: none;
+}
+.menu nav a:hover,
+.menu nav a[aria-current="page"] {
+  background: color-mix(in oklch, var(--text) 7%, transparent);
+}
+@media (max-width: 62rem) {
+  .nav-main {
+    display: none;
+  }
+  .nav-end {
+    margin-left: auto;
+    border-left: 0;
+  }
+  .menu {
+    display: block;
+  }
+}
+@media (max-width: 30rem) {
+  .nav-end > .link-signin {
+    display: none;
+  }
+}
+/* The smallest phones (320px) keep the raptor, Start free, and the menu. */
+@media (max-width: 23rem) {
+  .site-top .brand .word {
     display: none;
   }
 }
@@ -185,17 +307,6 @@ code {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
-}
-@media (max-width: 30rem) {
-  .top .link-signin {
-    display: none;
-  }
-}
-/* The smallest phones keep the logo and Start free; Docs is in the footer. */
-@media (max-width: 24rem) {
-  .top .link-docs {
-    display: none;
-  }
 }
 
 /* Hero: the offer, the promise, and the app itself. */
@@ -357,6 +468,13 @@ section.why {
 }
 .compare thead .us {
   color: var(--red);
+}
+/* Daylight's red on its own 9% wash is just under AA for small type. */
+@media (prefers-color-scheme: light) {
+  .compare thead .us,
+  .matrix thead .us {
+    color: color-mix(in oklch, var(--red) 80%, var(--text));
+  }
 }
 /* On a phone each row stands alone, Raptor's answer first. */
 @media (max-width: 44rem) {
@@ -1154,48 +1272,82 @@ section.pricing-section {
   color: var(--warn);
 }
 
-footer {
+/* Footer: what's where, then the studio and the fine print. */
+.site-foot {
   border-top: 1px solid var(--rule);
+  font-size: 0.9375rem;
+  color: var(--muted);
 }
-footer .wrap {
+.foot-grid {
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  padding-block: clamp(2.5rem, 6vw, 4rem) 2rem;
+}
+.foot-brand {
+  grid-column: 1 / -1;
+  max-width: 22rem;
+}
+@media (min-width: 62rem) {
+  .foot-grid {
+    grid-template-columns: 1.6fr repeat(4, 1fr);
+  }
+  .foot-brand {
+    grid-column: auto;
+  }
+}
+.foot-brand p {
+  margin: 1rem 0 0;
+  text-wrap: pretty;
+}
+.site-foot nav {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.site-foot nav p {
+  margin: 0 0 0.25rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.site-foot a {
+  text-decoration: none;
+}
+.site-foot a:hover {
+  color: var(--text);
+}
+.foot-base {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 1rem;
-  padding-block: 1.75rem;
-  font-size: 0.875rem;
-  color: var(--muted);
+  align-items: center;
+  gap: 1rem 2rem;
+  padding-block: 1.5rem 2rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.8125rem;
 }
-footer nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.25rem;
-}
-footer a {
-  text-decoration: none;
-}
-footer a:hover {
-  color: var(--text);
-}
-/* The Xena Studios endorsement: its own row above the licence line and links. */
-footer .studio {
+/* The Xena Studios endorsement. */
+.site-foot .studio {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem 1.5rem;
-  flex-basis: 100%;
   margin: 0;
 }
-footer .studio a {
+.site-foot .studio a {
   display: flex;
   color: var(--text);
 }
-footer .studio .xena {
+.site-foot .studio .xena {
   height: 0.75rem;
   width: auto;
 }
 /* The © line in xenastudios.co's label style. */
-footer .studio span {
+.site-foot .studio span {
   font-family: var(--mono);
   font-size: 0.75rem;
   letter-spacing: 0.14em;
@@ -1210,4 +1362,841 @@ footer .studio span {
   .answers summary::after {
     transition: none;
   }
+}
+
+/* ---- Pages beyond the home page ---------------------------------------- */
+
+/* A page's opening: its one title and a sentence, left-aligned. */
+.page-head {
+  padding-block: clamp(3rem, 8vw, 5.5rem) clamp(2.5rem, 5vw, 3.5rem);
+}
+.page-title {
+  max-width: 20ch;
+  margin: 0;
+  font-size: clamp(2.375rem, 1.4rem + 3.6vw, 4.25rem);
+  line-height: 1.02;
+}
+.page-title .accent,
+h2 .accent {
+  color: var(--red);
+  /* Long phrases here, unlike the hero's: they may wrap on a phone. */
+  white-space: normal;
+}
+.page-head .lead {
+  max-width: 44rem;
+}
+.page-head .actions {
+  justify-content: flex-start;
+}
+.actions.left {
+  justify-content: flex-start;
+}
+.more-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 1.25rem;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0.03em;
+  color: var(--text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--red);
+  padding-bottom: 0.125rem;
+}
+.more-link::after {
+  content: "→";
+  transition: transform 160ms var(--ease);
+}
+.more-link:hover::after {
+  transform: translateX(3px);
+}
+.more-row {
+  margin: clamp(2.5rem, 5vw, 4rem) 0 0;
+  text-align: center;
+}
+.num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+/* A heading beside its sentence, on wide screens. */
+.split-head {
+  display: grid;
+  gap: 1rem 4rem;
+  align-items: end;
+}
+@media (min-width: 62rem) {
+  .split-head {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .split-head .intro {
+    margin: 0;
+  }
+}
+
+/* A game's icon: the game's own art, framed like an app icon. */
+.game-icon {
+  display: block;
+  flex: none;
+  border-radius: 22%;
+  background: var(--raised);
+  outline: 1px solid color-mix(in oklch, var(--text) 10%, transparent);
+  outline-offset: -1px;
+}
+
+/* The library */
+.lib-search {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 36rem;
+  margin-top: 2rem;
+  padding: 0 0.5rem 0 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--raised);
+  transition: border-color 160ms var(--ease);
+}
+.lib-search:focus-within {
+  border-color: var(--red);
+}
+.lib-search input {
+  flex: 1;
+  min-width: 0;
+  height: 3.25rem;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 1.0625rem;
+  outline: none;
+}
+.lib-search input::placeholder {
+  color: var(--muted);
+}
+.lib-search input::-webkit-search-cancel-button {
+  filter: grayscale(1);
+}
+.lib-count {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.lib-search.compact {
+  width: 100%;
+  max-width: 26rem;
+  margin: 0;
+  padding-right: 0.375rem;
+}
+.lib-search.compact input {
+  height: 2.75rem;
+}
+.lib-search.compact .button {
+  min-height: 2rem;
+}
+.lib-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+.lib-cats a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  text-decoration: none;
+  color: var(--text);
+}
+.lib-cats a:hover {
+  border-color: var(--muted);
+}
+.lib-cats span {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.lib {
+  padding-bottom: clamp(3rem, 8vw, 6rem);
+}
+.lib-group {
+  padding-block: clamp(2.5rem, 5vw, 3.5rem) 0;
+  border-top: 0;
+  scroll-margin-top: 5rem;
+}
+.lib-group header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--rule);
+}
+.lib-group h2 {
+  font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+}
+.lib-group header p {
+  margin: 0;
+  color: var(--muted);
+}
+.lib-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.lib-grid li[hidden],
+.lib-group[hidden] {
+  display: none;
+}
+.lib-grid a {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 0.875rem;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid color-mix(in oklch, var(--rule) 60%, transparent);
+  text-decoration: none;
+}
+.lib-grid .game-icon {
+  grid-row: 1 / span 2;
+}
+.lib-name {
+  font-weight: 600;
+  line-height: 1.3;
+}
+.lib-tags {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.lib-tags:empty {
+  display: none;
+}
+.lib-grid a:has(.lib-tags:empty) .game-icon,
+.game-more .lib-grid .game-icon {
+  grid-row: auto;
+}
+.lib-grid a:hover .lib-name {
+  color: var(--red);
+}
+.lib-none {
+  max-width: 40rem;
+  padding-top: 3rem;
+}
+.lib-none p {
+  color: var(--muted);
+}
+
+/* A game's page */
+.game-head {
+  padding-block: clamp(2rem, 5vw, 3.5rem) clamp(2.5rem, 5vw, 3.5rem);
+}
+.crumbs {
+  display: flex;
+  gap: 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+.crumbs a {
+  text-decoration: none;
+}
+.crumbs a:hover {
+  color: var(--text);
+}
+.game-title {
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 3vw, 1.75rem);
+  margin-top: 2rem;
+}
+.game-title h1 {
+  margin: 0;
+  max-width: none;
+  font-size: clamp(2.25rem, 1.4rem + 3vw, 3.75rem);
+  line-height: 1.02;
+}
+@media (max-width: 30rem) {
+  .game-title .game-icon {
+    width: 64px;
+    height: 64px;
+  }
+}
+.game-sub {
+  margin: 0.375rem 0 0;
+  font-size: clamp(1.0625rem, 1rem + 0.4vw, 1.375rem);
+  color: var(--muted);
+}
+.game-head .lead {
+  max-width: 44rem;
+  margin-top: 1.75rem;
+  color: var(--text);
+}
+.game-head .actions {
+  justify-content: flex-start;
+}
+.game-head .fine code {
+  color: var(--text);
+}
+section.game-body,
+section.game-more {
+  border-top: 0;
+}
+section.game-body {
+  display: grid;
+  gap: 3rem 5rem;
+  padding-block: clamp(3rem, 6vw, 4.5rem);
+}
+@media (min-width: 62rem) {
+  section.game-body {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  }
+  .game-side {
+    position: sticky;
+    top: 6rem;
+    align-self: start;
+  }
+}
+.game-body h2 {
+  font-size: clamp(1.375rem, 1.2rem + 0.8vw, 1.75rem);
+}
+.game-main h2 + .facts,
+.game-main h2 + .intro-sm {
+  margin-top: 1.25rem;
+}
+.game-main .facts + h2 {
+  margin-top: clamp(3rem, 6vw, 4rem);
+}
+.intro-sm {
+  margin: 0;
+  color: var(--muted);
+}
+.facts,
+.vars,
+.area-items,
+.included {
+  margin: 1.25rem 0 0;
+}
+.facts div,
+.vars div {
+  display: grid;
+  gap: 0.25rem 2rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+}
+@media (min-width: 40rem) {
+  .facts div,
+  .vars div {
+    grid-template-columns: 10rem 1fr;
+  }
+}
+.facts dt,
+.vars dt {
+  font-weight: 600;
+}
+.facts dd,
+.vars dd {
+  margin: 0;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+.var-default {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+}
+.var-default code {
+  color: var(--text);
+  word-break: break-all;
+}
+.game-side {
+  padding: clamp(1.5rem, 3vw, 2rem);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--raised);
+}
+.steps.compact {
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+.steps.compact li {
+  padding-top: 0.875rem;
+  border-top-width: 1px;
+}
+.steps.compact h3 {
+  font-size: 1.0625rem;
+}
+.steps.compact p {
+  margin-top: 0.25rem;
+  font-size: 0.9375rem;
+}
+.credits {
+  margin: 1.75rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.8125rem;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+section.game-more {
+  padding-block: clamp(3rem, 6vw, 4.5rem);
+}
+.game-more h2 {
+  font-size: clamp(1.375rem, 1.2rem + 0.8vw, 1.75rem);
+  margin-bottom: 1rem;
+}
+
+/* A closing band: a line and the button. */
+.band-cta {
+  border-top: 1px solid var(--rule);
+  background: var(--raised);
+}
+.band-cta-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem 3rem;
+  padding-block: clamp(2.5rem, 6vw, 4rem);
+}
+.band-cta h2 {
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2.25rem);
+  max-width: 26ch;
+}
+.band-cta p {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+}
+
+/* Home: the library's wall of icons. */
+/* 24 icons: 8, 6, or 4 a row, so no row is left short. */
+.wall {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: clamp(2.5rem, 5vw, 3.5rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 44rem) {
+  .wall {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+@media (min-width: 70rem) {
+  .wall {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}
+.wall a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem 0.5rem 1rem;
+  border-radius: 6px;
+  text-align: center;
+  text-decoration: none;
+  font-size: 0.875rem;
+  line-height: 1.25;
+  color: var(--muted);
+  transition: background-color 200ms var(--ease), color 200ms var(--ease);
+}
+.wall .game-icon {
+  transition: transform 260ms var(--ease);
+}
+.wall a:hover {
+  background: var(--raised);
+  color: var(--text);
+}
+.wall a:hover .game-icon {
+  transform: translateY(-3px) scale(1.04);
+}
+.wall-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem 2rem;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--rule);
+}
+.cat-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+.cat-line a {
+  text-decoration: none;
+}
+.cat-line a:hover {
+  color: var(--text);
+}
+.cat-line .num {
+  color: var(--text);
+}
+
+/* Home: where add-ons come from. */
+.addons-grid,
+.switch-grid {
+  display: grid;
+  gap: 2.5rem 5rem;
+  align-items: center;
+}
+@media (min-width: 62rem) {
+  .addons-grid,
+  .switch-grid {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  }
+}
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sources li {
+  padding: 0.75rem 1.125rem;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--raised);
+  font-family: var(--mono);
+  font-size: 0.875rem;
+  letter-spacing: 0.01em;
+}
+.sources li:nth-child(-n + 3) {
+  border-color: color-mix(in oklch, var(--red) 55%, var(--rule));
+}
+
+/* Home: new this week. */
+.news {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 2rem;
+  margin: clamp(2.5rem, 5vw, 3.5rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.news li {
+  padding-top: 1.25rem;
+  border-top: 2px solid var(--text);
+}
+.news time,
+.release time {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  color: var(--red);
+}
+.news h3 {
+  margin: 0.5rem 0 0;
+  font-size: 1.125rem;
+  line-height: 1.3;
+}
+.news h3 a {
+  text-decoration: none;
+}
+.news h3 a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--red);
+}
+.news p {
+  margin: 0.5rem 0 0;
+  font-size: 0.9375rem;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+.intro a {
+  color: var(--text);
+}
+
+/* Home: the Pterodactyl band. */
+section.switch-band {
+  background: var(--raised);
+}
+.switch-band .one-line {
+  margin: 0;
+  font-size: clamp(1rem, 0.9rem + 0.6vw, 1.375rem);
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+}
+.switch-band .one-line code::before {
+  content: "$ ";
+  color: var(--terminal-dim);
+}
+
+/* Features */
+.jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 2rem;
+}
+.jump a {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+.jump a:hover {
+  border-color: var(--muted);
+}
+section.area {
+  display: grid;
+  gap: 2rem;
+  scroll-margin-top: 4rem;
+}
+.area-head {
+  display: grid;
+  gap: 0.75rem 4rem;
+  align-items: start;
+}
+@media (min-width: 62rem) {
+  .area-head {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .area-head p {
+    margin: 0;
+  }
+  .area-head .more-link {
+    grid-column: 2;
+    justify-self: start;
+    margin: 0;
+  }
+}
+.area-head p {
+  max-width: var(--measure);
+  margin: 0;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+.area-items,
+.included {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: 0 2.5rem;
+  margin: 0;
+}
+.area-items div,
+.included div {
+  padding: 1.125rem 0;
+  border-top: 1px solid var(--rule);
+}
+.area-items dt,
+.included dt {
+  font-weight: 600;
+}
+.area-items dd,
+.included dd {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  text-wrap: pretty;
+}
+
+/* Pricing */
+section.pricing {
+  border-top: 0;
+  padding-top: 0;
+}
+.included {
+  align-self: start;
+}
+.math-rows {
+  display: grid;
+  margin-top: 2rem;
+  max-width: 44rem;
+}
+.math-rows div {
+  display: grid;
+  grid-template-columns: 3rem 1fr auto 6rem;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+}
+.math-rows div > :nth-child(1),
+.math-rows div > :nth-child(3) {
+  font-size: 1.375rem;
+  color: var(--text);
+}
+.math-rows div > :nth-child(2),
+.math-rows div > :nth-child(4) {
+  color: var(--muted);
+}
+.math .fine {
+  margin-top: 1.5rem;
+}
+@media (max-width: 30rem) {
+  .math-rows div {
+    grid-template-columns: 2rem 1fr auto;
+  }
+  .math-rows div > :nth-child(4) {
+    display: none;
+  }
+}
+
+/* Changelog */
+.releases {
+  padding-bottom: clamp(3rem, 8vw, 6rem);
+}
+section.release {
+  display: grid;
+  gap: 1rem 4rem;
+  padding-block: clamp(2.5rem, 5vw, 3.5rem);
+}
+@media (min-width: 62rem) {
+  section.release {
+    grid-template-columns: 16rem 1fr;
+  }
+  .release header {
+    position: sticky;
+    top: 6rem;
+    align-self: start;
+  }
+}
+.release h2 {
+  margin-top: 0.5rem;
+  font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+}
+.release ul {
+  display: grid;
+  gap: 1.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.release h3 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+.release p {
+  max-width: var(--measure);
+  margin: 0.375rem 0 0;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+.release p a {
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wall a,
+  .wall .game-icon,
+  .more-link::after,
+  .menu summary span,
+  .menu summary span::before,
+  .menu summary span::after {
+    transition: none;
+  }
+}
+
+/* Compare: a wide table that scrolls sideways, the feature column and
+   Raptor's column pinned. */
+.matrix-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  margin-bottom: clamp(3rem, 8vw, 5rem);
+}
+.matrix-scroll:focus-visible {
+  outline-offset: 2px;
+}
+.matrix {
+  width: 100%;
+  min-width: 68rem;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+.matrix th,
+.matrix td {
+  padding: 0.75rem 0.875rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--rule);
+}
+.matrix thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.matrix thead a {
+  text-decoration: none;
+}
+.matrix thead a:hover {
+  color: var(--red);
+}
+.matrix tbody th[scope="row"] {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 11rem;
+  min-width: 11rem;
+  background: var(--bg);
+  font-weight: 600;
+  border-right: 1px solid var(--rule);
+}
+.matrix thead th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  border-right: 1px solid var(--rule);
+}
+.matrix .us {
+  background: color-mix(in oklch, var(--red) 9%, var(--bg));
+  color: var(--text);
+}
+.matrix thead .us {
+  color: var(--red);
+}
+.matrix td {
+  color: var(--text);
+  min-width: 8.5rem;
+}
+.matrix td.gap {
+  color: var(--muted);
+}
+.matrix .matrix-group th {
+  padding-top: 1.5rem;
+  background: var(--raised);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.matrix tbody:last-child tr:last-child > * {
+  border-bottom: 0;
+}
+section.pick .claims a {
+  color: var(--text);
 }

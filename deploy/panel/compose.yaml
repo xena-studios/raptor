@@ -17,6 +17,8 @@ x-panel: &panel
     # Only Cloudflare can reach Caddy (Authenticated Origin Pulls), so its
     # header is the client's real address.
     PANEL_CLIENT_IP_HEADER: CF-Connecting-IP
+    # A "signed in" hint for raptorpanel.net, holding no token (DECISIONS #374).
+    PANEL_SIGNED_IN_DOMAIN: ${PANEL_SIGNED_IN_DOMAIN:-raptorpanel.net}
     PANEL_TURNSTILE_HOSTNAME: verify.raptorpanel.net
     PANEL_MAIL_FROM: "Raptor <account@mail.raptorpanel.net>"
     PANEL_MAIL_REPLY_TO: support@raptorpanel.net

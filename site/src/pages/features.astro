@@ -1,0 +1,225 @@
+---
+// Every feature, by part of the app, each with a link to its docs. Only
+// what's live in production: things in review or planned stay off it.
+import Screen from "../components/Screen.astro";
+import Base from "../layouts/Base.astro";
+import { docs, start } from "../data/links";
+
+type Area = {
+  id: string;
+  name: string;
+  title: string;
+  text: string;
+  shot?: string;
+  alt?: string;
+  items: [string, string][];
+  link: string;
+};
+
+const areas: Area[] = [
+  {
+    id: "servers",
+    name: "Servers",
+    title: "Every server, live, from one place.",
+    text: "Each server opens on its console and what it's using. When something's off, Raptor says what, and how to fix it.",
+    shot: "console",
+    alt: "A Minecraft server's page in Raptor: running, its CPU, memory, disk, and network, and its live console",
+    items: [
+      ["Live console", "Type commands, restart, or pop it out into its own window."],
+      ["Needs attention", "Crashes, failed installs, and low disk, ranked worst first on the overview."],
+      ["Errors, named", "Common console errors are recognised, with the fix beside them."],
+      ["Resource history", "CPU, memory, disk, network, and players for the last hour, day, or week."],
+      ["Crash restarts", "On by default, with stop, swap, and CPU settings you can change."],
+      ["Schedules", "Warn players, wait, back up, restart: in your time zone, with a run history."],
+      ["Share a log", "Put the console or a log on mclo.gs, with IP addresses hidden first."],
+      ["Change what it runs", "Move a server to another game or egg version, keeping its files or starting fresh."],
+      ["Web dashboards", "Apps with a page of their own, like txAdmin or Grafana, get a button that opens it."],
+    ],
+    link: "/servers/overview/",
+  },
+  {
+    id: "addons",
+    name: "Add-ons",
+    title: "Plugins, mods, and modpacks, built in.",
+    text: "One Add-ons tab finds, installs, and updates what a server's game supports, straight from the sites players already use. The machine downloads each file itself and checks it against the published hash.",
+    items: [
+      ["Minecraft plugins", "From Modrinth, Hangar, and CurseForge, for Paper, Purpur, Folia, Velocity, BungeeCord, and the rest."],
+      ["Minecraft mods", "From Modrinth and CurseForge, for Fabric, Forge, NeoForge, and Quilt, with client-only mods hidden."],
+      ["Dependencies", "Installed with the mod that needs them."],
+      ["Update all", "See what's behind for your game version, and update it in one go after reviewing each change."],
+      ["Modpacks", "Pick one from Modrinth, Feed The Beast, or Technic by name."],
+      ["Datapacks and Bedrock packs", "Datapacks from Modrinth; behaviour and resource packs for Bedrock."],
+      ["Rust plugins", "Oxide and Carbon plugins from uMod."],
+      ["Factorio mods", "From the Factorio mod portal."],
+      ["Steam Workshop", "Paste a link or a collection for Garry's Mod, CS2, ARK, Conan Exiles, and Squad."],
+    ],
+    link: "/servers/addons/",
+  },
+  {
+    id: "minecraft",
+    name: "Minecraft",
+    title: "Made for Minecraft servers, big and small.",
+    text: "The settings you'd otherwise hunt for in files, as forms, with the players and worlds a step away.",
+    items: [
+      ["Game settings", "server.properties as a form, with each setting explained."],
+      ["Players", "Who's online, the whitelist, operators, and bans, and a permission for moderators to manage just that."],
+      ["Worlds", "Each world and its game rules, from the Worlds tab."],
+      ["Versions", "Switch to another Minecraft version from a list. The Java it needs is offered when it's wrong."],
+      ["Server list entry", "The icon and MOTD, styled with buttons and previewed as players see it."],
+      ["Geyser", "Let Bedrock players join a Java server."],
+      ["Proxies", "Pick a Velocity, BungeeCord, or Waterfall proxy's backends from your own servers."],
+      ["Minehut", "Set a server up as a Minehut external server."],
+      ["Whole-world backups", "Saving pauses around each backup, so a world is never caught mid-write."],
+    ],
+    link: "/servers/settings/",
+  },
+  {
+    id: "files",
+    name: "Files",
+    title: "A real file manager, not an FTP client.",
+    text: "Browse and edit with syntax highlighting, drop files onto a folder, and let the machine fetch the big ones itself.",
+    shot: "files",
+    alt: "Raptor's file manager showing a Minecraft server's folders and files, with a folder tree beside the list",
+    items: [
+      ["A trash", "Deleting moves files to a trash for 7 days; only emptying it deletes for good."],
+      ["Uploads", "Drag in worlds and modpacks up to 1 GB each, or paste a link for the machine to download."],
+      ["Archives", "Made and extracted on the machine, in the format you pick."],
+      ["SFTP", "A button opens it, and its port only opens while someone needs it."],
+      ["Import from another host", "Bring a server's files over from any host with SFTP."],
+    ],
+    link: "/servers/files/",
+  },
+  {
+    id: "backups",
+    name: "Backups",
+    title: "Backups that happen, and restores that work.",
+    text: "Every new server backs up daily without setup. Backups are incremental, deduplicated, and encrypted on your machine before they go anywhere.",
+    shot: "backups",
+    alt: "A server's backups in Raptor: each backup with when it was taken, where it is, and its size",
+    items: [
+      ["Where you want them", "On the machine, in your own S3, B2, or SFTP storage, or in Raptor Backup Storage."],
+      ["Open a backup", "Browse it like a file manager, and restore one file or the whole server."],
+      ["Safety backups", "Taken before every wipe or full restore."],
+      ["Your keys", "Kept by Raptor, or only by you."],
+      ["Recover anywhere", "Restore onto another node, or from before a reinstall."],
+    ],
+    link: "/servers/backups/",
+  },
+  {
+    id: "databases",
+    name: "Databases",
+    title: "Databases, with a browser for each.",
+    text: "Run MariaDB, MySQL, PostgreSQL, Redis, Valkey, or MongoDB on your node, shared by the servers you link, and look inside without installing anything.",
+    items: [
+      ["Six engines", "MariaDB, MySQL, PostgreSQL, Redis, Valkey, and MongoDB, each in its own container."],
+      ["Shared databases", "Link one database to several servers, like a network sharing LuckPerms."],
+      ["A browser", "Run SQL with results streamed as they come, browse Redis keys and MongoDB documents."],
+      ["Users", "Each database has its own, plus a read-only user for anything that only reads."],
+      ["Imports, exports, versions", "Move data in and out, and change an instance's version safely."],
+      ["Their own backups", "Back up an instance on its own schedule, or with the servers that use it."],
+      ["From outside", "Reach an instance from your own tools, over TLS."],
+      ["Watched", "Usage, uptime, and queries a second, with alerts when one's in trouble."],
+    ],
+    link: "/nodes/databases/",
+  },
+  {
+    id: "networks",
+    name: "Networks",
+    title: "Your machine, and its firewall, in the app.",
+    text: "Keep communities apart, and open the ports you mean to, without a shell.",
+    items: [
+      ["Private networks", "Put servers on networks of their own, with fixed addresses and rules between them."],
+      ["A firewall", "Open and close the machine's ports like ufw, in Raptor's own table that Docker can't undo."],
+      ["Connection test", "Says why players can't connect, with steps for your provider's firewall."],
+      ["An address for every node", "A hostname that follows its IP, or your own domain, with the records to add."],
+      ["Data disks", "Set up empty disks, pick where servers live, and move them between disks."],
+    ],
+    link: "/nodes/networks/",
+  },
+  {
+    id: "team",
+    name: "Team",
+    title: "Bring your team. See who did what.",
+    text: "Owners, admins, and members, with exactly the permissions each one needs on each server.",
+    shot: "activity",
+    alt: "A server's activity in Raptor: who did what and when, with filters to search it",
+    items: [
+      ["Per-server permissions", "Console, files, backups, startup, players, and more."],
+      ["Activity", "Everything anyone does, searchable by person, date, IP, or kind."],
+      ["Alerts", "To email, Discord, Slack, Telegram, ntfy, or a webhook, with an inbox under the bell."],
+      ["Sign in your way", "Passkeys, an authenticator app, or Google, GitHub, and Discord."],
+    ],
+    link: "/team/members/",
+  },
+  {
+    id: "machine",
+    name: "On the machine",
+    title: "Tools on the machine, for when you're on it.",
+    text: "Raptor keeps working on your machine without us, and the raptor command does the same jobs as the app.",
+    items: [
+      ["raptor", "Status, power, the console, logs, and restores, with a terminal UI."],
+      ["raptor doctor", "Finds what's wrong and says how to fix it, and can send us the report with secrets removed."],
+      ["Self-updating", "Wings updates itself, and rolls back if an update fails. Pin a version if you'd rather."],
+      ["Disk limits", "Enforced by the kernel as files are written, with usage that's never stale."],
+      ["raptor uninstall", "Remove Raptor in one command; your servers' files stay unless you say otherwise."],
+    ],
+    link: "/cli/reference/",
+  },
+  {
+    id: "safety",
+    name: "Safety",
+    title: "Safety you can see.",
+    text: "What could hurt you is signed by you and checked by your machine, so not even Raptor can do it alone.",
+    items: [
+      ["Passkey-signed actions", "Deleting, restoring, changing what code runs, and the firewall need your passkey."],
+      ["Support access", "We only get in when you approve it, for as long as you say, and never get a shell."],
+      ["Keeps running", "Servers, schedules, backups, and crash restarts carry on when the panel is down."],
+      ["Open source", "AGPL-3.0, with the web app's bundle hashes published with every release."],
+    ],
+    link: "/security/how-raptor-protects-you/",
+  },
+];
+---
+<Base
+  title="Features"
+  description="Everything Raptor does for your game servers: a live console, add-ons from Modrinth, CurseForge, and Hangar, Minecraft tools, backups, databases, networks, a firewall, and a team with permissions."
+  path="/features/"
+>
+  <div class="page-head wrap">
+    <h1 class="page-title">Everything a server needs. <span class="accent">Nothing to bolt on.</span></h1>
+    <p class="lead">
+      What other panels leave to paid add-ons is part of Raptor, on every machine, for one price.
+    </p>
+    <nav class="jump" aria-label="On this page">
+      {areas.map((a) => <a href={`#${a.id}`}>{a.name}</a>)}
+    </nav>
+  </div>
+
+  <div class="wrap areas">
+    {areas.map((a) => (
+      <section class="area" aria-labelledby={a.id}>
+        <div class="area-head">
+          <h2 id={a.id}>{a.title}</h2>
+          <p>{a.text}</p>
+          <a class="more-link" href={`${docs}${a.link}`}>In the docs</a>
+        </div>
+        {a.shot && <Screen shot={a.shot} alt={a.alt!} />}
+        <dl class="area-items">
+          {a.items.map(([t, d]) => (
+            <div><dt>{t}</dt><dd>{d}</dd></div>
+          ))}
+        </dl>
+      </section>
+    ))}
+  </div>
+
+  <aside class="band-cta" slot="after">
+    <div class="wrap band-cta-inner">
+      <div>
+        <h2>All of it, on your machine, this afternoon.</h2>
+        <p>Link a machine and your first month is free.</p>
+      </div>
+      <a class="button primary large" href={start}>Start your free month</a>
+    </div>
+  </aside>
+</Base>

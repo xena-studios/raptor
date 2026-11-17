@@ -1,11 +1,11 @@
 ---
 title: Server settings
-description: Limits, crash and stop behaviour, startup and game settings, ports, changing the game, reinstalling, moving, and deleting.
+description: Limits, crash and stop behaviour, startup and game settings, Minecraft's Game tab, ports, Minehut, changing the game, reinstalling, moving, and deleting.
 sidebar:
   order: 2
 ---
 
-A server's settings are spread over a few tabs: **Settings** for its name, limits, and behaviour; **Startup** for its runtime and game settings; and **Network** for its ports and address.
+A server's settings are spread over a few tabs: **Settings** for its name, limits, and behaviour; **Startup** for its runtime and game settings; **Network** for its ports and address; and, for Minecraft Java servers and proxies, **Game** for the game's own settings and version.
 
 Most changes take effect the **next time the server starts**; the app says when one needs a restart. Changes that alter what code runs (the runtime, the startup command, the game) are signed with your passkey.
 
@@ -38,18 +38,21 @@ On **Startup**:
 - **Startup command:** what the server runs, built from its game's recipe (its [egg](/eggs/library/)).
 - **Runtime:** for games with more than one, such as Java versions for Minecraft. Changing it is signed with your passkey.
 - **Game settings:** versions, jar names, world names, passwords, and the like, each with what it does. Some are fixed by the game's recipe and shown greyed out; members only see the ones they're allowed to.
-- **Modpack** (Modrinth modpack servers): **Choose another modpack** picks a pack and version from Modrinth and fills in its settings. Save, then [reinstall](#reinstall) to install it. Back up first: the pack's mods and configs are replaced.
+- **Modpack** (Modrinth, FTB, and Technic modpack servers): **Choose another modpack** picks a pack and version (Modrinth and FTB list the most installed first; for Technic, type the pack's name) and fills in its settings. Save, then [reinstall](#reinstall) to install it. Back up first: the pack's mods and configs are replaced.
 
-Minecraft Java servers, and Velocity, Waterfall, and BungeeCord proxies, get a **Game** tab, next to Overview:
+Games with plugins, mods, datapacks, packs, or Steam Workshop support get an **Add-ons** tab, with a section for each: see [Add-ons](/servers/addons/).
 
+## The Game tab
+
+Minecraft Java servers, and Velocity, Waterfall, and BungeeCord proxies, get a **Game** tab, right after Overview, for anyone with the **See files** permission. Servers get **Version**, **In the server list**, and **Game settings**; proxies get **Version** (Velocity and Waterfall) and **Backends**.
+
+- **Version:** the Minecraft (or proxy) version it runs, picked from the software's own list: Paper, Purpur, Folia, Velocity, Waterfall, vanilla, Fabric, or Quilt (other software, such as forks like Leaf, keeps its version setting in Startup). **The newest** keeps it on the newest release at every reinstall; **Show snapshots and pre-releases** adds those to the list. **Change to …** backs up the server's files, then reinstalls it with that version; the world, plugins or mods, and settings stay. Stop the server first. Going back to an older version warns you: a world opened in a newer version may not load in an older one, and the backup is how you'd undo it. A newer version may need a newer Java: if so, Overview offers to switch it. It needs the **Startup settings** permission, and **Reinstall** to install straight away (without it, the version is saved for someone who can reinstall).
 - **Backends** (Velocity): the servers behind the proxy, tried in the order shown when players join. **Add one of your Paper servers** (Paper, Purpur, Folia, and forks) and **Save**: Raptor writes it into `velocity.toml`, turns on Velocity's modern forwarding, and sets the backend to take players only through this proxy (its `config/paper-global.yml` gets Velocity's secret, and `online-mode` goes off, since the proxy checks accounts). Nobody can then skip the proxy and join the backend as someone else. Restart the proxy and the backends afterwards. Start each once first, so their settings files exist. Removing a backend only takes it out of Velocity. Needs the **Change files** permission on the proxy and the backend.
 - **Backends** (Waterfall and BungeeCord): the same, in the proxy's `config.yml`, for your Spigot and Paper servers. Raptor turns on BungeeCord forwarding on the proxy (`ip_forward`) and the backend (`bungeecord` in `spigot.yml`), and turns the backend's `online-mode` off. **BungeeCord forwarding has no secret:** anyone who can reach a backend's port directly can join it as any player, admins included. Only add servers that the internet can't reach (put them on a [private network](/nodes/networks/) with the proxy), or use Velocity, whose forwarding is signed.
-- **Version:** the Minecraft (or proxy) version it runs, picked from the software's own list: Paper, Purpur, Folia, Velocity, Waterfall, vanilla, Fabric, or Quilt. **The newest** keeps it on the newest release at every reinstall. **Change to …** backs up the server's files, then reinstalls it with that version; the world, plugins or mods, and settings stay. Stop the server first. Going back to an older version warns you: a world opened in a newer version may not load in an older one, and the backup is how you'd undo it. It needs the **Startup** permission, and **Reinstall** to install straight away.
+- **In the server list:** the icon and message (MOTD) players see before they join, with a preview. Upload any image for the icon (it's cropped square and made 64×64, saved as `server-icon.png`), and use the colour and style buttons for the message instead of typing § codes. It shows once the server has started once and made its `server.properties`. Restart the server to show changes.
+- **Game settings:** Minecraft's own settings (`server.properties`) as a form: difficulty, game mode, PvP, the whitelist, max players, view distance, the world's seed and type, and the rest, each saying what it does. The form shows the settings your Minecraft version has, so it follows the version you run. **↺** puts one back to its default. The port is set on Network; settings the form doesn't know are listed and left alone, and **Edit as text** opens the file. Restart the server to use changes.
 
-- **Game settings:** Minecraft's own settings (server.properties) as a form: difficulty, game mode, PvP, the whitelist, max players, view distance, the world's seed and type, and the rest, each saying what it does. The form shows the settings your Minecraft version has, so it follows the version you run. **↺** puts one back to its default. The port is set on Network; settings the form doesn't know are listed and left alone, and **Edit as text** opens the file. Restart the server to use changes. Saving needs the **Change files** permission.
-- **In the server list:** the icon and message (MOTD) players see before they join, with a preview. Upload any image for the icon (it's cropped square and made 64×64, saved as `server-icon.png`), and use the colour and style buttons for the message instead of typing § codes. Restart the server to show it.
-
-Games with plugins, mods, datapacks, or Steam Workshop support get an **Add-ons** tab, with a section for each: see [Plugins, mods, and the Workshop](/servers/addons/).
+Saving backends, the server list look, and game settings needs the **Change files** permission.
 
 ## Ports and address
 
@@ -58,6 +61,7 @@ On **Network**:
 - **Port:** the port players connect to, 1024–65535, not used by another server on the node. It changes at the next start.
 - **Shown address:** what players should connect to, if not the node's own address: a domain (`play.example.com`), a domain with an SRV record, or a proxy like TCPShield. It's shown exactly as you type it, so add the port if players need one. **Use your own domain** shows the DNS records to add for a name you own, ready to copy: see [Use your own domain](/help/your-own-domain/).
 - **Networks** (admins and owners, on nodes with [networks](/nodes/networks/)): which network the server is on, and others it also joins, like a proxy. It changes at the next start.
+- **Bedrock players** (most Minecraft Java servers and proxies): lets Bedrock players join with Geyser. See [Bedrock players](/servers/addons/#bedrock-players-geyser).
 - **Connection test:** checks from outside whether players can reach the server, and says what to change if they can't. See [Players can't connect](/help/players-cant-connect/).
 
 ## Minehut
@@ -68,7 +72,7 @@ Minecraft servers running Velocity, Waterfall, or Paper (and Purpur or Folia) ca
 - **Waterfall:** turns on the proxy protocol in `config.yml`, and adds the login flag.
 - **Paper:** turns on the proxy protocol in `config/paper-global.yml`, turns off `enforce-secure-profile`, and adds Minehut's login flags.
 
-Your passkey signs the startup change. Start the server once before, so its config files exist, and restart it after. If you use TCPShield, tick it, and the proxy protocol changes are left out. Then the card shows what to type into Minehut's **External Server Settings** (the IP is the node's address, which follows its IP), with copy buttons. **Undo Minehut's changes** puts it all back.
+It needs the **Startup settings** and **Change files** permissions, and your passkey signs the startup change. Start the server once before, so its config files exist, and restart it after. If you use TCPShield, tick it, and the proxy protocol changes are left out. Then the card shows what to type into Minehut's **External Server Settings** (the IP is the node's address, which follows its IP), with copy buttons. **Undo Minehut's changes** puts it all back.
 
 After setting up, players can join **only through Minehut**, not the server's own address, and the player count may stop showing. BungeeCord isn't supported by Minehut: switch to Waterfall or Velocity. Minehut takes new external servers from its Partners Program and charges credits for them, so check your Minehut account first.
 

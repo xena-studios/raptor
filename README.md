@@ -1,12 +1,14 @@
-![Raptor by Xena Studios. The running raptor and the RAPTOR wordmark over a planet horizon, with the headline "Pterodactyl had a good run."](.github/assets/banner.png)
+![Raptor by Xena Studios. The running raptor and the RAPTOR wordmark over a planet horizon, with the headline "Your machine. Every game."](.github/assets/banner.png)
 
-**Pterodactyl had a good run. Raptor does everything you run Pterodactyl for, with the add-ons built in and no panel to host: run one command on any Linux box, and manage it from the web.**
+**Your machine. Every game. Run one command on any Linux box you own or rent, pick from 350+ games and apps, and manage it all from the web, with no panel to host.**
 
-Raptor is a hosted game server management platform. You bring your own Linux machine (a dedicated server, a VPS, a spare box at home), run a single install command, and it links to the web panel at [raptorpanel.net](https://raptorpanel.net). From there you create and manage game servers, Discord bots, and voice servers.
+Raptor is a hosted game server management platform. You bring your own Linux machine (a dedicated server, a VPS, a spare box at home), run a single install command, and it links to the web panel at [raptorpanel.net](https://raptorpanel.net). From there you run game servers, Discord bots, voice servers, and self-hosted apps, from Raptor's own [library of tested eggs](https://raptorpanel.net/library/) or any Pterodactyl egg.
 
-Raptor is compatible with Pterodactyl eggs, and `raptor import pterodactyl` moves existing servers over on the same machine. How the two compare, with prices: [Raptor vs Pterodactyl](https://docs.raptorpanel.net/start/raptor-vs-pterodactyl/).
+What's built in, that other panels leave to add-ons: plugins, mods, and modpacks from Modrinth, Hangar, CurseForge, FTB, Technic, uMod, and the Factorio mod portal, and Steam Workshop items; Minecraft's players, worlds, versions, and settings as forms; incremental, encrypted backups; six database engines with a browser for each; private networks and a firewall; alerts; and dangerous actions signed with your passkey and checked by your machine. Your servers, schedules, and backups keep running if the Panel is down.
 
-> **Status:** built and running in production ahead of launch, with no uptime promise yet. Wings (the daemon) runs servers from Pterodactyl eggs with a full lifecycle, kernel-enforced disk limits, passkey-signed dangerous actions, schedules, encrypted incremental backups, SFTP, self-updates that roll back, and a local CLI and TUI. The Panel runs at [raptorpanel.net](https://raptorpanel.net) with the web app and billing, backed up to another provider and rebuildable anywhere with one command. What's left before launch (the move to Oracle Cloud, the billing drill, the beta, the soak test) is in the [roadmap](docs/ROADMAP.md).
+Coming from Pterodactyl? `raptor import pterodactyl` moves servers over on the same machine. How Raptor compares with Pterodactyl, Pelican, Calagopus, and the rest: [every panel, compared](https://raptorpanel.net/compare/).
+
+> **Status:** early access, running in production at [raptorpanel.net](https://raptorpanel.net) with no uptime promise yet. What's left before launch is in the [roadmap](docs/ROADMAP.md), and what's new each week is at [raptorpanel.net/changelog](https://raptorpanel.net/changelog/).
 
 ## Components
 

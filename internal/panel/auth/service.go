@@ -297,6 +297,7 @@ func (s *Service) SignOut(ctx context.Context, _ *panelv1.SignOutRequest) (*pane
 	}
 	if c, ok := callOf(ctx); ok {
 		setCookie(c.resp, "", 0)
+		s.setHint(c.resp, false)
 	}
 	return &panelv1.SignOutResponse{}, nil
 }

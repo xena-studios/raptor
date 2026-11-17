@@ -1,0 +1,40 @@
+---
+// What's new, newest first (src/data/changelog.ts).
+import Base from "../layouts/Base.astro";
+import { changelog, longDate } from "../data/changelog";
+import { discord, docs } from "../data/links";
+
+const linkOf = (link: string) => (link.startsWith("/library") ? link : `${docs}${link}`);
+---
+<Base
+  title="What's new"
+  description="Everything new in Raptor, newest first: add-ons from CurseForge, Minecraft's players and worlds, the game library, databases, networks, and more."
+  path="/changelog/"
+>
+  <div class="page-head wrap">
+    <h1 class="page-title">What's new.</h1>
+    <p class="lead">
+      Raptor ships every week. Here's what changed, newest first. Want something?
+      Ask on <a href={discord}>Discord</a>.
+    </p>
+  </div>
+
+  <div class="wrap releases">
+    {changelog.map((r) => (
+      <section class="release" aria-labelledby={`r-${r.date}`}>
+        <header>
+          <time datetime={r.date}>{longDate(r.date)}</time>
+          <h2 id={`r-${r.date}`}>{r.title}</h2>
+        </header>
+        <ul>
+          {r.changes.map((c) => (
+            <li>
+              <h3>{c.title}</h3>
+              <p>{c.text}{c.link && <> <a href={linkOf(c.link)}>More</a></>}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </div>
+</Base>

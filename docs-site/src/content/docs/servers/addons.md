@@ -1,30 +1,36 @@
 ---
-title: Plugins, mods, and the Workshop
+title: Add-ons
 description: Install plugins and mods from Modrinth, Hangar, CurseForge, Thunderstore, and more, Steam Workshop items and Arma Reforger mods, and Counter-Strike 2's plugin frameworks, from the app.
 sidebar:
-  order: 6
+  order: 4
 ---
 
-Servers whose game supports them get a page to find and install add-ons, without downloading anything yourself.
+Servers whose game supports them get an **Add-ons** tab to find, install, and update plugins, mods, and the like, without downloading anything yourself.
 
 ## Plugins, mods, and datapacks
 
-Servers whose game takes add-ons get an **Add-ons** tab, next to Files. It has a section for each kind the game takes (switch between them at its top). Minecraft servers get **Plugins**, **Mods**, or **Datapacks**, depending on what they run:
+The **Add-ons** tab sits after Files. It has a section for each kind the game takes (switch between them at its top). Minecraft Java servers get **Plugins**, **Mods**, or **Datapacks**, depending on what they run:
 
-| Tab | For | From |
+| Section | For | From |
 |---|---|---|
-| **Plugins** | Paper, Purpur, Spigot, Bukkit, Folia, Velocity, BungeeCord, Waterfall, Sponge | Modrinth, Hangar (PaperMC's repository), or CurseForge* |
+| **Plugins** | Paper, Purpur, Folia, Spigot, Bukkit | Modrinth, Hangar (PaperMC's repository), or CurseForge* |
+| **Plugins** | Velocity, BungeeCord, Waterfall | Modrinth or Hangar |
+| **Plugins** | Sponge | Modrinth |
 | **Mods** | Fabric, Forge, NeoForge, Quilt | Modrinth, or CurseForge* |
 | **Datapacks** | Any Java server | Modrinth |
 
-\* CurseForge shows up once the Panel has a CurseForge API key. Some CurseForge authors only allow downloads from CurseForge itself: for those, Raptor links to the file to download by hand (then upload it in Files) instead of installing it.
+When there's more than one source, buttons at the top of the search pick which one to search.
+
+\* CurseForge shows up once the Panel has a CurseForge API key. Some CurseForge authors only allow downloads from CurseForge itself: for those, Raptor offers **Download on CurseForge** (or **Get … on CurseForge** for an update) instead of installing it; download the file, then upload it in Files.
+
+Seeing the tab needs the **See files** permission.
 
 On the tab:
 
-- **Search** shows what works with your server's Minecraft version (or any version, when it's set to `latest`). Mods that only run on players' computers (shaders, minimaps, HUDs) are left out, since on a server they crash it or do nothing; **Show client-only mods** brings them back.
-- **Install** a version: the machine downloads it straight from Modrinth's or Hangar's servers and checks it against the hash they publish, so a file swapped on the way is refused. If it needs other mods or plugins (most Fabric mods need Fabric API), the dialog lists them and installs them first; optional ones it works with can be ticked. If it can't run beside something you have installed, it says so before installing. To install it alone, tick **Install only this**.
-- An installed add-on missing something it needs shows **Needs another add-on**, with a button to install what's missing. Removing an add-on that others need asks first.
-- **Installed** lists what's there, named from Modrinth or Hangar. Each one says whether it's **up to date** for your server's game version, or has an **update available** with a button to install it. The top of the list counts the updates, and **Update all** installs every one after showing you each change. Files neither knows show as added by hand.
+- **Search** shows what works with your server's Minecraft version (or any version, when it's set to `latest`). On Modrinth, mods that only run on players' computers (shaders, minimaps, HUDs) are left out, since on a server they crash it or do nothing; **Show client-only mods** brings them back.
+- **Install** a version: the machine downloads it straight from its source (Modrinth, Hangar, or CurseForge) and checks it against the hash the source publishes, so a file swapped on the way is refused. If it needs other mods or plugins (most Fabric mods need Fabric API), the dialog lists them under **Also installs what it needs** and the button becomes **Install with N more**; optional ones it works with can be ticked. If it can't run beside something you have installed, it says so before installing. To install it alone, tick **Install only this**.
+- An installed add-on missing something it needs shows **Needs another add-on**, with **Install what it needs**. Removing an add-on that others need asks first.
+- **Installed** lists what's there, named from its source. Each one says whether it's **Up to date** for your server's game version, or has an **Update available** with a button to install it. The top of the list counts the updates, and **Update all** installs every one after showing you each change. Files no source knows show as **Added by hand**.
 - **Remove** moves a file to the server's [trash](/servers/files/#the-trash).
 
 Restart the server for changes to take effect. Installing needs the **Change files** permission.
@@ -33,20 +39,20 @@ SpigotMC isn't offered: its downloads often go to other sites without a hash, so
 
 ## Copy add-ons between servers
 
-Running a lobby and several game servers with the same plugins, or the same mods on a test and a live server? Each section's **⋯** menu has:
+Running a lobby and several game servers with the same plugins, or the same mods on a test and a live server? The **⋯** menu beside a section's installed list has:
 
 - **Export list** saves the installed add-ons as a small JSON file: each one by where it's from, its project, and its version, plus the files you added by hand (by name and hash).
-- **Import list** takes such a file (choose it or paste it) and shows what it would change first: what it installs, what changes version, what it removes, what's already there, and the hand-added files to copy yourself. Nothing changes until you press **Apply**.
+- **Import list** takes such a file (choose it or paste it) and shows what it would change first: what it installs, what changes version, what it removes, what's already there, and the hand-added files to copy yourself. Nothing changes until you press **Apply N changes**.
 
 Applying looks every add-on up again for this server, and the machine checks each download against the hash its source publishes, as with any install. It also installs what they need that the list doesn't have. Removing is a switch (on by default): turn it off to only add, and removed files go to the [trash](/servers/files/#the-trash). Files added by hand on this server are never removed.
 
-If a listed version doesn't run on this server's game version, it's skipped and named; turn on **use the newest for this server** to install the newest one instead. The file format is in [EGGS.md](https://github.com/xena-studios/raptor/blob/main/docs/EGGS.md#add-on-lists), for keeping lists in Git.
+If a listed version doesn't run on this server's game version, it's skipped and named; turn on **Where a listed version can't be installed here, use the newest for this server** to install the newest one instead. The file format is in [EGGS.md](https://github.com/xena-studios/raptor/blob/main/docs/EGGS.md#add-on-lists), for keeping lists in Git.
 
 ## Factorio mods
 
 Factorio servers get a **Mods** section for mods from the [Factorio mod portal](https://mods.factorio.com), for the server's Factorio version, most downloaded first.
 
-- Set **your factorio.com username and token** in Startup first (the token is on your factorio.com profile page): the portal only lets accounts that own Factorio download mods. Raptor's node adds them to each download itself.
+- Set **Factorio username** and **Factorio token** in Startup first (the token is on your factorio.com profile page): the portal only lets accounts that own Factorio download mods. Raptor's node adds them to each download itself.
 - **Install** brings the mods it needs with it (and offers the optional ones), and says when it can't run beside one you have. Each download is checked against the portal's hash.
 - **Installed** names mods by their file and offers updates for your Factorio version. Factorio turns on every mod in the folder; to turn one off without removing it, use the game's mod settings or `mods/mod-list.json`.
 
@@ -74,7 +80,7 @@ Unturned servers get a **Plugins** tab for [OpenMod](https://openmod.github.io/o
 
 ## Rust plugins (uMod)
 
-Rust servers get a **Plugins** tab for Oxide and Carbon plugins from [uMod](https://umod.org). Set **Mod framework** to Oxide or Carbon in Startup first (vanilla Rust doesn't load plugins); the tab puts plugins in the folder that framework reads (`oxide/plugins` or `carbon/plugins`).
+Rust servers get a **Plugins** section for Oxide and Carbon plugins from [uMod](https://umod.org). Set **Mod framework** to Oxide or Carbon in Startup first (vanilla Rust doesn't load plugins); the section puts plugins in the folder that framework reads (`oxide/plugins` or `carbon/plugins`).
 
 - uMod only offers each plugin's newest version, so that's what's installed, checked against the hash uMod lists.
 - **Installed** names plugins by their file (`Kits.cs` is Kits) and offers an update when yours isn't uMod's newest. Plugins you changed yourself look out of date too.
@@ -83,13 +89,13 @@ Rust servers get a **Plugins** tab for Oxide and Carbon plugins from [uMod](http
 
 ## Bedrock players (Geyser)
 
-Java servers running Paper (and Purpur, Folia, Spigot), Velocity, Waterfall, Fabric, or NeoForge can let **Bedrock** players join: phones, consoles, and Windows. On **Network**, under **Bedrock players**:
+Java servers running Paper (and Purpur, Folia, Spigot), Velocity, Waterfall, BungeeCord, Fabric, or NeoForge can let **Bedrock** players join: phones, consoles, and Windows. On **Network**, under **Bedrock players**:
 
-1. **Let Bedrock players join** installs [Geyser](https://geysermc.org) and, unless you untick it, Floodgate (so Bedrock players don't need a Java account). Each is checked against its source's hash like any add-on. On Velocity and Waterfall, Floodgate is left out: on a proxy it also needs its key on every server behind it.
+1. **Let Bedrock players join** installs [Geyser](https://geysermc.org) and, unless you untick it, Floodgate (so Bedrock players don't need a Java account). Each is checked against its source's hash like any add-on. On Velocity, Waterfall, and BungeeCord, Floodgate is left out: on a proxy it also needs its key on every server behind it.
 2. **Restart the server:** Geyser makes its settings on its first start.
 3. **Finish setting up** puts Bedrock on the server's own port, so Bedrock players use the same address and port as Java players. (Raptor publishes every port for both TCP and UDP; Bedrock uses UDP.)
 
-The card then shows the address and port to give Bedrock players. If they can't connect, check your provider's firewall lets **UDP** through on that port.
+The card then shows the address and port to give Bedrock players. If they can't connect, check your provider's firewall lets **UDP** through on that port. Setting it up needs the **Change files** permission.
 
 ## Bedrock packs
 

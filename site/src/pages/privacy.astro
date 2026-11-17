@@ -1,35 +1,17 @@
 ---
-import Logo from "../components/Logo.astro";
-import "../styles/site.css";
+import Base from "../layouts/Base.astro";
 
 // The privacy policy for Raptor: the Panel, the web app, the phone app,
 // and this site. Plain words, and only what's true of the code: when what
 // the Panel keeps or who processes it changes, change this page too
 // (docs/PANEL.md, docs/DEPLOY.md).
 const updated = "November 16, 2026";
-const title = "Privacy policy: Raptor";
+const title = "Privacy policy";
 const description = "What Raptor collects when you use it, why, who else handles it, how long it's kept, and how to have it deleted.";
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-    <meta name="description" content={description} />
-    <link rel="canonical" href="https://raptorpanel.net/privacy" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <meta name="theme-color" content="#1a1314" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#f8f5f5" media="(prefers-color-scheme: light)" />
-  </head>
-  <body>
-    <a class="skip button small" href="#main">Skip to content</a>
-    <header class="wrap top">
-      <a class="brand" href="/" aria-label="Raptor, home"><Logo /></a>
-    </header>
-
-    <main id="main" class="wrap legal">
+<Base title={title} description={description} path="/privacy">
+  <div class="wrap legal">
       <h1>Privacy policy</h1>
       <p class="meta">Last updated {updated}</p>
 
@@ -166,20 +148,8 @@ const description = "What Raptor collects when you use it, why, who else handles
         Email <a href="mailto:support@raptorpanel.net">support@raptorpanel.net</a>. For security problems, see
         our <a href="https://github.com/xena-studios/raptor/blob/main/SECURITY.md">security policy</a>.
       </p>
-    </main>
-
-    <footer>
-      <div class="wrap">
-        <span>© {new Date().getFullYear()} Xena Studios</span>
-        <nav aria-label="Footer">
-          <a href="/">Home</a>
-          <a href="https://docs.raptorpanel.net">Docs</a>
-          <a href="https://status.raptorpanel.net">Status</a>
-        </nav>
-      </div>
-    </footer>
-  </body>
-</html>
+    </div>
+</Base>
 
 <style>
   .legal {

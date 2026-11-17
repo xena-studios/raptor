@@ -43,12 +43,10 @@ export const GET: APIRoute = async ({ props }) => {
   const { page } = props as { page: CollectionEntry<"docs"> };
   const home = page.id === "index";
   const section = home ? "Docs" : (sections[page.id.split("/")[0]] ?? "Docs");
-  const title = home ? [el("span", {}, "Pterodactyl had "), el("span", { color: red }, "a good run.")] : page.data.title;
-  const titleSize = page.data.title.length > 30 ? 68 : 80;
-  // The home page's description repeats the headline; the card says what's inside.
-  const description = home
-    ? "Everything about Raptor, from linking your first machine to backups, teams, alerts, and the command line."
-    : (page.data.description ?? "");
+  // The home page's card carries its headline, not "Raptor Docs" again.
+  const title = home ? (page.data.hero?.title ?? page.data.title) : page.data.title;
+  const titleSize = title.length > 30 ? 68 : 80;
+  const description = page.data.description ?? "";
 
   const card = el(
     "div",
