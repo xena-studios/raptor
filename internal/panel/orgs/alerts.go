@@ -487,6 +487,13 @@ func (a *Alerts) SaveAlertRule(ctx context.Context, req *panelv1.SaveAlertRuleRe
 	}
 	threshold, forMinutes := in.GetThreshold(), in.GetForMinutes()
 	switch {
+	case c.Threshold && c.ID == "node_net_out_high":
+		if threshold <= 0 || threshold > 10000 {
+			return nil, invalidRule("the threshold is MB a second, from 1 to 10000")
+		}
+		if forMinutes < 1 || forMinutes > 1440 {
+			return nil, invalidRule("how long it must last is 1 minute to 24 hours")
+		}
 	case c.Threshold:
 		if threshold <= 0 || threshold > 100 {
 			return nil, invalidRule("the threshold is a percent, from 1 to 100")

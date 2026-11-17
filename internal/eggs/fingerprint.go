@@ -62,7 +62,7 @@ func CodeFingerprint(e *Egg) string {
 	for _, f := range e.Config.Files {
 		out := file{Path: f.Path, Parser: f.Parser}
 		for _, r := range f.Find {
-			out.Find = append(out.Find, rule{Key: r.Key, IfValue: r.IfValue, Value: r.Value})
+			out.Find = append(out.Find, rule(r))
 		}
 		c.Files = append(c.Files, out)
 	}

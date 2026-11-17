@@ -52,9 +52,9 @@ var keyPattern = regexp.MustCompile(`^[0-9a-f]{32}$`)
 // those the same can start from the template.
 func TemplateKey(fingerprint, image string, variables map[string]string, eula bool) string {
 	h := sha256.New()
-	fmt.Fprintf(h, "%s\x00%s\x00%t", fingerprint, image, eula)
+	_, _ = fmt.Fprintf(h, "%s\x00%s\x00%t", fingerprint, image, eula)
 	for _, k := range slices.Sorted(maps.Keys(variables)) {
-		fmt.Fprintf(h, "\x00%s=%s", k, variables[k])
+		_, _ = fmt.Fprintf(h, "\x00%s=%s", k, variables[k])
 	}
 	return hex.EncodeToString(h.Sum(nil))[:32]
 }
@@ -82,7 +82,7 @@ func (t *Templates) Has(key string) bool {
 
 func (t *Templates) meta(key string) (templateMeta, error) {
 	var m templateMeta
-	b, err := os.ReadFile(filepath.Join(t.Dir, key+".json"))
+	b, err := os.ReadFile(filepath.Join(t.Dir, key+".json")) //nolint:gosec // key is checked against keyPattern by every caller
 	if err != nil {
 		return m, err
 	}

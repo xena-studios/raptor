@@ -38,7 +38,7 @@ type Rule struct {
 // instance running.
 var (
 	serverConditions   = []string{"cpu_high", "memory_high", "disk_high"}
-	nodeConditions     = []string{"node_cpu_high", "node_memory_high", "node_disk_high"}
+	nodeConditions     = []string{"node_cpu_high", "node_memory_high", "node_disk_high", "node_net_out_high"}
 	instanceConditions = []string{"db_disk_high", "db_connections_high"}
 )
 
@@ -50,6 +50,8 @@ const (
 	resolveAfter = time.Minute
 	checkEvery   = metrics.SampleEvery
 	rulesKey     = "alerts.rules"
+	// maxNetOutMBs bounds node_net_out_high's threshold (MB/s).
+	maxNetOutMBs = 10000
 	firingKey    = "alerts.firing"
 )
 
@@ -133,7 +135,11 @@ func Validate(rules []Rule) error {
 		if node && r.ServerID != "" {
 			return fmt.Errorf("rule %s: %s is about the node, not a server", r.ID, r.Condition)
 		}
-		if r.Threshold <= 0 || r.Threshold > 100 || r.ForSeconds < 0 || r.ForSeconds > 86400 {
+		top := 100.0 // a percent
+		if r.Condition == "node_net_out_high" {
+			top = maxNetOutMBs
+		}
+		if r.Threshold <= 0 || r.Threshold > top || r.ForSeconds < 0 || r.ForSeconds > 86400 {
 			return fmt.Errorf("rule %s: threshold or duration out of range", r.ID)
 		}
 	}
@@ -277,6 +283,10 @@ func (e *Evaluator) readings(ctx context.Context, r Rule, h Host, limits map[str
 		return []reading{{"", percent(float64(hp.MemoryAvg), float64(h.MemoryBytes)), nil}}
 	case "node_disk_high":
 		return []reading{{"", percent(float64(hp.DiskBytes), float64(h.DiskBytes)), nil}}
+	case "node_net_out_high":
+		// MB a second out of the machine (the live sample is per second):
+		// unusual outbound traffic, as on the public demo's node.
+		return []reading{{"", float64(hp.TxBytes) / 1e6, nil}}
 	case "db_disk_high", "db_connections_high":
 		return e.instanceReadings(r)
 	}

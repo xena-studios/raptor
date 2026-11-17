@@ -69,6 +69,18 @@ func (q *Queries) CreateGuest(ctx context.Context, arg CreateGuestParams) (User,
 	return i, err
 }
 
+const deleteDemoNode = `-- name: DeleteDemoNode :execrows
+DELETE FROM demo_nodes WHERE node_id = $1
+`
+
+func (q *Queries) DeleteDemoNode(ctx context.Context, nodeID pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteDemoNode, nodeID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteDemoServer = `-- name: DeleteDemoServer :execrows
 DELETE FROM demo_servers WHERE node_id = $1 AND server_id = $2
 `
@@ -98,6 +110,176 @@ func (q *Queries) DeleteOrgGuests(ctx context.Context, orgID pgtype.UUID) (int64
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const demoLibraryEgg = `-- name: DemoLibraryEgg :one
+SELECT id, catalog_id::text AS catalog_id, name, egg FROM eggs
+WHERE id = $1 AND org_id IS NULL AND catalog_id IS NOT NULL AND status = 'published'
+`
+
+type DemoLibraryEggRow struct {
+	ID        pgtype.UUID
+	CatalogID string
+	Name      string
+	Egg       []byte
+}
+
+func (q *Queries) DemoLibraryEgg(ctx context.Context, id pgtype.UUID) (DemoLibraryEggRow, error) {
+	row := q.db.QueryRow(ctx, demoLibraryEgg, id)
+	var i DemoLibraryEggRow
+	err := row.Scan(
+		&i.ID,
+		&i.CatalogID,
+		&i.Name,
+		&i.Egg,
+	)
+	return i, err
+}
+
+const demoLibraryEggs = `-- name: DemoLibraryEggs :many
+SELECT id, catalog_id::text AS catalog_id, name, egg FROM eggs
+WHERE org_id IS NULL AND catalog_id IS NOT NULL AND status = 'published'
+`
+
+type DemoLibraryEggsRow struct {
+	ID        pgtype.UUID
+	CatalogID string
+	Name      string
+	Egg       []byte
+}
+
+// The official library's published eggs, for the demo's picker.
+func (q *Queries) DemoLibraryEggs(ctx context.Context) ([]DemoLibraryEggsRow, error) {
+	rows, err := q.db.Query(ctx, demoLibraryEggs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DemoLibraryEggsRow
+	for rows.Next() {
+		var i DemoLibraryEggsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CatalogID,
+			&i.Name,
+			&i.Egg,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const demoNodeOf = `-- name: DemoNodeOf :one
+SELECT d.node_id, d.org_id, d.max_sandboxes, d.port_min, d.port_max, d.warm_eggs, d.warmed_on, d.created_at, n.name, coalesce(n.facts->>'arch', '')::text AS arch, n.capabilities, n.short_id,
+    EXISTS (SELECT 1 FROM node_connections c WHERE c.node_id = n.id)::bool AS connected
+FROM demo_nodes d
+JOIN nodes n ON n.id = d.node_id AND n.org_id = d.org_id AND n.deleted_at IS NULL
+WHERE d.org_id = $1
+ORDER BY d.created_at
+LIMIT 1
+`
+
+type DemoNodeOfRow struct {
+	NodeID       pgtype.UUID
+	OrgID        pgtype.UUID
+	MaxSandboxes int32
+	PortMin      int32
+	PortMax      int32
+	WarmEggs     int32
+	WarmedOn     pgtype.Date
+	CreatedAt    pgtype.Timestamptz
+	Name         string
+	Arch         string
+	Capabilities []string
+	ShortID      string
+	Connected    bool
+}
+
+// The demo node sandboxes in an org go on: its oldest.
+func (q *Queries) DemoNodeOf(ctx context.Context, orgID pgtype.UUID) (DemoNodeOfRow, error) {
+	row := q.db.QueryRow(ctx, demoNodeOf, orgID)
+	var i DemoNodeOfRow
+	err := row.Scan(
+		&i.NodeID,
+		&i.OrgID,
+		&i.MaxSandboxes,
+		&i.PortMin,
+		&i.PortMax,
+		&i.WarmEggs,
+		&i.WarmedOn,
+		&i.CreatedAt,
+		&i.Name,
+		&i.Arch,
+		&i.Capabilities,
+		&i.ShortID,
+		&i.Connected,
+	)
+	return i, err
+}
+
+const demoNodes = `-- name: DemoNodes :many
+SELECT d.node_id, d.org_id, d.max_sandboxes, d.port_min, d.port_max, d.warm_eggs, d.warmed_on, d.created_at, n.name, coalesce(n.facts->>'arch', '')::text AS arch, n.capabilities, n.short_id,
+    EXISTS (SELECT 1 FROM node_connections c WHERE c.node_id = n.id)::bool AS connected
+FROM demo_nodes d
+JOIN nodes n ON n.id = d.node_id AND n.org_id = d.org_id AND n.deleted_at IS NULL
+JOIN orgs o ON o.id = d.org_id AND o.demo AND o.deleted_at IS NULL
+ORDER BY d.created_at
+`
+
+type DemoNodesRow struct {
+	NodeID       pgtype.UUID
+	OrgID        pgtype.UUID
+	MaxSandboxes int32
+	PortMin      int32
+	PortMax      int32
+	WarmEggs     int32
+	WarmedOn     pgtype.Date
+	CreatedAt    pgtype.Timestamptz
+	Name         string
+	Arch         string
+	Capabilities []string
+	ShortID      string
+	Connected    bool
+}
+
+// The demo nodes of demo orgs, with what the Panel knows of them.
+func (q *Queries) DemoNodes(ctx context.Context) ([]DemoNodesRow, error) {
+	rows, err := q.db.Query(ctx, demoNodes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DemoNodesRow
+	for rows.Next() {
+		var i DemoNodesRow
+		if err := rows.Scan(
+			&i.NodeID,
+			&i.OrgID,
+			&i.MaxSandboxes,
+			&i.PortMin,
+			&i.PortMax,
+			&i.WarmEggs,
+			&i.WarmedOn,
+			&i.CreatedAt,
+			&i.Name,
+			&i.Arch,
+			&i.Capabilities,
+			&i.ShortID,
+			&i.Connected,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const demoOrg = `-- name: DemoOrg :one
@@ -186,6 +368,154 @@ func (q *Queries) DemoServers(ctx context.Context, orgID pgtype.UUID) ([]DemoSer
 	return items, nil
 }
 
+const endOrphanSandboxes = `-- name: EndOrphanSandboxes :execrows
+UPDATE demo_sandboxes SET state = 'failed', error = 'the guest left', ended_at = now(), ip_hash = ''
+WHERE state = 'queued' AND user_id IS NULL AND NOT warm
+`
+
+// Queued sandboxes of guests who are gone (at the hourly reset, or their
+// hour was up).
+func (q *Queries) EndOrphanSandboxes(ctx context.Context) (int64, error) {
+	result, err := q.db.Exec(ctx, endOrphanSandboxes)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const endSandbox = `-- name: EndSandbox :exec
+UPDATE demo_sandboxes SET state = $2, error = $3, ended_at = now(), ip_hash = ''
+WHERE id = $1 AND state IN ('queued', 'creating', 'installing', 'ready')
+`
+
+type EndSandboxParams struct {
+	ID    pgtype.UUID
+	State string
+	Error string
+}
+
+// A sandbox is over: deleted (gone) or never made (failed). The guest is
+// forgotten, and so is the address hash.
+func (q *Queries) EndSandbox(ctx context.Context, arg EndSandboxParams) error {
+	_, err := q.db.Exec(ctx, endSandbox, arg.ID, arg.State, arg.Error)
+	return err
+}
+
+const liveSandboxes = `-- name: LiveSandboxes :many
+SELECT id, org_id, node_id, user_id, ip_hash, egg_id, library_id, egg_name, accept_eula, warm, state, server_id, port, error, queued_at, created_at, ready_at, deadline, extended, ended_at FROM demo_sandboxes
+WHERE node_id = $1 AND state IN ('queued', 'creating', 'installing', 'ready')
+ORDER BY queued_at
+`
+
+// A node's sandboxes from the queue to their deletion, oldest first.
+func (q *Queries) LiveSandboxes(ctx context.Context, nodeID pgtype.UUID) ([]DemoSandbox, error) {
+	rows, err := q.db.Query(ctx, liveSandboxes, nodeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DemoSandbox
+	for rows.Next() {
+		var i DemoSandbox
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.NodeID,
+			&i.UserID,
+			&i.IpHash,
+			&i.EggID,
+			&i.LibraryID,
+			&i.EggName,
+			&i.AcceptEula,
+			&i.Warm,
+			&i.State,
+			&i.ServerID,
+			&i.Port,
+			&i.Error,
+			&i.QueuedAt,
+			&i.CreatedAt,
+			&i.ReadyAt,
+			&i.Deadline,
+			&i.Extended,
+			&i.EndedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const mostPickedEggs = `-- name: MostPickedEggs :many
+SELECT library_id, egg_id, count(*)::int AS picks FROM demo_sandboxes
+WHERE NOT warm AND org_id = $1 AND queued_at > now() - interval '30 days'
+GROUP BY library_id, egg_id
+ORDER BY picks DESC, library_id
+LIMIT $2
+`
+
+type MostPickedEggsParams struct {
+	OrgID pgtype.UUID
+	Limit int32
+}
+
+type MostPickedEggsRow struct {
+	LibraryID string
+	EggID     pgtype.UUID
+	Picks     int32
+}
+
+// The eggs guests picked most in the last month, for the warm pool.
+func (q *Queries) MostPickedEggs(ctx context.Context, arg MostPickedEggsParams) ([]MostPickedEggsRow, error) {
+	rows, err := q.db.Query(ctx, mostPickedEggs, arg.OrgID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MostPickedEggsRow
+	for rows.Next() {
+		var i MostPickedEggsRow
+		if err := rows.Scan(&i.LibraryID, &i.EggID, &i.Picks); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const nodeServerPorts = `-- name: NodeServerPorts :many
+SELECT DISTINCT (a->>'port')::int AS port
+FROM m_servers s, jsonb_array_elements(coalesce(s.config->'allocations', '[]')) a
+WHERE s.node_id = $1
+`
+
+// Every port a node's servers use, as the mirror knows them.
+func (q *Queries) NodeServerPorts(ctx context.Context, nodeID pgtype.UUID) ([]int32, error) {
+	rows, err := q.db.Query(ctx, nodeServerPorts, nodeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int32
+	for rows.Next() {
+		var port int32
+		if err := rows.Scan(&port); err != nil {
+			return nil, err
+		}
+		items = append(items, port)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const orgDemoRole = `-- name: OrgDemoRole :one
 SELECT o.demo, m.role FROM orgs o
 JOIN org_members m ON m.org_id = o.id AND m.user_id = $1
@@ -222,6 +552,179 @@ func (q *Queries) PruneGuests(ctx context.Context) (int64, error) {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const queuePosition = `-- name: QueuePosition :one
+SELECT count(*) FROM demo_sandboxes
+WHERE node_id = $1 AND state = 'queued' AND queued_at < $2
+`
+
+type QueuePositionParams struct {
+	NodeID   pgtype.UUID
+	QueuedAt pgtype.Timestamptz
+}
+
+// How many queued sandboxes are ahead of one (0: it's next).
+func (q *Queries) QueuePosition(ctx context.Context, arg QueuePositionParams) (int64, error) {
+	row := q.db.QueryRow(ctx, queuePosition, arg.NodeID, arg.QueuedAt)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const queueSandbox = `-- name: QueueSandbox :one
+INSERT INTO demo_sandboxes (org_id, node_id, user_id, ip_hash, egg_id, library_id, egg_name, accept_eula, warm)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+RETURNING id, org_id, node_id, user_id, ip_hash, egg_id, library_id, egg_name, accept_eula, warm, state, server_id, port, error, queued_at, created_at, ready_at, deadline, extended, ended_at
+`
+
+type QueueSandboxParams struct {
+	OrgID      pgtype.UUID
+	NodeID     pgtype.UUID
+	UserID     pgtype.UUID
+	IpHash     []byte
+	EggID      pgtype.UUID
+	LibraryID  string
+	EggName    string
+	AcceptEula bool
+	Warm       bool
+}
+
+func (q *Queries) QueueSandbox(ctx context.Context, arg QueueSandboxParams) (DemoSandbox, error) {
+	row := q.db.QueryRow(ctx, queueSandbox,
+		arg.OrgID,
+		arg.NodeID,
+		arg.UserID,
+		arg.IpHash,
+		arg.EggID,
+		arg.LibraryID,
+		arg.EggName,
+		arg.AcceptEula,
+		arg.Warm,
+	)
+	var i DemoSandbox
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.NodeID,
+		&i.UserID,
+		&i.IpHash,
+		&i.EggID,
+		&i.LibraryID,
+		&i.EggName,
+		&i.AcceptEula,
+		&i.Warm,
+		&i.State,
+		&i.ServerID,
+		&i.Port,
+		&i.Error,
+		&i.QueuedAt,
+		&i.CreatedAt,
+		&i.ReadyAt,
+		&i.Deadline,
+		&i.Extended,
+		&i.EndedAt,
+	)
+	return i, err
+}
+
+const sandboxCreating = `-- name: SandboxCreating :execrows
+UPDATE demo_sandboxes SET state = 'creating', port = $2, created_at = now()
+WHERE id = $1 AND state = 'queued'
+`
+
+type SandboxCreatingParams struct {
+	ID   pgtype.UUID
+	Port int32
+}
+
+func (q *Queries) SandboxCreating(ctx context.Context, arg SandboxCreatingParams) (int64, error) {
+	result, err := q.db.Exec(ctx, sandboxCreating, arg.ID, arg.Port)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const sandboxDeadline = `-- name: SandboxDeadline :exec
+UPDATE demo_sandboxes SET deadline = $2 WHERE id = $1
+`
+
+type SandboxDeadlineParams struct {
+	ID       pgtype.UUID
+	Deadline pgtype.Timestamptz
+}
+
+func (q *Queries) SandboxDeadline(ctx context.Context, arg SandboxDeadlineParams) error {
+	_, err := q.db.Exec(ctx, sandboxDeadline, arg.ID, arg.Deadline)
+	return err
+}
+
+const sandboxInstalling = `-- name: SandboxInstalling :exec
+UPDATE demo_sandboxes SET state = 'installing', server_id = $2 WHERE id = $1
+`
+
+type SandboxInstallingParams struct {
+	ID       pgtype.UUID
+	ServerID string
+}
+
+func (q *Queries) SandboxInstalling(ctx context.Context, arg SandboxInstallingParams) error {
+	_, err := q.db.Exec(ctx, sandboxInstalling, arg.ID, arg.ServerID)
+	return err
+}
+
+const sandboxReady = `-- name: SandboxReady :exec
+UPDATE demo_sandboxes SET state = 'ready', ready_at = $2, deadline = $3, extended = $4
+WHERE id = $1 AND state IN ('installing', 'ready')
+`
+
+type SandboxReadyParams struct {
+	ID       pgtype.UUID
+	ReadyAt  pgtype.Timestamptz
+	Deadline pgtype.Timestamptz
+	Extended bool
+}
+
+func (q *Queries) SandboxReady(ctx context.Context, arg SandboxReadyParams) error {
+	_, err := q.db.Exec(ctx, sandboxReady,
+		arg.ID,
+		arg.ReadyAt,
+		arg.Deadline,
+		arg.Extended,
+	)
+	return err
+}
+
+const setDemoNode = `-- name: SetDemoNode :exec
+
+INSERT INTO demo_nodes (node_id, org_id, max_sandboxes, port_min, port_max, warm_eggs)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (node_id) DO UPDATE
+SET org_id = excluded.org_id, max_sandboxes = excluded.max_sandboxes, port_min = excluded.port_min,
+    port_max = excluded.port_max, warm_eggs = excluded.warm_eggs
+`
+
+type SetDemoNodeParams struct {
+	NodeID       pgtype.UUID
+	OrgID        pgtype.UUID
+	MaxSandboxes int32
+	PortMin      int32
+	PortMax      int32
+	WarmEggs     int32
+}
+
+// Phases 2 and 3: sandboxes (docs/PANEL.md#sandboxes).
+func (q *Queries) SetDemoNode(ctx context.Context, arg SetDemoNodeParams) error {
+	_, err := q.db.Exec(ctx, setDemoNode,
+		arg.NodeID,
+		arg.OrgID,
+		arg.MaxSandboxes,
+		arg.PortMin,
+		arg.PortMax,
+		arg.WarmEggs,
+	)
+	return err
 }
 
 const setDemoReset = `-- name: SetDemoReset :exec
@@ -264,6 +767,20 @@ func (q *Queries) SetDemoServer(ctx context.Context, arg SetDemoServerParams) er
 	return err
 }
 
+const setDemoWarmed = `-- name: SetDemoWarmed :exec
+UPDATE demo_nodes SET warmed_on = $2 WHERE node_id = $1
+`
+
+type SetDemoWarmedParams struct {
+	NodeID   pgtype.UUID
+	WarmedOn pgtype.Date
+}
+
+func (q *Queries) SetDemoWarmed(ctx context.Context, arg SetDemoWarmedParams) error {
+	_, err := q.db.Exec(ctx, setDemoWarmed, arg.NodeID, arg.WarmedOn)
+	return err
+}
+
 const setOrgDemo = `-- name: SetOrgDemo :execrows
 UPDATE orgs SET demo = $2 WHERE id = $1 AND deleted_at IS NULL
 `
@@ -293,4 +810,45 @@ type SetSessionExpiryParams struct {
 func (q *Queries) SetSessionExpiry(ctx context.Context, arg SetSessionExpiryParams) error {
 	_, err := q.db.Exec(ctx, setSessionExpiry, arg.ID, arg.ExpiresAt)
 	return err
+}
+
+const userSandbox = `-- name: UserSandbox :one
+SELECT id, org_id, node_id, user_id, ip_hash, egg_id, library_id, egg_name, accept_eula, warm, state, server_id, port, error, queued_at, created_at, ready_at, deadline, extended, ended_at FROM demo_sandboxes
+WHERE user_id = $1 AND org_id = $2
+ORDER BY (state IN ('queued', 'creating', 'installing', 'ready')) DESC, queued_at DESC
+LIMIT 1
+`
+
+type UserSandboxParams struct {
+	UserID pgtype.UUID
+	OrgID  pgtype.UUID
+}
+
+// A guest's live sandbox, or the one that ended last.
+func (q *Queries) UserSandbox(ctx context.Context, arg UserSandboxParams) (DemoSandbox, error) {
+	row := q.db.QueryRow(ctx, userSandbox, arg.UserID, arg.OrgID)
+	var i DemoSandbox
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.NodeID,
+		&i.UserID,
+		&i.IpHash,
+		&i.EggID,
+		&i.LibraryID,
+		&i.EggName,
+		&i.AcceptEula,
+		&i.Warm,
+		&i.State,
+		&i.ServerID,
+		&i.Port,
+		&i.Error,
+		&i.QueuedAt,
+		&i.CreatedAt,
+		&i.ReadyAt,
+		&i.Deadline,
+		&i.Extended,
+		&i.EndedAt,
+	)
+	return i, err
 }

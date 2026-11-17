@@ -226,3 +226,32 @@ func TestInstanceThresholds(t *testing.T) {
 		t.Fatalf("resolved: %+v", got)
 	}
 }
+
+// node_net_out_high is MB a second out of the machine, not a percent: the
+// public demo's node watches for unusual outbound traffic with it.
+func TestNetOutThreshold(t *testing.T) {
+	ctx := context.Background()
+	db, err := store.Open(ctx, filepath.Join(t.TempDir(), "state.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = db.Close() }()
+	out := events.New(db)
+	now := time.Unix(1_700_000_000, 0)
+	m := &fakeMetrics{servers: map[string]metrics.Point{}, host: metrics.HostPoint{TxBytes: 60e6}}
+	e := &Evaluator{
+		DB: db, Outbox: out, Metrics: m, Servers: fakeServers{}, Now: func() time.Time { return now },
+		Host: func() Host { return Host{CPUs: 4, MemoryBytes: 8 << 30, DiskBytes: 100 << 30} },
+	}
+	if err := e.Set(ctx, []Rule{{ID: "net", Condition: "node_net_out_high", Threshold: 20000}}); err == nil {
+		t.Error("a threshold above 10000 MB/s was accepted")
+	}
+	if err := e.Set(ctx, []Rule{{ID: "net", Condition: "node_net_out_high", Threshold: 50, ForSeconds: 0}}); err != nil {
+		t.Fatal(err)
+	}
+	e.Check(ctx)
+	list, err := out.Since(ctx, 0, 10)
+	if err != nil || len(list) != 1 || list[0].Type != "alert.fired" || list[0].Data["value"] != 60.0 {
+		t.Fatalf("60 MB/s over a 50 MB/s rule: %+v %v", list, err)
+	}
+}

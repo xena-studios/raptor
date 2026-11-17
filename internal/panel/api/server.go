@@ -81,6 +81,8 @@ type Config struct {
 	Commands *commands.Service
 	// Staff is Raptor's admin panel (nil without a database).
 	Staff *staff.Service
+	// Demo is the public demo's sandboxes (nil without a database).
+	Demo panelv1connect.DemoServiceHandler
 	// Modrinth is where plugins and mods are found (nil: Modrinth's API),
 	// and Hangar where plugins also are (nil: Hangar's API).
 	Modrinth *modrinth.Client
@@ -236,6 +238,11 @@ func Handler(cfg Config) http.Handler {
 	}
 	if cfg.Alerts != nil {
 		path, handler := panelv1connect.NewAlertServiceHandler(cfg.Alerts, opts(connect.WithReadMaxBytes(16<<10))...)
+		api.Handle(path, handler)
+	}
+	if cfg.Demo != nil {
+		// An egg file for the demo's editor is up to 1 MiB.
+		path, handler := panelv1connect.NewDemoServiceHandler(cfg.Demo, opts(connect.WithReadMaxBytes(2<<20))...)
 		api.Handle(path, handler)
 	}
 	if cfg.Staff != nil {

@@ -170,20 +170,24 @@ var actions = map[string]string{
 	"backup.orphans":            adminOnly,
 	"node.sftp":                 adminOnly,
 	"node.alerts":               adminOnly,
-	"sftp.disconnect":           SFTP,
-	"node.update":               adminOnly,
-	"node.health":               adminOnly,
-	"node.metrics":              adminOnly,
-	"node.system":               adminOnly,
-	"node.hostname":             adminOnly,
-	"node.time":                 adminOnly,
-	"node.firewall":             adminOnly,
-	"node.reboot":               adminOnly,
-	"node.disks":                adminOnly,
-	"node.disk.setup":           adminOnly,
-	"node.disk.default":         adminOnly,
-	"node.disk.grow":            adminOnly,
-	"node.logs":                 adminOnly,
+	// The demo node's state and a sandbox's extension: the Panel sends them
+	// itself (internal/panel/demo), and they're in the demo's deny list.
+	"node.demo":         adminOnly,
+	"node.demo.extend":  adminOnly,
+	"sftp.disconnect":   SFTP,
+	"node.update":       adminOnly,
+	"node.health":       adminOnly,
+	"node.metrics":      adminOnly,
+	"node.system":       adminOnly,
+	"node.hostname":     adminOnly,
+	"node.time":         adminOnly,
+	"node.firewall":     adminOnly,
+	"node.reboot":       adminOnly,
+	"node.disks":        adminOnly,
+	"node.disk.setup":   adminOnly,
+	"node.disk.default": adminOnly,
+	"node.disk.grow":    adminOnly,
+	"node.logs":         adminOnly,
 	// Networks decide which servers can reach each other (docs/NETWORKS.md).
 	"node.networks":       adminOnly,
 	"node.network.save":   adminOnly,
@@ -275,7 +279,7 @@ func Valid(p string) bool {
 func Read(action string) bool {
 	switch action {
 	case "files.list", "addons.list", "files.stat", "files.trash", "files.read", "files.download", "files.scan", "files.upload.status", "keys.list",
-		"backup.browse", "backup.read", "backup.activity", "server.metrics", "server.ports", "players.online", "node.health", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "node.networks", "node.db.instances", "node.db.usage", "db.list", "db.schema", "db.rows", "db.query.read", "db.query.cancel", "db.processes", "node.db.databases", "node.db.users", "node.db.processes", "db.transfer.status", "db.keys", "db.key", "db.redis.command.read", "db.collections", "db.documents", "support.list",
+		"backup.browse", "backup.read", "backup.activity", "server.metrics", "server.ports", "players.online", "node.health", "node.demo", "node.doctor", "node.metrics", "node.system", "node.disks", "node.logs", "node.networks", "node.db.instances", "node.db.usage", "db.list", "db.schema", "db.rows", "db.query.read", "db.query.cancel", "db.processes", "node.db.databases", "node.db.users", "node.db.processes", "db.transfer.status", "db.keys", "db.key", "db.redis.command.read", "db.collections", "db.documents", "support.list",
 		"backup.destinations", "backup.hostkey", "backup.policy", "backup.orphans":
 		return true
 	}

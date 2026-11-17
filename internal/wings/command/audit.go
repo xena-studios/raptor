@@ -64,7 +64,7 @@ func (x *Executor) audit(ctx context.Context, e Envelope, hash []byte, outcome, 
 			name = k.Name
 		}
 	case len(e.Demo) > 0:
-		cred, name = []byte(DemoCredential), "Panel's demo key"
+		cred, name = []byte(DemoCredential), "Panel's demo key" //nolint:gosec // a label, not a credential
 	}
 	id, err := x.DB.Write.InsertAudit(context.WithoutCancel(ctx), store.InsertAuditParams{
 		At: x.now().UnixMilli(), CommandID: e.CommandID, Action: e.Action, ServerID: e.ServerID, UserID: e.UserID,

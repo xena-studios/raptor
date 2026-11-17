@@ -592,6 +592,8 @@ function thresholdHint(condition: string): string {
       return "Of each instance's disk limit. Instances without one aren't checked. Only owners and admins are told.";
     case "db_connections_high":
       return "Of each instance's max connections. Only owners and admins are told.";
+    case "node_net_out_high":
+      return "MB a second going out of the machine, from 1 to 10000. Needs a recent Wings on the node.";
   }
   return "Of the whole machine.";
 }
@@ -832,12 +834,12 @@ function RuleDialog({
           {timed && (
             <div className="grid grid-cols-2 gap-3">
               {c?.threshold && (
-                <Field id="rule-threshold" label={`Above (${c.unit})`}>
+                <Field id="rule-threshold" label={`Above (${c.unit.trim()})`}>
                   <Input
                     id="rule-threshold"
                     type="number"
                     min={1}
-                    max={100}
+                    max={c.id === "node_net_out_high" ? 10000 : 100}
                     value={threshold}
                     onChange={(e) => setThreshold(e.target.value)}
                   />

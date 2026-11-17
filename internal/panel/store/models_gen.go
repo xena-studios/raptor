@@ -224,6 +224,40 @@ type BillingWebhook struct {
 	ReceivedAt pgtype.Timestamptz
 }
 
+type DemoNode struct {
+	NodeID       pgtype.UUID
+	OrgID        pgtype.UUID
+	MaxSandboxes int32
+	PortMin      int32
+	PortMax      int32
+	WarmEggs     int32
+	WarmedOn     pgtype.Date
+	CreatedAt    pgtype.Timestamptz
+}
+
+type DemoSandbox struct {
+	ID         pgtype.UUID
+	OrgID      pgtype.UUID
+	NodeID     pgtype.UUID
+	UserID     pgtype.UUID
+	IpHash     []byte
+	EggID      pgtype.UUID
+	LibraryID  string
+	EggName    string
+	AcceptEula bool
+	Warm       bool
+	State      string
+	ServerID   string
+	Port       int32
+	Error      string
+	QueuedAt   pgtype.Timestamptz
+	CreatedAt  pgtype.Timestamptz
+	ReadyAt    pgtype.Timestamptz
+	Deadline   pgtype.Timestamptz
+	Extended   bool
+	EndedAt    pgtype.Timestamptz
+}
+
 type DemoServer struct {
 	OrgID           pgtype.UUID
 	NodeID          pgtype.UUID

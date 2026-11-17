@@ -3,6 +3,8 @@ package perms
 import (
 	"encoding/json"
 	"strings"
+
+	"github.com/xena-studios/raptor/internal/shared/demo"
 )
 
 // The public demo's deny list for commands (#449,
@@ -64,6 +66,17 @@ func DemoRefuses(action string, params json.RawMessage, signed bool) bool {
 			return true
 		}
 	}
+	// A locked backup is one retention never deletes: only staff make the
+	// showcase servers' known-good ones.
+	if action == "backup.create" {
+		var p struct {
+			Locked bool `json:"locked"`
+		}
+		if len(params) > 0 && json.Unmarshal(params, &p) != nil {
+			return true
+		}
+		return p.Locked
+	}
 	if action == "server.update" {
 		var p struct {
 			Egg       json.RawMessage `json:"egg"`
@@ -96,4 +109,20 @@ func DemoGrantable(p string) bool {
 		return false
 	}
 	return Valid(p)
+}
+
+// DemoUploadTooBig reports whether a files.upload is over the demo's upload
+// limit (demo.UploadLimit, 10 MB): the demo is for trying Raptor, not for
+// keeping files.
+func DemoUploadTooBig(action string, params json.RawMessage) bool {
+	if action != "files.upload" {
+		return false
+	}
+	var p struct {
+		Size int64 `json:"size"`
+	}
+	if len(params) > 0 && json.Unmarshal(params, &p) != nil {
+		return true
+	}
+	return p.Size > demo.UploadLimit
 }

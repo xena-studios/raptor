@@ -12,7 +12,7 @@ import (
 func TestEveryWingsActionHasARule(t *testing.T) {
 	re := regexp.MustCompile(`=\s*"((?:server|files|backup|schedule|node|keys)\.[a-z_.]+)"`)
 	found := 0
-	for _, f := range []string{"../../wings/actions/actions.go", "../../wings/actions/update.go", "../../wings/command/keys.go", "../../wings/command/pairing.go"} {
+	for _, f := range []string{"../../wings/actions/actions.go", "../../wings/actions/demo.go", "../../wings/actions/update.go", "../../wings/command/keys.go", "../../wings/command/pairing.go"} {
 		b, err := os.ReadFile(f)
 		if err != nil {
 			t.Fatal(err)

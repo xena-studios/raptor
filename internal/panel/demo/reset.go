@@ -1,12 +1,16 @@
-// Package demo resets the public demo every hour (#449,
-// docs/PANEL.md#the-public-demo): it removes the demo org's guests, with
-// their sessions, and empties its showcase servers' trash.
+// Package demo runs the public demo (#449, docs/PANEL.md#the-public-demo).
 //
-// It doesn't restore the showcase servers from their known-good backups
-// yet: a restore is passkey-signed, and the Panel holds no key a node
-// trusts for it. That needs Phase 2's demo key, trusted by the demo node
-// only (DECISIONS #375); until then staff restore a broken showcase server
-// by hand (docs/DEPLOY.md#public-demo).
+// The hourly reset removes the demo org's guests, with their sessions,
+// restores each showcase server from its locked known-good backup, and
+// empties its trash. A restore is passkey-signed on every node; on the
+// demo node, whose owner ran `raptor demo on`, the Panel signs it with the
+// node's demo key instead, which that node takes for a locked backup of a
+// server that isn't a sandbox and nothing else (DECISIONS #379,
+// docs/SECURITY-MODEL.md#the-demo-key). A showcase server on any other
+// node isn't restored: staff restore it by hand.
+//
+// Sandboxes (sandboxes.go) are guests' own servers, and Service is
+// DemoService.
 package demo
 
 import (
@@ -15,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,6 +29,7 @@ import (
 	nodev1 "github.com/xena-studios/raptor/internal/gen/proto/raptor/node/v1"
 	"github.com/xena-studios/raptor/internal/panel/store"
 	"github.com/xena-studios/raptor/internal/shared/nodecmd"
+	"github.com/xena-studios/raptor/internal/shared/nodelink"
 )
 
 // UserID is who the reset's commands are from.
@@ -105,8 +111,9 @@ func (r *Reset) Tick(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		r.log().Info("demo reset", "org", uuid.UUID(o.ID.Bytes), "guests", res.Guests, "trash_emptied", res.TrashEmptied,
-			"trash_failed", res.TrashFailed, "restores_skipped", res.RestoresSkipped)
+		r.log().Info("demo reset", "org", uuid.UUID(o.ID.Bytes), "guests", res.Guests, "restored", res.Restored,
+			"restores_failed", res.RestoresFailed, "restores_skipped", res.RestoresSkipped,
+			"trash_emptied", res.TrashEmptied, "trash_failed", res.TrashFailed)
 	}
 	return nil
 }
@@ -118,14 +125,15 @@ type Result struct {
 	// Showcase servers whose trash was emptied, and those whose node
 	// didn't answer or refused.
 	TrashEmptied, TrashFailed int
-	// Showcase servers with a known-good backup that wasn't restored: a
-	// restore needs Phase 2's demo key (DECISIONS #375).
-	RestoresSkipped int
+	// Showcase servers restored from their known-good backup, those whose
+	// node refused or didn't answer, and those with a backup on a node that
+	// isn't a demo node (it doesn't take the demo key: staff restore them).
+	Restored, RestoresFailed, RestoresSkipped int
 }
 
 // ResetOrg resets one demo org now: its guests go, and its showcase
-// servers' trash is emptied. A node that's offline is skipped until the
-// next reset.
+// servers are restored from their known-good backups and their trash is
+// emptied. A node that's offline is skipped until the next reset.
 func (r *Reset) ResetOrg(ctx context.Context, org pgtype.UUID) (Result, error) {
 	var res Result
 	q := store.New(r.DB)
@@ -139,10 +147,21 @@ func (r *Reset) ResetOrg(ctx context.Context, org pgtype.UUID) (Result, error) {
 		return res, err
 	}
 	for _, s := range servers {
+		node := uuid.UUID(s.NodeID.Bytes).String()
 		if s.KnownGoodBackup != "" {
-			res.RestoresSkipped++
+			switch n, err := q.GetNode(ctx, s.NodeID); {
+			case err != nil || !slices.Contains(n.Capabilities, nodelink.CapDemo):
+				res.RestoresSkipped++
+			default:
+				if err := r.restore(ctx, node, s.ServerID, s.KnownGoodBackup); err != nil {
+					res.RestoresFailed++
+					r.log().Warn("restoring a demo server failed", "node", node, "server", s.ServerID, "err", err)
+				} else {
+					res.Restored++
+				}
+			}
 		}
-		if err := r.send(ctx, uuid.UUID(s.NodeID.Bytes).String(), "files.trash.empty", s.ServerID); err != nil {
+		if err := r.send(ctx, node, "files.trash.empty", s.ServerID); err != nil {
 			res.TrashFailed++
 			r.log().Warn("emptying a demo server's trash failed", "node", uuid.UUID(s.NodeID.Bytes), "server", s.ServerID, "err", err)
 			continue
@@ -158,6 +177,27 @@ func (r *Reset) send(ctx context.Context, node, action, server string) error {
 	if err != nil {
 		return err
 	}
+	return r.deliver(ctx, node, env)
+}
+
+// restore restores a showcase server's known-good backup, signed with the
+// demo node's demo key.
+func (r *Reset) restore(ctx context.Context, node, server, backup string) error {
+	env, err := nodecmd.New(r.PanelKey, node, UserID, "backup.restore", server, map[string]string{"backup_id": backup}, time.Minute)
+	if err != nil {
+		return err
+	}
+	key, err := nodecmd.DemoKey(r.PanelKey, node)
+	if err != nil {
+		return err
+	}
+	if err := nodecmd.SignDemo(key, &env); err != nil {
+		return err
+	}
+	return r.deliver(ctx, node, env)
+}
+
+func (r *Reset) deliver(ctx context.Context, node string, env nodecmd.Envelope) error {
 	raw, err := json.Marshal(env)
 	if err != nil {
 		return err

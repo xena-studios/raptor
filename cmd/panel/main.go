@@ -67,6 +67,8 @@ commands:
   staff demo server <org-id> <node-id> <server-id> [permission,...]
                             a showcase server, and what guests may do on it
   staff demo backup <node-id> <server-id> <backup-id> | remove <node-id> <server-id> | status
+  staff demo node <node-id> [-sandboxes 4] [-ports 30000-30099] [-warm 6] | node-remove <node-id>
+                            guests' sandboxes go to this node; prints its demo key for raptor demo on
   discord roles preview     who a pass would give the Customer role to, or take it from
   discord roles enforce on|off  let the bot take Customer away (off: it only adds it)
   discord post link|tickets <channel-id> [message-id]
@@ -348,6 +350,11 @@ func serveAPI(ctx context.Context, log *slog.Logger) (err error) {
 		// demo org.
 		demoReset := &demo.Reset{DB: pool, Sender: router, PanelKey: reg.PanelKey, Log: log}
 		go demoReset.Run(ctx, 5*time.Minute)
+		// Guests' sandboxes on the demo node (Phase 2): nothing to do
+		// without one.
+		sandboxes := &demo.Sandboxes{DB: pool, Sender: router, PanelKey: reg.PanelKey, Domain: reg.Domain, Log: log}
+		go sandboxes.Run(ctx, 5*time.Second)
+		cfg.Demo = &demo.Service{Auth: cfg.Auth, Sandboxes: sandboxes}
 		// SFTP ports open only while someone has a password on the node.
 		gate := &sftpgate.Gate{DB: pool, Sender: router, PanelKey: reg.PanelKey, Log: log}
 		go gate.Run(ctx, time.Minute)
