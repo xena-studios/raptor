@@ -1,11 +1,17 @@
 ---
 title: The server page
-description: The console, live stats, power actions, and what each state means.
+description: The tabs, the console, live stats, power actions, and what each state means.
 sidebar:
   order: 1
 ---
 
 Each server opens on its **Overview**: what it's using now, the live console, how players reach it, and its last hour.
+
+## Tabs
+
+The row of tabs keeps to what you use most: **Overview**, then the game's own tabs when it has them (**Game**, **Add-ons**, **Players**, **Worlds**), then **Files**, **Backups**, and **Schedules**. The rest are under **More**, at the end of the row: **Databases**, **Network**, **Startup**, **Settings**, **Activity**, and **Access**. When you're on one of those, the menu shows its name. You only see the tabs you're allowed to use. On a phone, swipe the row sideways.
+
+**Game** and **Startup** change the same values: Game as a friendly form, Startup as the exact list of variables. **Settings** is Raptor's settings for the server (its name, limits, and crash behaviour), not the game's.
 
 ## Stats
 

@@ -1,7 +1,7 @@
 import { useQuery } from "@connectrpc/connect-query";
-import { createFileRoute } from "@tanstack/react-router";
-
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { GameSettings } from "@/components/game-settings";
+import { TabIntro } from "@/components/page";
 import { ProxyBackends } from "@/components/proxy-backends";
 import { ServerListLook } from "@/components/server-list-look";
 import { VersionSwitch } from "@/components/version-switch";
@@ -31,6 +31,22 @@ export const Route = createFileRoute("/orgs/$orgId/servers/$serverId/game")({
     if (!server) return null;
     return (
       <div className="flex flex-col gap-6">
+        <TabIntro>
+          The game's own settings, as a form.{" "}
+          {can(server, "startup") && (
+            <>
+              Every startup variable, exactly as set, is under More, in{" "}
+              <Link
+                to="/orgs/$orgId/servers/$serverId/startup"
+                params={{ orgId, serverId }}
+                className="font-medium text-foreground underline-offset-4 hover:underline"
+              >
+                Startup
+              </Link>
+              .
+            </>
+          )}
+        </TabIntro>
         <VersionSwitch orgId={orgId} nodeId={nodeId} serverId={serverId} server={server} />
         {backends && (
           <ProxyBackends

@@ -1,10 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { ChangeServerType } from "@/components/change-server-type";
 import { DeleteServer } from "@/components/delete-server";
 import { MoveServer } from "@/components/move-server";
+import { TabIntro } from "@/components/page";
 import { ServerEggVersion } from "@/components/server-egg-update";
 import { ServerDetails, ServerSettings } from "@/components/server-settings";
+import { useGameTab } from "@/lib/game-tab";
 import { useIds } from "@/lib/ids";
 import { can, useServer } from "@/lib/org-data";
 
@@ -16,10 +18,28 @@ function SettingsTab() {
   const session = Route.useRouteContext();
   const { orgId, nodeId, serverId } = useIds();
   const { node, server } = useServer(orgId, nodeId, serverId);
+  const game = useGameTab(orgId, nodeId, serverId, server);
   if (!server) return null;
   const userId = session.user?.id ?? "";
   return (
     <div className="flex flex-col gap-6">
+      <TabIntro>
+        Raptor's settings for this server: its name, what happens when it crashes, its egg, and
+        where it runs.{" "}
+        {game && (
+          <>
+            The game's own settings are in the{" "}
+            <Link
+              to="/orgs/$orgId/servers/$serverId/game"
+              params={{ orgId, serverId }}
+              className="font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              Game
+            </Link>{" "}
+            tab.
+          </>
+        )}
+      </TabIntro>
       <ServerSettings
         section="general"
         orgId={orgId}

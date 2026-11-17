@@ -136,13 +136,13 @@ Planned in [#432](https://github.com/xena-studios/raptor/issues/432): what Ptero
 - **Add-on sources:** Modrinth and Hangar with update status and Update all, dependencies, and client-only filtering; CurseForge (#412, off until the Panel has an API key, honouring authors' distribution switch); Factorio's mod portal (#411); Rust's uMod (#409); Thunderstore for Valheim and V Rising (#410; the Panel hashes downloads, Wings unpacks zips); OpenMod for Unturned from NuGet (#415; off until the Unturned egg's change passes its conformance run); Geyser and Floodgate (#419); Bedrock packs (#416); the modpack picker (Modrinth, FTB, Technic; #413).
 - **Workshop:** games that take items in a variable, and games that list them in a config file (#408: Project Zomboid, Don't Starve Together; Unturned with its egg's update); Arma Reforger's Workshop mods (#417).
 - **Frameworks:** CS2's Metamod:Source and CounterStrikeSharp, installed by the egg (#414).
-- **Pages:** one Add-ons tab; Game (settings form #424, the version switcher #420, icon and MOTD #425); Worlds (#426); Players (#422 Minecraft's lists and who's online, #423 Steam games over RCON) with a `players` permission; proxy backends (#427, Velocity, BungeeCord, and Waterfall); Needs attention on Overview (#435).
+- **Pages:** tabs grouped into a short bar and a More menu (#436); one Add-ons tab; Game (settings form #424, the version switcher #420, icon and MOTD #425); Worlds (#426); Players (#422 Minecraft's lists and who's online, #423 Steam games over RCON) with a `players` permission; proxy backends (#427, Velocity, BungeeCord, and Waterfall); Needs attention on Overview (#435).
 - **Security and tools:** the FiveM backdoor scan and txAdmin's PIN (#428), console problems with a fix, log sharing (mclo.gs), the own-domain guide, web dashboard links, add-on lists (export and import, #437), and the egg library sorted by Popular with Popular and Trending badges (#457).
 
 **Left:**
 1. **Not yet run on a real server:** CS2 with Metamod (its conformance test is manual: about 60 GB), txAdmin's first-run PIN, OpenMod loading a plugin, Project Zomboid's Build 42 mod IDs. The Unturned egg crashes at start in CI for a reason not yet known, which holds back its Workshop and OpenMod parts.
 2. **Follow-ups listed in their issues:** CounterStrikeSharp plugins as an add-on source (#414); Space Engineers and tModLoader Workshop lists (#408); BattlEye RCon (DayZ, Arma), more RCON games, and a ban list (#423); a scan after uploads and an alert on findings (#428); Needs attention's EULA button, connection results, server list dot, and alerts (#487); applying an add-on list to several servers at once (#437, with #374).
-3. **Bigger:** the tab groups (#436) and updates in one place with alerts and a schedule step (#418).
+3. **Bigger:** a command menu (Ctrl+K) with every server page and action (#436), and updates in one place with alerts and a schedule step (#418).
 
 A public demo to try Raptor and its eggs without an account is planned in [#449](https://github.com/xena-studios/raptor/issues/449), on a node of its own.
 

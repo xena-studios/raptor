@@ -62,6 +62,12 @@ export function RouteTabs({ label, children }: { label: string; children: ReactN
   );
 }
 
+// TabIntro is a tab's one-line description, under the tab bar: what the
+// tab is for, and where to look instead when it helps (#436).
+export function TabIntro({ children }: { children: ReactNode }) {
+  return <p className="text-sm text-muted-foreground">{children}</p>;
+}
+
 export const tabClass =
   "whitespace-nowrap border-b-2 border-transparent px-1 pb-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground data-[status=active]:border-primary data-[status=active]:font-medium data-[status=active]:text-foreground";
 
