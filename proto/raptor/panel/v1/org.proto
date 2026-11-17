@@ -273,6 +273,9 @@ message Org {
   bool suspended = 5;
   // The logo's image ID (GET /api/images/<id>.png); empty for none.
   string logo = 6;
+  // Raptor's public demo org (#449): a banner says so, and the Panel
+  // refuses what's off in the demo to everyone but its owners.
+  bool demo = 7;
 }
 
 message CreateOrgRequest {

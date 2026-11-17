@@ -7,7 +7,7 @@ import Screen from "../components/Screen.astro";
 import Base from "../layouts/Base.astro";
 import { changelog, longDate } from "../data/changelog";
 import { general as faq } from "../data/faq";
-import { app, discord, docs, price, start } from "../data/links";
+import { app, demo, discord, docs, price, start } from "../data/links";
 import { categories, byCategory, href, library } from "../lib/library";
 
 const count = library.length;
@@ -107,6 +107,7 @@ const docsOrSite = (link: string) => (link.startsWith("/library") ? link : `${do
       </p>
       <div class="actions">
         <a class="button primary large" href={start} data-out>Start your free month</a>
+        <a class="button large" href={demo} data-out>Try the demo</a>
         <a class="button primary large" href={app} data-in>Go to your dashboard</a>
         <a class="button large" href="/library/">Browse the games</a>
       </div>

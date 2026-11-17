@@ -51,3 +51,16 @@ func TestEmail(t *testing.T) {
 		}
 	}
 }
+
+func TestUndeliverable(t *testing.T) {
+	for to, want := range map[string]bool{
+		"guest-0a1b@demo.invalid": true,
+		"Guest@Demo.INVALID ":     true,
+		"alice@example.com":       false,
+		"invalid@example.com":     false,
+	} {
+		if got := Undeliverable(to); got != want {
+			t.Errorf("Undeliverable(%q) = %v", to, got)
+		}
+	}
+}

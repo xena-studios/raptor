@@ -174,7 +174,7 @@ func (q *Queries) FindOrgServers(ctx context.Context, arg FindOrgServersParams) 
 }
 
 const getOrg = `-- name: GetOrg :one
-SELECT id, name, created_at, suspended_at, suspended_reason, deleted_at, logo FROM orgs WHERE id = $1
+SELECT id, name, created_at, suspended_at, suspended_reason, deleted_at, logo, demo, demo_reset_at FROM orgs WHERE id = $1
 `
 
 func (q *Queries) GetOrg(ctx context.Context, id pgtype.UUID) (Org, error) {
@@ -188,6 +188,8 @@ func (q *Queries) GetOrg(ctx context.Context, id pgtype.UUID) (Org, error) {
 		&i.SuspendedReason,
 		&i.DeletedAt,
 		&i.Logo,
+		&i.Demo,
+		&i.DemoResetAt,
 	)
 	return i, err
 }
@@ -683,7 +685,7 @@ func (q *Queries) UserGrantsInOrg(ctx context.Context, arg UserGrantsInOrgParams
 }
 
 const userOrgs = `-- name: UserOrgs :many
-SELECT o.id, o.name, o.created_at, m.role, (o.suspended_at IS NOT NULL)::bool AS suspended, o.logo FROM orgs o
+SELECT o.id, o.name, o.created_at, m.role, (o.suspended_at IS NOT NULL)::bool AS suspended, o.logo, o.demo FROM orgs o
 JOIN org_members m ON m.org_id = o.id
 WHERE m.user_id = $1
 ORDER BY o.created_at
@@ -696,6 +698,7 @@ type UserOrgsRow struct {
 	Role      string
 	Suspended bool
 	Logo      pgtype.Text
+	Demo      bool
 }
 
 func (q *Queries) UserOrgs(ctx context.Context, userID pgtype.UUID) ([]UserOrgsRow, error) {
@@ -714,6 +717,7 @@ func (q *Queries) UserOrgs(ctx context.Context, userID pgtype.UUID) ([]UserOrgsR
 			&i.Role,
 			&i.Suspended,
 			&i.Logo,
+			&i.Demo,
 		); err != nil {
 			return nil, err
 		}

@@ -182,6 +182,10 @@ Instead of typing an authenticator app's code, the person can approve on their p
 - **Finishing:** the browser checks every 2 seconds (`CheckPhoneApproval`, only the browser that asked), then sends the approval as its proof: `FinishSecondFactor` (method `phone`) or `FinishReauth`. An approval works once, only for the sign-in or session that asked.
 - Passkey-signed actions, staff tools, and support access are unchanged: they still need a passkey.
 
+### Demo guests
+
+`AuthService.StartDemo` signs a visitor in as a **guest** of the public demo ([The public demo](#the-public-demo)): a throwaway user with `users.guest_until` an hour away, `guest-<random>@demo.invalid` as its address (the column is required and unique; the mailer sends nothing to `.invalid`), the name "Guest", and no sign-in method. Its session is the normal cookie, ending with the account. It's behind Turnstile like "email me a code", limited to 10 an hour per address and 500 guests at once, and refused (FAILED_PRECONDITION) when no demo org is set up or the browser is signed in to a real account. `GetDemo` says whether the demo is open, for the app's `/demo` page. A guest's calls are limited to an allow list in `auth.Current` (docs/SECURITY-MODEL.md#the-public-demo). Guests are deleted by the janitor once their hour is up, and at each hourly reset; their sessions, membership, and grants go with them. The site's signed-in hint cookie isn't set for guests.
+
 ## Permissions
 
 - Org roles (`internal/panel/orgs`, `OrgService`):
@@ -494,6 +498,19 @@ Raptor Bot, on the Raptor Panel Discord server (`internal/panel/discord`; DECISI
 - **At most 3 tickets a day** each, so opening and closing can't fill the channel with threads.
 - **The staff log** (`PANEL_DISCORD_LOG_CHANNEL`, optional): tickets opened (who, the topic, a link) and closed (by whom), Customer roles added and removed, and the would-remove list while removals are off. So Support hears about every new ticket even if a role ping in a private thread doesn't reach them.
 - **Replies never ping**, except a new ticket's first message, which pings its opener and Support.
+
+## The public demo
+
+Raptor's public demo (#449), Phase 1: a shared, read-mostly demo in the production Panel. "Try the demo" on raptorpanel.net opens the app's `/demo` page, which runs Turnstile, calls `StartDemo`, and opens the demo org as a guest ([Demo guests](#demo-guests)). With no demo org it says the demo isn't open right now.
+
+- **The demo org** is an ordinary org with `orgs.demo = true`, owned by a staff account kept for it, with its own node (docs/DEPLOY.md#public-demo). Only staff set the flag, on the Panel's server: `panel staff demo on|off <org-id>`. `ListOrgs` returns `demo` so the app can show the banner.
+- **Showcase servers** are the org's servers listed in `demo_servers` (`panel staff demo server <org> <node> <server> [permissions]`), each with what guests get on it. The default is `perms.DemoGuest`: console (read and send), power, files (read and write, so add-ons too), backups, schedules, startup (memory, CPU, variables), and players. SFTP, reinstall, and databases can't be given to guests. Grants are copied to each guest when they start, so a change applies to guests who start after it. `panel staff demo backup <node> <server> <backup-id>` marks a server's known-good backup, for the restore Phase 2 adds.
+- **What guests can do:** watch the console and send commands, start and stop, browse and edit files, search and install add-ons, run and make schedules, take and browse backups, use the connection test, see activity, and change settings like memory.
+- **The deny list** is the Panel's, not hidden buttons (docs/SECURITY-MODEL.md#the-public-demo): `perms.DemoRefuses` for commands, and `auth.RefuseDemo` in the org and billing RPCs. It applies in a demo org to everyone but its owners, and answers PERMISSION_DENIED, "that's off in the demo: in your own Raptor, you can do it".
+- **In the app:** a banner on every page for guests, and in the demo org for anyone: "You're in the demo. It resets every hour." with **Get Raptor** (raptorpanel.net). A passkey-signed button shows "In your own Raptor, your passkey signs this." instead of asking for a passkey (`signChallenge` refuses for a guest). The user menu says "Demo guest, for an hour" instead of the placeholder address, and the billing banner is hidden.
+- **The hourly reset** (`internal/panel/demo`): every Panel instance checks every 5 minutes, and one at a time (an advisory lock) resets each demo org whose last reset (`orgs.demo_reset_at`) is an hour old. It deletes the org's guests, signing them out, and sends `files.trash.empty` to each showcase server as `panel:demo`. A node that's offline is skipped until the next reset. It doesn't restore the showcase servers yet: restores are passkey-signed, and doing it without a person needs Phase 2's demo key (DECISIONS #375).
+
+Left for later phases: per-guest sandbox servers from any library egg, created and deleted with a Panel-held demo key that only the demo node trusts, and the restore from known-good backups (Phase 2); egress limits, caps, the Minecraft console filter, the warm pool, the rebuild script, and analytics (Phase 3).
 
 ## Support access
 

@@ -158,7 +158,10 @@ func (s *Service) asUser(ctx context.Context, fn func(sess *auth.Session, q *sto
 }
 
 // member checks the user is in org with at least role min. Outsiders get
-// NOT_FOUND, so org IDs reveal nothing.
+// NOT_FOUND, so org IDs reveal nothing. In the demo org, what needs an
+// admin or an owner (members and invitations, node settings, support
+// access, deleting the org, ...) is refused to everyone but its owners
+// (auth.RefuseDemo), so a guest hears it's off in the demo.
 func member(ctx context.Context, q *store.Queries, sess *auth.Session, orgID, min string) (pgtype.UUID, string, error) {
 	org, err := parseID(orgID, "org")
 	if err != nil {
@@ -170,6 +173,11 @@ func member(ctx context.Context, q *store.Queries, sess *auth.Session, orgID, mi
 	}
 	if err != nil {
 		return org, "", err
+	}
+	if min != "member" {
+		if err := auth.RefuseDemo(ctx, q, sess, org); err != nil {
+			return org, "", err
+		}
 	}
 	if roleRank[m.Role] < roleRank[min] {
 		return org, "", errDenied
@@ -230,7 +238,7 @@ func (s *Service) ListOrgs(ctx context.Context, _ *panelv1.ListOrgsRequest) (*pa
 	err := s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
 		rows, err := q.UserOrgs(ctx, sess.UserID)
 		for _, r := range rows {
-			out.Orgs = append(out.Orgs, &panelv1.Org{Id: idString(r.ID), Name: r.Name, CreatedAt: timestamppb.New(r.CreatedAt.Time), Role: roleProto(r.Role), Suspended: r.Suspended, Logo: r.Logo.String})
+			out.Orgs = append(out.Orgs, &panelv1.Org{Id: idString(r.ID), Name: r.Name, CreatedAt: timestamppb.New(r.CreatedAt.Time), Role: roleProto(r.Role), Suspended: r.Suspended, Logo: r.Logo.String, Demo: r.Demo})
 		}
 		return err
 	})
@@ -299,6 +307,10 @@ func (s *Service) ListMembers(ctx context.Context, req *panelv1.ListMembersReque
 	err := s.asUser(ctx, func(sess *auth.Session, q *store.Queries) error {
 		org, _, err := member(ctx, q, sess, req.GetOrgId(), "member")
 		if err != nil {
+			return err
+		}
+		// Who else is in the demo org is off in the demo.
+		if err := auth.RefuseDemo(ctx, q, sess, org); err != nil {
 			return err
 		}
 		rows, err := q.OrgMembers(ctx, org)

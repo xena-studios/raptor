@@ -1,3 +1,5 @@
+import { refuseSigning } from "@/lib/demo";
+
 // WebAuthn in the browser: the Panel sends options as JSON
 // (PublicKeyCredential*OptionsJSON) and wants the credential back as JSON
 // (PublicKeyCredential.toJSON()). Converted by hand, since not every
@@ -111,8 +113,10 @@ type Assertion = {
 // verifying (fingerprint, face, or PIN). It names no credentials: password
 // managers like 1Password step aside when given a list (allowCredentials),
 // leaving only the browser's phone and security key options, so the
-// passkey says which one it is and callers check it.
+// passkey says which one it is and callers check it. In the demo, guests
+// are told their own Raptor would ask here, and nothing is tried.
 export async function signChallenge(challenge: Uint8Array): Promise<Assertion> {
+  refuseSigning();
   const cred = (await navigator.credentials.get({
     publicKey: {
       challenge: challenge.slice().buffer,

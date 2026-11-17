@@ -2,14 +2,21 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { redirect } from "@tanstack/react-router";
 
 import type { GetSessionResponse } from "@/gen/raptor/panel/v1/auth_pb";
+import { isGuest, setDemoGuest } from "@/lib/demo";
 import { authClient } from "@/lib/transport";
 
-// currentSession is who's signed in, or null.
+// currentSession is who's signed in, or null. It notes whether that's a
+// demo guest, for the passkey-signing helpers (lib/demo.ts).
 export async function currentSession(): Promise<GetSessionResponse | null> {
   try {
-    return await authClient.getSession({});
+    const s = await authClient.getSession({});
+    setDemoGuest(isGuest(s.user));
+    return s;
   } catch (err) {
-    if (err instanceof ConnectError && err.code === Code.Unauthenticated) return null;
+    if (err instanceof ConnectError && err.code === Code.Unauthenticated) {
+      setDemoGuest(false);
+      return null;
+    }
     throw err;
   }
 }

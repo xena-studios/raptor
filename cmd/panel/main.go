@@ -31,6 +31,7 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/catalog"
 	"github.com/xena-studios/raptor/internal/panel/commands"
 	"github.com/xena-studios/raptor/internal/panel/curseforge"
+	"github.com/xena-studios/raptor/internal/panel/demo"
 	"github.com/xena-studios/raptor/internal/panel/discord"
 	"github.com/xena-studios/raptor/internal/panel/dns"
 	"github.com/xena-studios/raptor/internal/panel/images"
@@ -62,6 +63,10 @@ commands:
   rollout status|pause|resume|cancel
   staff add <email> admin|support   make an account Raptor staff (the only way)
   staff remove <email> | list
+  staff demo on|off <org-id>   make an org Raptor's public demo, or stop (#449)
+  staff demo server <org-id> <node-id> <server-id> [permission,...]
+                            a showcase server, and what guests may do on it
+  staff demo backup <node-id> <server-id> <backup-id> | remove <node-id> <server-id> | status
   discord roles preview     who a pass would give the Customer role to, or take it from
   discord roles enforce on|off  let the bot take Customer away (off: it only adds it)
   discord post link|tickets <channel-id> [message-id]
@@ -327,6 +332,10 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		}
 		cfg.Auth.OAuth = oauthProviders(envOr("PANEL_API_URL", "https://api.raptorpanel.net"), log)
 		go cfg.Auth.RunJanitor(ctx, time.Hour)
+		// The public demo's hourly reset (#449): nothing to do without a
+		// demo org.
+		demoReset := &demo.Reset{DB: pool, Sender: router, PanelKey: reg.PanelKey, Log: log}
+		go demoReset.Run(ctx, 5*time.Minute)
 		// SFTP ports open only while someone has a password on the node.
 		gate := &sftpgate.Gate{DB: pool, Sender: router, PanelKey: reg.PanelKey, Log: log}
 		go gate.Run(ctx, time.Minute)
@@ -681,6 +690,10 @@ type countingMailer struct {
 }
 
 func (m countingMailer) Send(ctx context.Context, to string, e mail.Email) error {
+	// Demo guests' placeholder addresses (#449) go nowhere.
+	if mail.Undeliverable(to) {
+		return nil
+	}
 	err := m.Mailer.Send(ctx, to, e)
 	result := "sent"
 	if err != nil {

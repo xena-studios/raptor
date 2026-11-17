@@ -29,6 +29,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { AlertsBell } from "@/components/alerts-bell";
 import { Announcements } from "@/components/announcements";
 import { BillingBanner } from "@/components/billing-banner";
+import { DemoBanner } from "@/components/demo-banner";
 import { NotFound } from "@/components/error-screen";
 import { Logo, RaptorMark, Wordmark } from "@/components/logo";
 import { NodeClock } from "@/components/node-clock";
@@ -70,6 +71,7 @@ import { AuthService, type GetSessionResponse } from "@/gen/raptor/panel/v1/auth
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { StaffService } from "@/gen/raptor/panel/v1/staff_pb";
 import { useApiDown } from "@/lib/connection";
+import { isGuest, showBanner } from "@/lib/demo";
 import { isAdmin, roleNames } from "@/lib/format";
 import { discordUrl, docsUrl } from "@/lib/help";
 import { shortId } from "@/lib/ids";
@@ -117,6 +119,8 @@ export function AppShell({
   const current = list.find((o) => o.id === currentId) ?? list[0];
   const path = useLocation({ select: (l) => l.pathname });
   const admin = path === "/admin" || path.startsWith("/admin/");
+  // The public demo: guests on every page, anyone in the demo org.
+  const demo = showBanner(isGuest(session.user), !admin && current?.demo);
   const title = admin
     ? "Raptor admin"
     : path === "/settings" || path.startsWith("/settings/")
@@ -197,8 +201,9 @@ export function AppShell({
           </div>
         </header>
         <ConnectionBanner />
+        {demo && <DemoBanner />}
         <Announcements />
-        {orgId && !admin && <BillingBanner orgId={orgId} />}
+        {orgId && !admin && !demo && <BillingBanner orgId={orgId} />}
         <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 p-6">
           {orgId && orgs.data && !list.some((o) => o.id === orgId) ? (
             <NotFound full={false} what="org" />
@@ -659,7 +664,8 @@ function UserMenu({ session }: { session: GetSessionResponse }) {
   const navigate = useNavigate();
   const side = useMenuSide("top");
   const signOut = useMutation(AuthService.method.signOut);
-  const email = session.user?.email ?? "";
+  // A demo guest's address is a placeholder: say what they are instead.
+  const email = isGuest(session.user) ? "Demo guest, for an hour" : (session.user?.email ?? "");
   const name = session.user?.name ?? "";
   return (
     <SidebarMenu>

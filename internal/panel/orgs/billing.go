@@ -33,8 +33,11 @@ func (b *Billing) as(ctx context.Context, orgID, role string) (*auth.Session, uu
 	err := b.Orgs.asUser(ctx, func(se *auth.Session, q *store.Queries) error {
 		sess = se
 		var err error
-		org, _, err = member(ctx, q, se, orgID, role)
-		return err
+		if org, _, err = member(ctx, q, se, orgID, role); err != nil {
+			return err
+		}
+		// Billing is off in the demo.
+		return auth.RefuseDemo(ctx, q, se, org)
 	})
 	return sess, uuid.UUID(org.Bytes), err
 }

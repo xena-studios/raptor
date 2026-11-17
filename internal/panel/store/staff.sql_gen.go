@@ -195,7 +195,7 @@ func (q *Queries) FailingServers(ctx context.Context) ([]FailingServersRow, erro
 }
 
 const getOrgForStaff = `-- name: GetOrgForStaff :one
-SELECT id, name, created_at, suspended_at, suspended_reason, deleted_at, logo FROM orgs WHERE id = $1
+SELECT id, name, created_at, suspended_at, suspended_reason, deleted_at, logo, demo, demo_reset_at FROM orgs WHERE id = $1
 `
 
 func (q *Queries) GetOrgForStaff(ctx context.Context, id pgtype.UUID) (Org, error) {
@@ -209,6 +209,8 @@ func (q *Queries) GetOrgForStaff(ctx context.Context, id pgtype.UUID) (Org, erro
 		&i.SuspendedReason,
 		&i.DeletedAt,
 		&i.Logo,
+		&i.Demo,
+		&i.DemoResetAt,
 	)
 	return i, err
 }

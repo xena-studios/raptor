@@ -39,6 +39,10 @@ const (
 	// AuthServiceFinishEmailSignInProcedure is the fully-qualified name of the AuthService's
 	// FinishEmailSignIn RPC.
 	AuthServiceFinishEmailSignInProcedure = "/raptor.panel.v1.AuthService/FinishEmailSignIn"
+	// AuthServiceGetDemoProcedure is the fully-qualified name of the AuthService's GetDemo RPC.
+	AuthServiceGetDemoProcedure = "/raptor.panel.v1.AuthService/GetDemo"
+	// AuthServiceStartDemoProcedure is the fully-qualified name of the AuthService's StartDemo RPC.
+	AuthServiceStartDemoProcedure = "/raptor.panel.v1.AuthService/StartDemo"
 	// AuthServiceGetSessionProcedure is the fully-qualified name of the AuthService's GetSession RPC.
 	AuthServiceGetSessionProcedure = "/raptor.panel.v1.AuthService/GetSession"
 	// AuthServiceSignOutProcedure is the fully-qualified name of the AuthService's SignOut RPC.
@@ -151,6 +155,16 @@ type AuthServiceClient interface {
 	// FinishEmailSignIn checks a code (with its email) or a link token, and
 	// starts a session.
 	FinishEmailSignIn(context.Context, *v1.FinishEmailSignInRequest) (*v1.FinishEmailSignInResponse, error)
+	// GetDemo says whether the public demo is open (#449): whether a demo
+	// org is set up for StartDemo to drop guests into. Anyone may ask.
+	GetDemo(context.Context, *v1.GetDemoRequest) (*v1.GetDemoResponse, error)
+	// StartDemo starts a guest session in the demo org (#449,
+	// docs/PANEL.md#the-public-demo): a throwaway account with no email and
+	// no sign-in method, a member of the demo org with its showcase servers'
+	// guest grants, that's deleted after an hour. Behind Turnstile and
+	// limited per address. FAILED_PRECONDITION when the demo isn't open, or
+	// the browser is signed in to a real account.
+	StartDemo(context.Context, *v1.StartDemoRequest) (*v1.StartDemoResponse, error)
 	// GetSession returns who's signed in. UNAUTHENTICATED if no one is.
 	GetSession(context.Context, *v1.GetSessionRequest) (*v1.GetSessionResponse, error)
 	// SignOut ends this session.
@@ -287,6 +301,19 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			httpClient,
 			baseURL+AuthServiceFinishEmailSignInProcedure,
 			connect.WithSchema(authServiceMethods.ByName("FinishEmailSignIn")),
+			connect.WithClientOptions(opts...),
+		),
+		getDemo: connect.NewClient[v1.GetDemoRequest, v1.GetDemoResponse](
+			httpClient,
+			baseURL+AuthServiceGetDemoProcedure,
+			connect.WithSchema(authServiceMethods.ByName("GetDemo")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		startDemo: connect.NewClient[v1.StartDemoRequest, v1.StartDemoResponse](
+			httpClient,
+			baseURL+AuthServiceStartDemoProcedure,
+			connect.WithSchema(authServiceMethods.ByName("StartDemo")),
 			connect.WithClientOptions(opts...),
 		),
 		getSession: connect.NewClient[v1.GetSessionRequest, v1.GetSessionResponse](
@@ -521,6 +548,8 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 type authServiceClient struct {
 	startEmailSignIn          *connect.Client[v1.StartEmailSignInRequest, v1.StartEmailSignInResponse]
 	finishEmailSignIn         *connect.Client[v1.FinishEmailSignInRequest, v1.FinishEmailSignInResponse]
+	getDemo                   *connect.Client[v1.GetDemoRequest, v1.GetDemoResponse]
+	startDemo                 *connect.Client[v1.StartDemoRequest, v1.StartDemoResponse]
 	getSession                *connect.Client[v1.GetSessionRequest, v1.GetSessionResponse]
 	signOut                   *connect.Client[v1.SignOutRequest, v1.SignOutResponse]
 	listSessions              *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
@@ -571,6 +600,24 @@ func (c *authServiceClient) StartEmailSignIn(ctx context.Context, req *v1.StartE
 // FinishEmailSignIn calls raptor.panel.v1.AuthService.FinishEmailSignIn.
 func (c *authServiceClient) FinishEmailSignIn(ctx context.Context, req *v1.FinishEmailSignInRequest) (*v1.FinishEmailSignInResponse, error) {
 	response, err := c.finishEmailSignIn.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// GetDemo calls raptor.panel.v1.AuthService.GetDemo.
+func (c *authServiceClient) GetDemo(ctx context.Context, req *v1.GetDemoRequest) (*v1.GetDemoResponse, error) {
+	response, err := c.getDemo.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// StartDemo calls raptor.panel.v1.AuthService.StartDemo.
+func (c *authServiceClient) StartDemo(ctx context.Context, req *v1.StartDemoRequest) (*v1.StartDemoResponse, error) {
+	response, err := c.startDemo.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -910,6 +957,16 @@ type AuthServiceHandler interface {
 	// FinishEmailSignIn checks a code (with its email) or a link token, and
 	// starts a session.
 	FinishEmailSignIn(context.Context, *v1.FinishEmailSignInRequest) (*v1.FinishEmailSignInResponse, error)
+	// GetDemo says whether the public demo is open (#449): whether a demo
+	// org is set up for StartDemo to drop guests into. Anyone may ask.
+	GetDemo(context.Context, *v1.GetDemoRequest) (*v1.GetDemoResponse, error)
+	// StartDemo starts a guest session in the demo org (#449,
+	// docs/PANEL.md#the-public-demo): a throwaway account with no email and
+	// no sign-in method, a member of the demo org with its showcase servers'
+	// guest grants, that's deleted after an hour. Behind Turnstile and
+	// limited per address. FAILED_PRECONDITION when the demo isn't open, or
+	// the browser is signed in to a real account.
+	StartDemo(context.Context, *v1.StartDemoRequest) (*v1.StartDemoResponse, error)
 	// GetSession returns who's signed in. UNAUTHENTICATED if no one is.
 	GetSession(context.Context, *v1.GetSessionRequest) (*v1.GetSessionResponse, error)
 	// SignOut ends this session.
@@ -1042,6 +1099,19 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		AuthServiceFinishEmailSignInProcedure,
 		svc.FinishEmailSignIn,
 		connect.WithSchema(authServiceMethods.ByName("FinishEmailSignIn")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceGetDemoHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceGetDemoProcedure,
+		svc.GetDemo,
+		connect.WithSchema(authServiceMethods.ByName("GetDemo")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceStartDemoHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceStartDemoProcedure,
+		svc.StartDemo,
+		connect.WithSchema(authServiceMethods.ByName("StartDemo")),
 		connect.WithHandlerOptions(opts...),
 	)
 	authServiceGetSessionHandler := connect.NewUnaryHandlerSimple(
@@ -1275,6 +1345,10 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceStartEmailSignInHandler.ServeHTTP(w, r)
 		case AuthServiceFinishEmailSignInProcedure:
 			authServiceFinishEmailSignInHandler.ServeHTTP(w, r)
+		case AuthServiceGetDemoProcedure:
+			authServiceGetDemoHandler.ServeHTTP(w, r)
+		case AuthServiceStartDemoProcedure:
+			authServiceStartDemoHandler.ServeHTTP(w, r)
 		case AuthServiceGetSessionProcedure:
 			authServiceGetSessionHandler.ServeHTTP(w, r)
 		case AuthServiceSignOutProcedure:
@@ -1362,6 +1436,14 @@ func (UnimplementedAuthServiceHandler) StartEmailSignIn(context.Context, *v1.Sta
 
 func (UnimplementedAuthServiceHandler) FinishEmailSignIn(context.Context, *v1.FinishEmailSignInRequest) (*v1.FinishEmailSignInResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.FinishEmailSignIn is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) GetDemo(context.Context, *v1.GetDemoRequest) (*v1.GetDemoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.GetDemo is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) StartDemo(context.Context, *v1.StartDemoRequest) (*v1.StartDemoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("raptor.panel.v1.AuthService.StartDemo is not implemented"))
 }
 
 func (UnimplementedAuthServiceHandler) GetSession(context.Context, *v1.GetSessionRequest) (*v1.GetSessionResponse, error) {

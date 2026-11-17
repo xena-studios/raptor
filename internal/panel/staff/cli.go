@@ -15,8 +15,8 @@ import (
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
 
-// CLI is `panel staff add|remove|list`, run on the Panel's server: the only
-// way anyone becomes staff. Granting is recorded in the staff log, as done
+// CLI is `panel staff add|remove|list|demo`, run on the Panel's server: the
+// only way anyone becomes staff, or an org becomes the public demo. Granting is recorded in the staff log, as done
 // by the server's own user.
 func CLI(ctx context.Context, db *pgxpool.Pool, out io.Writer, args []string) error {
 	q := store.New(db)
@@ -28,6 +28,8 @@ func CLI(ctx context.Context, db *pgxpool.Pool, out io.Writer, args []string) er
 		by = "cli:" + su
 	}
 	switch {
+	case len(args) >= 1 && args[0] == "demo":
+		return demoCLI(ctx, q, by, out, args[1:])
 	case len(args) == 3 && args[0] == "add":
 		role := args[2]
 		if role != Admin && role != Support {
@@ -88,5 +90,5 @@ func CLI(ctx context.Context, db *pgxpool.Pool, out io.Writer, args []string) er
 		}
 		return nil
 	}
-	return errors.New("usage: panel staff add <email> admin|support | remove <email> | list")
+	return errors.New("usage: panel staff add <email> admin|support | remove <email> | list | demo (see panel staff demo)")
 }
