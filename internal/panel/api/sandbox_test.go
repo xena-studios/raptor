@@ -288,6 +288,17 @@ func TestDemoSandboxes(t *testing.T) {
 	if _, err := guest.cmds.Execute(ctx, &panelv1.ExecuteRequest{NodeId: nodeID, ServerId: "sb1", Action: "server.delete"}); !offInDemo(err) {
 		t.Errorf("the guest deleting it as a command: %v", err)
 	}
+	// op on their own sandbox, not on the shared Paper server.
+	op := `{"command":"op Guest"}`
+	if _, err := guest.cmds.Execute(ctx, &panelv1.ExecuteRequest{NodeId: nodeID, ServerId: "sb1", Action: "server.command", ParamsJson: op}); err != nil {
+		t.Errorf("op on their own sandbox: %v", err)
+	}
+	if _, err := guest.cmds.Execute(ctx, &panelv1.ExecuteRequest{NodeId: nodeID, ServerId: "paper", Action: "server.command", ParamsJson: op}); err == nil || !strings.Contains(err.Error(), "shared servers") {
+		t.Errorf("op on the showcase server: %v", err)
+	}
+	if _, err := guest.cmds.Execute(ctx, &panelv1.ExecuteRequest{NodeId: nodeID, ServerId: "paper", Action: "server.command", ParamsJson: `{"command":"list"}`}); err != nil {
+		t.Errorf("list on the showcase server: %v", err)
+	}
 
 	// Ready: 15 minutes, its address, and it can be extended once.
 	node.ready("sb1")

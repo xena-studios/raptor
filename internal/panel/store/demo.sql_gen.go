@@ -401,6 +401,23 @@ func (q *Queries) EndSandbox(ctx context.Context, arg EndSandboxParams) error {
 	return err
 }
 
+const isDemoServer = `-- name: IsDemoServer :one
+SELECT EXISTS (SELECT 1 FROM demo_servers WHERE node_id = $1 AND server_id = $2)::bool
+`
+
+type IsDemoServerParams struct {
+	NodeID   pgtype.UUID
+	ServerID string
+}
+
+// Whether a server is one of the demo's showcase servers.
+func (q *Queries) IsDemoServer(ctx context.Context, arg IsDemoServerParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isDemoServer, arg.NodeID, arg.ServerID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const liveSandboxes = `-- name: LiveSandboxes :many
 SELECT id, org_id, node_id, user_id, ip_hash, egg_id, library_id, egg_name, accept_eula, warm, state, server_id, port, error, queued_at, created_at, ready_at, deadline, extended, ended_at FROM demo_sandboxes
 WHERE node_id = $1 AND state IN ('queued', 'creating', 'installing', 'ready')

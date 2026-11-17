@@ -165,3 +165,7 @@ WHERE id = $1 AND org_id IS NULL AND catalog_id IS NOT NULL AND status = 'publis
 SELECT DISTINCT (a->>'port')::int AS port
 FROM m_servers s, jsonb_array_elements(coalesce(s.config->'allocations', '[]')) a
 WHERE s.node_id = $1;
+
+-- name: IsDemoServer :one
+-- Whether a server is one of the demo's showcase servers.
+SELECT EXISTS (SELECT 1 FROM demo_servers WHERE node_id = $1 AND server_id = $2)::bool;

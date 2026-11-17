@@ -126,3 +126,32 @@ func DemoUploadTooBig(action string, params json.RawMessage) bool {
 	}
 	return p.Size > demo.UploadLimit
 }
+
+// demoConsoleDenied are console commands guests can't send to the shared
+// showcase servers (Phase 3): making anyone an operator or changing
+// permissions or the whitelist (directly, or through execute or sudo), and
+// broadcasting to the players there. On their own sandbox, anything goes.
+var demoConsoleDenied = map[string]bool{
+	"op": true, "deop": true, "whitelist": true, "execute": true, "sudo": true,
+	"lp": true, "luckperms": true, "perm": true, "perms": true, "permissions": true, "pex": true,
+	"say": true, "tellraw": true, "me": true, "msg": true, "tell": true, "w": true, "broadcast": true, "bc": true,
+	"title": true, "plugman": true, "reload": true, "rl": true,
+}
+
+// DemoConsoleRefuses reports whether a guest's console command to a
+// showcase server is one of those. The command's first word decides, with
+// any slash and plugin prefix ("minecraft:op") taken off.
+func DemoConsoleRefuses(params json.RawMessage) bool {
+	var p struct {
+		Command string `json:"command"`
+	}
+	if len(params) > 0 && json.Unmarshal(params, &p) != nil {
+		return true
+	}
+	word, _, _ := strings.Cut(strings.TrimSpace(p.Command), " ")
+	word = strings.ToLower(strings.TrimLeft(word, "/"))
+	if i := strings.LastIndex(word, ":"); i >= 0 {
+		word = word[i+1:]
+	}
+	return demoConsoleDenied[word]
+}

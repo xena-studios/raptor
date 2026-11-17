@@ -117,3 +117,17 @@ func TestDemoLockedBackupsAndUploads(t *testing.T) {
 		t.Error("unreadable params pass")
 	}
 }
+
+func TestDemoConsoleRefuses(t *testing.T) {
+	for cmd, refused := range map[string]bool{
+		"op Steve": true, "/op Steve": true, "minecraft:op Steve": true, "OP Steve": true, "deop x": true,
+		"whitelist add x": true, "execute as @a run op @s": true, "lp user x permission set *": true,
+		"say hi": true, "tellraw @a {}": true, "sudo x op x": true,
+		"list": false, "time set day": false, "weather clear": false, "tps": false, "": false, "  list ": false,
+	} {
+		p, _ := json.Marshal(map[string]string{"command": cmd})
+		if got := DemoConsoleRefuses(p); got != refused {
+			t.Errorf("%q: refused %v, want %v", cmd, got, refused)
+		}
+	}
+}

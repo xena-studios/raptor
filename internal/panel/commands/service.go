@@ -86,8 +86,9 @@ var (
 	errNotFound = connect.NewError(connect.CodeNotFound, errors.New("no such server"))
 	errDenied   = connect.NewError(connect.CodePermissionDenied, errors.New("you don't have permission to do that on this server"))
 	// errDemoUpload: the demo takes files of up to 10 MB (demo.UploadLimit).
-	errDemoUpload = connect.NewError(connect.CodePermissionDenied, errors.New("in the demo, uploads are up to 10 MB: in your own Raptor, there's no such limit"))
-	uuidV7        = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
+	errDemoConsole = connect.NewError(connect.CodePermissionDenied, errors.New("that command is off on the demo's shared servers: on your own sandbox, or in your own Raptor, you can run it"))
+	errDemoUpload  = connect.NewError(connect.CodePermissionDenied, errors.New("in the demo, uploads are up to 10 MB: in your own Raptor, there's no such limit"))
+	uuidV7         = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
 )
 
 // authorize checks the user may run action on the server, as them under
@@ -130,6 +131,16 @@ func (s *Service) authorizeCommand(ctx context.Context, q *store.Queries, sess *
 		}
 		if perms.DemoUploadTooBig(action, params) {
 			return org, errDemoUpload
+		}
+		// The shared showcase servers' consoles: no op, permissions, or
+		// broadcasts from guests (read on the Panel's connection: the
+		// showcase list isn't the user's to see).
+		if action == "server.command" && perms.DemoConsoleRefuses(params) {
+			if showcase, err := store.New(s.Auth.DB).IsDemoServer(ctx, store.IsDemoServerParams{NodeID: node, ServerID: server}); err != nil {
+				return org, err
+			} else if showcase {
+				return org, errDemoConsole
+			}
 		}
 	}
 	if m.Role == "owner" || m.Role == "admin" {
