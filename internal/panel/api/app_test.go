@@ -245,6 +245,24 @@ func TestPhoneApp(t *testing.T) {
 		_ = resp.Body.Close()
 	}
 
+	// Whatever Origin the app's requests carry (React Native's WebSocket
+	// sends one), a bearer token is served, without CORS headers; a
+	// browser session's cookie as a bearer still isn't.
+	for token, want := range map[string]int{got.AccessToken: http.StatusOK, cookie: http.StatusUnauthorized} {
+		req, _ := http.NewRequest(http.MethodPost, srv.URL+"/api/raptor.panel.v1.AuthService/GetSession", strings.NewReader("{}"))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Origin", "https://evil.example")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp, err := srv.Client().Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != want || resp.Header.Get("Access-Control-Allow-Origin") != "" {
+			t.Errorf("a bearer from another origin: %d (want %d), CORS %q", resp.StatusCode, want, resp.Header.Get("Access-Control-Allow-Origin"))
+		}
+	}
+
 	// What the app can't do: confirm it's Alice, so nothing that needs it,
 	// approve another app, or see staff tools.
 	if _, err := p.auth.BeginReauth(ctx, &panelv1.BeginReauthRequest{}); connect.CodeOf(err) != connect.CodePermissionDenied {

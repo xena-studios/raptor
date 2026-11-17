@@ -41,6 +41,9 @@ type Load struct {
 	// (EventsAvailable); about one in ten changes is a config update the
 	// Panel fetches with GetServers, the rest are state changes.
 	EventEvery time.Duration
+	// Demo, if set, are the node's servers instead (Servers and EventEvery
+	// are then ignored): see DemoFleet.
+	Demo []DemoServer
 }
 
 // keptEvents is how many events a node keeps for the Panel to pull; an
@@ -58,12 +61,31 @@ type Node struct {
 	events  []*nodev1.Event
 	seq     int64
 	sent    map[int64]time.Time // when each event not yet pulled was made
+	demo    *demo               // nil unless Load.Demo
 }
 
 // NewNode makes a node with its fake servers.
 func NewNode(id Identity, load Load, stats *Stats) *Node {
 	n := &Node{id: id, load: load, stats: stats, sent: map[int64]time.Time{}}
 	now := time.Now().UnixMilli()
+	if load.Demo != nil {
+		for _, d := range load.Demo {
+			// The same ID every run, so restarting doesn't leave copies.
+			sid := uuid.NewSHA1(uuid.NameSpaceOID, []byte(id.NodeID+"/"+d.Name))
+			desired := "running"
+			if d.State == "offline" {
+				desired = "offline"
+			}
+			n.servers = append(n.servers, &nodev1.Server{
+				Id: sid.String(), Name: d.Name, Version: 1, State: d.State,
+				DesiredState: desired, InstallState: "installed", EggName: d.Egg,
+				Config:    []byte(`{"image":"demo","startup":"demo","variables":{},"limits":{},"settings":{},"allocations":[]}`),
+				CreatedAt: now, UpdatedAt: now,
+			})
+		}
+		n.demo = newDemo(n.servers, load.Demo)
+		return n
+	}
 	for i := range load.Servers {
 		sid, _ := uuid.NewV7()
 		n.servers = append(n.servers, &nodev1.Server{
@@ -110,6 +132,24 @@ func (n *Node) linked(ctx context.Context, s *nodelink.Session) {
 	mux.Handle(nodev1connect.NewNodeServiceHandler(&service{n: n}))
 	go func() { _ = s.Serve(mux) }()
 	panel := nodev1connect.NewPanelServiceClient(s.Client(), nodelink.BaseURL)
+	if n.demo != nil {
+		// Say so at once, so the Panel takes the servers in (a snapshot, if
+		// it was further along with this node before); then the one crash,
+		// a little after linking. Otherwise nothing changes.
+		_, _ = panel.EventsAvailable(ctx, &nodev1.EventsAvailableRequest{LastSeq: n.change0()})
+		select {
+		case <-ctx.Done():
+			return
+		case <-s.Done():
+			return
+		case <-time.After(30 * time.Second):
+		}
+		if last, ok := n.demoEvents(); ok {
+			_, _ = panel.EventsAvailable(ctx, &nodev1.EventsAvailableRequest{LastSeq: last})
+		}
+		<-s.Done()
+		return
+	}
 	every := n.load.EventEvery
 	if every <= 0 || len(n.servers) == 0 {
 		<-s.Done()
@@ -229,7 +269,17 @@ func (s *service) GetServers(_ context.Context, req *nodev1.GetServersRequest) (
 	return out, nil
 }
 
-func (s *service) Execute(context.Context, *nodev1.ExecuteRequest) (*nodev1.ExecuteResponse, error) {
+func (s *service) Execute(_ context.Context, req *nodev1.ExecuteRequest) (*nodev1.ExecuteResponse, error) {
 	s.n.stats.call("Execute")
+	if s.n.demo != nil {
+		return s.demoExecute(req)
+	}
 	return &nodev1.ExecuteResponse{Error: errFake.Error()}, nil
+}
+
+func (s *service) Console(ctx context.Context, req *nodev1.ConsoleRequest, stream *connect.ServerStream[nodev1.ConsoleResponse]) error {
+	if s.n.demo == nil {
+		return connect.NewError(connect.CodeUnimplemented, errFake)
+	}
+	return s.demoConsole(ctx, req, stream)
 }

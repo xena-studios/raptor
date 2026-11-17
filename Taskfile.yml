@@ -19,11 +19,12 @@ tasks:
 
   gen:
     desc: Regenerate protobuf, sqlc, and route tree code
-    deps: [web:install]
+    deps: [web:install, mobile:install]
     cmds:
       - "{{.GOTOOL}} buf generate"
-      - rm -rf web/src/gen
+      - rm -rf web/src/gen mobile/src/gen
       - "{{.GOTOOL}} buf generate --template buf.gen.web.yaml --path proto/raptor/panel --path proto/raptor/meta"
+      - "{{.GOTOOL}} buf generate --template buf.gen.mobile.yaml --path proto/raptor/panel --path proto/raptor/meta"
       - "{{.GOTOOL}} sqlc generate"
       - pnpm --dir web exec tsr generate
 
@@ -295,6 +296,36 @@ tasks:
     generates: [node_modules/.modules.yaml]
     cmds:
       - pnpm install --frozen-lockfile
+
+  mobile:install:
+    internal: true
+    dir: mobile
+    sources: [package.json, pnpm-lock.yaml]
+    generates: [node_modules/.modules.yaml]
+    cmds:
+      - pnpm install --frozen-lockfile
+
+  mobile:check:
+    desc: Typecheck and lint the phone app
+    deps: [mobile:install]
+    dir: mobile
+    cmds:
+      - pnpm exec tsc --noEmit
+      - pnpm exec expo lint
+
+  mobile:ios:
+    desc: Build the phone app and run it in the iOS Simulator (a development build)
+    deps: [mobile:install]
+    dir: mobile
+    cmds:
+      - pnpm exec expo run:ios
+
+  mobile:android:
+    desc: Build the phone app and run it on an Android emulator (a development build)
+    deps: [mobile:install]
+    dir: mobile
+    cmds:
+      - pnpm exec expo run:android
 
   db:up:
     desc: Start local Postgres (dev + test)

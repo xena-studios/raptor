@@ -1,0 +1,89 @@
+{
+  "expo": {
+    "name": "Raptor",
+    "slug": "raptor",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "net.raptorpanel.app",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "net.raptorpanel.app",
+      "buildNumber": "1",
+      "appleTeamId": "NTZ78R46VH",
+      "supportsTablet": false,
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "net.raptorpanel.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#F05653",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F9F6F5",
+          "image": "./assets/images/splash-light.png",
+          "imageWidth": 240,
+          "dark": {
+            "backgroundColor": "#0F0808",
+            "image": "./assets/images/splash-dark.png"
+          }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#F05653",
+          "defaultChannel": "alerts"
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Raptor uses Face ID to unlock the app and to approve sign-ins, when you turn them on."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Raptor uses Face ID to unlock the app and to approve sign-ins, when you turn them on."
+        }
+      ],
+      [
+        "expo-widgets",
+        {
+          "widgets": [
+            {
+              "name": "ServersWidget",
+              "displayName": "Servers",
+              "description": "How many of your servers are running, and which aren't.",
+              "ios": {
+                "supportedFamilies": ["systemSmall", "systemMedium"],
+                "initialLayout": "./src/widgets/servers-widget.tsx"
+              }
+            }
+          ]
+        }
+      ],
+      "expo-app-intents"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true,
+      "inlineModules": {
+        "watchedDirectories": ["app-intents"]
+      }
+    }
+  }
+}

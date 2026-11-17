@@ -27,7 +27,7 @@ SELECT count(*) FROM alert_channels WHERE user_id = $1;
 
 -- name: UserAlertChannels :many
 -- A user's own channels, for them (row-level security).
-SELECT id, type, name, config, hint, failing_since, last_error, last_sent_at, disabled_at, created_at
+SELECT id, type, name, config, hint, failing_since, last_error, last_sent_at, disabled_at, created_at, session_id
 FROM alert_channels WHERE user_id = $1 ORDER BY created_at;
 
 -- name: GetAlertChannel :one
@@ -280,6 +280,43 @@ DELETE FROM alert_channels WHERE session_id = $1;
 -- A phone whose push token is gone, or whose session ended.
 DELETE FROM alert_channels WHERE id = $1 AND type = 'phone';
 
+-- name: PhoneChannelBySession :one
+-- An app session's phone, for a push that isn't an alert (an approval
+-- request): sent even when the person turned the phone's alerts off.
+SELECT * FROM alert_channels WHERE session_id = $1 AND type = 'phone';
+
 -- name: PhoneSessionLive :one
 SELECT EXISTS (SELECT 1 FROM alert_channels c JOIN sessions s ON s.id = c.session_id
     WHERE c.id = $1 AND s.revoked_at IS NULL AND s.expires_at > now());
+
+-- name: MuteAlerts :exec
+INSERT INTO alert_mutes (user_id, org_id, target, until) VALUES ($1, $2, $3, $4)
+ON CONFLICT (user_id, org_id, target) DO UPDATE SET until = EXCLUDED.until;
+
+-- name: UnmuteAlerts :exec
+DELETE FROM alert_mutes WHERE user_id = $1 AND org_id = $2 AND target = $3;
+
+-- name: UserAlertMutes :many
+-- A person's mutes still running, with what they're about.
+SELECT m.org_id, o.name AS org_name, m.target, m.until,
+    -- Names only from the mute's own org.
+    coalesce((SELECT s.name FROM m_servers s JOIN nodes sn ON sn.id = s.node_id
+              WHERE sn.org_id = m.org_id AND 'server:' || s.server_id = m.target LIMIT 1),
+             (SELECT n.name FROM nodes n WHERE n.org_id = m.org_id AND 'node:' || n.id::text = m.target), '')::text AS name
+FROM alert_mutes m JOIN orgs o ON o.id = m.org_id
+WHERE m.user_id = $1 AND m.until > now() ORDER BY m.until;
+
+-- name: MutedUsers :many
+-- Of these people, who muted alerts about any of these targets.
+SELECT DISTINCT user_id FROM alert_mutes
+WHERE org_id = $1 AND user_id = ANY (sqlc.arg(users)::uuid[]) AND target = ANY (sqlc.arg(targets)::text[]) AND until > now();
+
+-- name: PruneAlertMutes :exec
+DELETE FROM alert_mutes WHERE until < now();
+
+-- name: ServerInOrg :one
+-- Whether a server (by its ID on its node) is on one of the org's nodes.
+SELECT EXISTS (SELECT 1 FROM m_servers s JOIN nodes n ON n.id = s.node_id WHERE n.org_id = $1 AND s.server_id = $2);
+
+-- name: NodeInOrg :one
+SELECT EXISTS (SELECT 1 FROM nodes WHERE id = $1 AND org_id = $2);

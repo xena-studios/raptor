@@ -26,7 +26,7 @@ bin/
 # Per-machine Claude Code and impeccable state
 .claude/settings.local.json
 .impeccable/config.local.json
-.impeccable/hook.cache.json
+**/.impeccable/hook.cache.json
 
 # The impeccable installer's Copilot hook; the skill lives in .agents/, and Copilot isn't used
 .github/hooks/impeccable.json

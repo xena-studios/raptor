@@ -140,6 +140,7 @@ func run(ctx context.Context, args []string) error {
 	ramp := fs.Duration("ramp", 30*time.Second, "how long to take to link every node")
 	duration := fs.Duration("for", 5*time.Minute, "how long to run")
 	report := fs.Duration("report", 10*time.Second, "how often to print progress")
+	demo := fs.Bool("demo", false, "real games' names, steady states, use and players, and a console, for screenshots (-servers and -every are ignored)")
 	_ = fs.Parse(args)
 	f, err := load(*in)
 	if err != nil {
@@ -171,8 +172,12 @@ func run(ctx context.Context, args []string) error {
 			}
 		}
 	}()
-	for _, id := range f.Nodes {
-		n := loadtest.NewNode(id, loadtest.Load{Servers: *servers, EventEvery: *every}, stats)
+	for i, id := range f.Nodes {
+		load := loadtest.Load{Servers: *servers, EventEvery: *every}
+		if *demo {
+			load.Demo = loadtest.DemoFleet(i)
+		}
+		n := loadtest.NewNode(id, load, stats)
 		wg.Go(func() { n.Run(ctx, *panel, client) })
 		select {
 		case <-ctx.Done():

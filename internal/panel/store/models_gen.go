@@ -43,6 +43,14 @@ type AlertDelivery struct {
 	Label     string
 }
 
+type AlertMute struct {
+	UserID    pgtype.UUID
+	OrgID     pgtype.UUID
+	Target    string
+	Until     pgtype.Timestamptz
+	CreatedAt pgtype.Timestamptz
+}
+
 type AlertNotification struct {
 	ID          pgtype.UUID
 	UserID      pgtype.UUID
@@ -510,6 +518,31 @@ type PendingSignin struct {
 	Attempts  int32
 	ExpiresAt pgtype.Timestamptz
 	CreatedAt pgtype.Timestamptz
+}
+
+type PhoneApproval struct {
+	ID              pgtype.UUID
+	UserID          pgtype.UUID
+	Purpose         string
+	PendingSigninID pgtype.UUID
+	SessionID       pgtype.UUID
+	Number          int32
+	Choices         []int32
+	Challenge       []byte
+	Ip              *netip.Addr
+	UserAgent       string
+	Status          string
+	ExpiresAt       pgtype.Timestamptz
+	DecidedAt       pgtype.Timestamptz
+	CreatedAt       pgtype.Timestamptz
+}
+
+type PhoneApprover struct {
+	SessionID  pgtype.UUID
+	UserID     pgtype.UUID
+	Secret     []byte
+	CreatedAt  pgtype.Timestamptz
+	LastUsedAt pgtype.Timestamptz
 }
 
 type PlatformStat struct {

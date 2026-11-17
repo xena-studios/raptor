@@ -815,6 +815,8 @@ const methodNames: Record<string, string> = {
   link: "an email link",
   totp: "your authenticator app",
   recovery: "a recovery code",
+  recovery_code: "a recovery code",
+  phone: "your phone",
   google: "Google",
   github: "GitHub",
   discord: "Discord",
@@ -891,6 +893,34 @@ function describeEvent(action: string, meta: Meta): { text: string; icon: Lucide
       };
     case "email.change":
       return { text: `Changed your email to ${str(meta.to)}`, icon: Mail };
+    case "approver.add":
+      return {
+        text: `Let ${str(meta.device) || "a phone"} approve sign-ins`,
+        icon: Smartphone,
+      };
+    case "approver.remove":
+      return {
+        text: `Stopped ${str(meta.device) || "a phone"} approving sign-ins`,
+        icon: Smartphone,
+      };
+    case "approval.approve":
+      return {
+        text:
+          str(meta.purpose) === "reauth"
+            ? "Approved confirming it's you on your phone"
+            : "Approved a sign-in on your phone",
+        icon: ShieldCheck,
+      };
+    case "approval.deny":
+      return {
+        text:
+          str(meta.reason) === "wrong_number"
+            ? "Your phone denied a sign-in: the wrong number was picked"
+            : str(meta.reason) === "bad_proof"
+              ? "A request to approve a sign-in was refused: the phone couldn't prove it's yours"
+              : "Your phone denied a sign-in",
+        icon: ShieldAlert,
+      };
     default:
       // Something this version of the app has no words for yet.
       return { text: "Changed something on your account", icon: Activity };

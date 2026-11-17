@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/xena-studios/raptor/internal/panel/store"
 )
 
@@ -67,7 +69,7 @@ func (s *Service) allow(ctx context.Context, key string, l Limit) (bool, error) 
 // and pictures nothing uses any more.
 func (s *Service) Prune(ctx context.Context) error {
 	q := s.q()
-	for _, f := range []func(context.Context) error{q.PruneRateEvents, q.PruneEmailCodes, q.PruneCeremonies, q.PruneSessions, q.PrunePending, q.PruneTOTPSetups, q.PruneOAuthFlows, q.PruneAppCodes, q.PruneAuditLog, q.PruneSFTPPasswords, q.PruneImages} {
+	for _, f := range []func(context.Context) error{q.PruneRateEvents, q.PruneEmailCodes, q.PruneCeremonies, q.PruneSessions, q.PrunePending, q.PruneTOTPSetups, q.PruneOAuthFlows, q.PruneAppCodes, q.PrunePhoneApprovals, q.PruneAuditLog, q.PruneSFTPPasswords, q.PruneImages} {
 		if err := f(ctx); err != nil {
 			return err
 		}
@@ -90,4 +92,13 @@ func (s *Service) RunJanitor(ctx context.Context, every time.Duration) {
 		case <-t.C:
 		}
 	}
+}
+
+// lockCodeChecks makes one code check at a time for an email, until tx
+// ends: without it, guesses sent at once all pass the failed-codes limit
+// before any is counted, which matters most for the App Store review's
+// fixed code (ReviewSignIn).
+func lockCodeChecks(ctx context.Context, tx pgx.Tx, email string) error {
+	_, err := tx.Exec(ctx, "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", "code-check:"+email)
+	return err
 }
