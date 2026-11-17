@@ -14,8 +14,11 @@ import { routeTree } from "@/routeTree.gen";
 import "@/index.css";
 
 // Every request's outcome says whether the Panel can be reached
-// (lib/connection.ts).
+// (lib/connection.ts). Data counts as fresh for 20 seconds, so going back to
+// a page shows what it had without asking again; queries that poll keep
+// their own interval, and changes invalidate what they touch.
 const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 20_000 } },
   queryCache: new QueryCache({
     onError: (err) => reportResult(err),
     onSuccess: () => reportResult(undefined),
@@ -25,8 +28,13 @@ const queryClient = new QueryClient({
     onSuccess: () => reportResult(undefined),
   }),
 });
+// Pointing at a link preloads its page's code and runs its route guards
+// (the session is cached, lib/session.ts). React Query decides when data
+// is fresh, so the router keeps no preload cache of its own.
 const router = createRouter({
   routeTree,
+  defaultPreload: "intent",
+  defaultPreloadStaleTime: 0,
   defaultNotFoundComponent: () => <NotFound />,
   defaultErrorComponent: ({ error, reset }) => <RouteError error={error} reset={reset} />,
 });
