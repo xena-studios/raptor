@@ -216,7 +216,7 @@ func (e *Engine) Extract(ctx context.Context, req ExtractRequest, progress func(
 	defer func() { _ = out.Close() }()
 	st, err := restore.Entry(ctx, rep, &rootOutput{root: out, uid: req.UID, gid: req.GID},
 		&pickDir{Directory: dir, picks: picks, deny: deny}, restore.Options{
-			Parallel:               2,
+			Parallel:               restoreParallel,
 			RestoreDirEntryAtDepth: math.MaxInt32,
 			ProgressCallback: func(_ context.Context, s restore.Stats) {
 				if progress != nil {

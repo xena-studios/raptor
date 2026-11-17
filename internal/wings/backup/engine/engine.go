@@ -164,6 +164,12 @@ func (e *Engine) Snapshot(ctx context.Context, req SnapshotRequest, progress fun
 
 var parallelReads policy.OptionalInt = 2
 
+// restoreParallel is how many files a restore (or a restore of picked
+// files) writes at once. Higher than parallelReads: someone is waiting on
+// a restore, and it's mostly fetching from the repository, where more
+// requests in flight pay off. Backups stay gentle on running servers.
+const restoreParallel = 8
+
 // snapshotPolicy is the policy for every backup: nothing is stored in the
 // repository, so the rules come from Wings each time.
 func snapshotPolicy(ignore []string, src snapshot.SourceInfo) *policy.Tree {
@@ -239,7 +245,7 @@ func (e *Engine) Restore(ctx context.Context, req RestoreRequest, progress func(
 		return RestoreResult{}, fmt.Errorf("clear the server directory: %w", err)
 	}
 	st, err := restore.Entry(ctx, rep, &rootOutput{root: root, uid: req.UID, gid: req.GID}, entry, restore.Options{
-		Parallel:               2,
+		Parallel:               restoreParallel,
 		RestoreDirEntryAtDepth: math.MaxInt32, // everything, no placeholders
 		ProgressCallback: func(_ context.Context, s restore.Stats) {
 			if progress != nil {

@@ -55,6 +55,13 @@ func TestGate(t *testing.T) {
 	if err := db.QueryRow(ctx, "INSERT INTO users (email) VALUES ('a@example.com') RETURNING id").Scan(&user); err != nil {
 		t.Fatal(err)
 	}
+	// Connected: ticks only sync nodes with a live connection.
+	if _, err := db.Exec(ctx, "INSERT INTO panel_instances (id) VALUES ('test')"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(ctx, "INSERT INTO node_connections (node_id, instance_id) VALUES ($1, 'test')", nodeID); err != nil {
+		t.Fatal(err)
+	}
 	state := func() (bool, int32) {
 		var on bool
 		var port int32
@@ -103,5 +110,22 @@ func TestGate(t *testing.T) {
 	g.Tick(ctx)
 	if s := sent(); len(s) != 2 || s[1] {
 		t.Errorf("sent %v, want open then close only", s)
+	}
+
+	// Offline: a tick doesn't wait on it; once it reconnects, the next
+	// tick syncs it.
+	if _, err := db.Exec(ctx, "UPDATE nodes SET sftp_allowed = true; DELETE FROM node_connections"); err != nil {
+		t.Fatal(err)
+	}
+	g.Tick(ctx)
+	if s := sent(); len(s) != 2 {
+		t.Errorf("sent %v to an offline node", s)
+	}
+	if _, err := db.Exec(ctx, "INSERT INTO node_connections (node_id, instance_id) VALUES ($1, 'test')", nodeID); err != nil {
+		t.Fatal(err)
+	}
+	g.Tick(ctx)
+	if s := sent(); len(s) != 3 || !s[2] {
+		t.Errorf("sent %v, want an open after reconnecting", s)
 	}
 }

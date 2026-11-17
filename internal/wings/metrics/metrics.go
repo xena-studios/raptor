@@ -27,6 +27,11 @@ const (
 	rollupEvery  = time.Hour
 )
 
+// sampleTimeout bounds one server's sample: a Docker stats call that hangs
+// would otherwise hold up Tick, and with it every server's metrics and
+// threshold alerts. That server's sample is just skipped. A var for tests.
+var sampleTimeout = 5 * time.Second
+
 // Servers is what the collector needs from the server manager.
 type Servers interface {
 	List() map[string]server.State
@@ -149,7 +154,9 @@ func (c *Collector) Tick(ctx context.Context) {
 }
 
 func (c *Collector) sample(ctx context.Context, id string) {
-	s, err := c.Servers.Sample(ctx, id)
+	sctx, cancel := context.WithTimeout(ctx, sampleTimeout)
+	s, err := c.Servers.Sample(sctx, id)
+	cancel()
 	if err != nil {
 		return
 	}
