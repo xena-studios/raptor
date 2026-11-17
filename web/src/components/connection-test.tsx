@@ -9,12 +9,13 @@ import {
   Radar,
   XCircle,
 } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { Hidden } from "@/components/address";
 import { HelpLink } from "@/components/help-link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { takeIntent } from "@/lib/command-intent";
 import { type Cause, diagnose, type Inside, type Verdict } from "@/lib/connection-test";
 import { message } from "@/lib/errors";
 import { commandClient, orgClient } from "@/lib/transport";
@@ -72,6 +73,11 @@ export function ConnectionTest({
       };
     },
   });
+  // "Test the connection" from the command menu (#436) starts it at once.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, on opening
+  useEffect(() => {
+    if (takeIntent("connection.test", serverId)) test.mutate();
+  }, []);
   const r = test.data;
   const primary = r?.verdicts[0];
   const blocked = r?.verdicts.filter((v) => v.cause === "blocked" || v.cause === "ok_udp") ?? [];

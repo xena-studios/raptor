@@ -29,6 +29,29 @@ const shouldRenderSearch =
   </div>
 </div>
 
+<script>
+  // ?q= opens the search with that query: the app's command menu links
+  // here with what was typed (docs/PANEL.md#command-menu). Pagefind's box
+  // loads lazily, so this waits for it.
+  const query = new URLSearchParams(location.search).get("q")?.trim().slice(0, 200);
+  if (query) {
+    const open = document.querySelector<HTMLButtonElement>("button[data-open-modal]");
+    open?.click();
+    let tries = 0;
+    const fill = () => {
+      const input = document.querySelector<HTMLInputElement>("#starlight__search input");
+      if (input) {
+        input.value = query;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.focus();
+      } else if (tries++ < 50) {
+        setTimeout(fill, 100);
+      }
+    };
+    fill();
+  }
+</script>
+
 <style>
   .header {
     display: flex;

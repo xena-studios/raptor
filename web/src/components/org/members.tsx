@@ -1,7 +1,7 @@
 import { useQuery } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 
 import { useConfirm } from "@/components/confirm";
 import { Avatar } from "@/components/picture";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { OrgService, Role } from "@/gen/raptor/panel/v1/org_pb";
+import { takeIntent } from "@/lib/command-intent";
 import { message } from "@/lib/errors";
 import { isAdmin, roleNames, when } from "@/lib/format";
 import { orgClient } from "@/lib/transport";
@@ -35,6 +36,16 @@ export function Members({
   const [role, setRole] = useState<Role>(Role.MEMBER);
   const [error, setError] = useState("");
   const [sent, setSent] = useState("");
+  const inviteInput = useRef<HTMLInputElement>(null);
+  // "Invite a member" from the command menu (#436): the email filled in,
+  // for a role to be picked and Invite pressed here.
+  useEffect(() => {
+    if (!admin) return;
+    const i = takeIntent("member.invite", orgId);
+    if (!i) return;
+    setEmail(i.email);
+    requestAnimationFrame(() => inviteInput.current?.focus());
+  }, [admin, orgId]);
 
   async function run(fn: () => Promise<unknown>) {
     setError("");
@@ -176,6 +187,7 @@ export function Members({
           <CardContent className="flex flex-col gap-3">
             <form onSubmit={invite} className="flex gap-2">
               <Input
+                ref={inviteInput}
                 type="email"
                 placeholder="Email"
                 required
