@@ -84,7 +84,7 @@ The Panel is one process role (`serve api`), deployed with zero downtime for bro
 
 ### Frontend
 - Route-based code splitting; the console (xterm.js) and editor (Monaco, with its workers) load lazily.
-- TanStack Query caching with mirror data, so page navigation is instant.
+- TanStack Query caching with mirror data, so page navigation is instant: data is fresh for 20 seconds unless a query polls, changes invalidate what they touch, and each node's server list is one shared query. Pointing at a link preloads its page, and the route guards cache who's signed in for 30 seconds (decision 385). The page preconnects to the API's origin while the app loads.
 - One WebSocket per tab, multiplexing all subscriptions.
 - The UI shows **live / stale / pending / failed** states explicitly. Stale data never looks live.
 
