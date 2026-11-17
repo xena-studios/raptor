@@ -82,6 +82,7 @@ export function EggEditor({
   eggId,
   version,
   file,
+  preview,
 }: {
   lib: Library;
   initial: EditorState;
@@ -89,6 +90,9 @@ export function EggEditor({
   eggId?: string;
   version?: number;
   file?: Uint8Array;
+  // The public demo's editor (#449): everything works but saving, since an
+  // egg nobody reviewed can't run there.
+  preview?: boolean;
 }) {
   const navigate = useNavigate();
   const client = useQueryClient();
@@ -218,10 +222,16 @@ export function EggEditor({
           <Button variant="ghost" onClick={() => navigate(eggId ? lib.detail(eggId) : lib.list)}>
             {eggId ? "Back" : "Cancel"}
           </Button>
-          <Button disabled={busy} onClick={save}>
-            {busy && <Loader2 className="animate-spin" />}
-            {eggId ? "Save" : "Create egg"}
-          </Button>
+          {preview ? (
+            <p className="text-sm text-muted-foreground">
+              {problems.length > 0 ? "" : "Looks valid. "}Saving is off in the demo.
+            </p>
+          ) : (
+            <Button disabled={busy} onClick={save}>
+              {busy && <Loader2 className="animate-spin" />}
+              {eggId ? "Save" : "Create egg"}
+            </Button>
+          )}
         </div>
       )}
     </div>
