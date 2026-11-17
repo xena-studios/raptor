@@ -69,7 +69,7 @@ Everything the servers need comes from the **Raptor production** vault. Make the
 
 | `Push notifications` | `apns_key`, `apns_key_id`, `apns_team_id`, `fcm_credentials` | Optional: without it the phone app can't get alerts as push notifications. [Below](#push-notifications). |
 
-The Google, Discord, Raptor Bot, `raptornodes.net` DNS, support bundle, Grafana, Telegram, and push items can wait: until an item exists, `secrets.sh` skips its lines ([`deploy/secrets/optional/`](../deploy/secrets/optional)) with a warning, and the Panel runs without that feature. The others are required.
+The Google, Discord, Raptor Bot, `raptornodes.net` DNS, support bundle, Grafana, Telegram, and push items can wait: until an item exists, `secrets.sh` skips its lines ([`deploy/secrets/optional/`](../deploy/secrets/optional)) with a warning, and the Panel runs without that feature. An item that's there without one of its fields (push with Apple's keys and not yet Google's) skips just that setting, also with a warning. The others are required.
 
 Rotate anything that was ever pasted in a chat or a terminal history.
 
@@ -256,7 +256,7 @@ Alerts to Raptor's phone app ([PANEL.md](PANEL.md#alerts)) go straight from the 
 
 1. **Apple** (developer.apple.com → Certificates, Identifiers & Profiles): the App ID `net.raptorpanel.app` with **Push Notifications** on. Then **Keys → +**, "Raptor push", **Apple Push Notifications service (APNs)**, environment **Sandbox & Production**. Download the `.p8` once (Apple won't give it again) and note its **Key ID**; the **Team ID** is at the top right of the account page. One key works for every app on the team and doesn't expire.
 2. **Google** (console.firebase.google.com): a project (`raptor-panel`), an Android app with the package `net.raptorpanel.app` (its `google-services.json` goes in the app, not the Panel). Then Project settings → **Service accounts → Generate new private key**: a JSON file. Cloud Messaging's **HTTP v1 API** must be on (the default for new projects; the legacy API isn't used).
-3. 1Password item **Push notifications** in Raptor production: `apns_key` is the `.p8` on one line, `grep -v -- ----- AuthKey_*.p8 | tr -d '\n'`; `apns_key_id` and `apns_team_id`; `fcm_credentials` is the JSON on one line, `jq -c . raptor-panel-*.json`. Then delete both files. The next deploy picks them up (`deploy/secrets/optional/push.env.tpl`); the logs stop warning about `PANEL_APNS_KEY` and `PANEL_FCM_CREDENTIALS`.
+3. 1Password item **Push notifications** in Raptor production: `apns_key` is the `.p8` on one line, `grep -v -- ----- AuthKey_*.p8 | tr -d '\n'`; `apns_key_id` and `apns_team_id`; `fcm_credentials` is the JSON on one line, `jq -c . raptor-panel-*.json`. Then delete both files. The next deploy picks them up (`deploy/secrets/optional/push.env.tpl`); the logs stop warning about `PANEL_APNS_KEY` and `PANEL_FCM_CREDENTIALS`. Leave out a field you don't have yet (1Password won't keep an empty one); a value that's there but wrong (a key cut short, a placeholder) turns that platform's push off with an error in the Panel's log, and the Panel still starts.
 
 Then check, once the app is built: sign in on a phone, see "Raptor's app" with the phone's name under your own alert channels (the bell's settings), and send it a test. Development builds register sandbox tokens, which go to Apple's sandbox; TestFlight and App Store builds use production.
 
