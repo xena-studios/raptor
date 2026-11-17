@@ -150,6 +150,11 @@ temporary files (a JDK to build with, archives) go in a folder under
   game because the startup `exec`s it. A log filter runs in a process
   substitution that ignores SIGINT (`> >(trap '' INT; exec sed -u …)`), so
   the game's last lines still show while it saves.
+  Unturned is the exception: Steam's game server sometimes fails to
+  start, and the game then quits with exit code 0 before its done line
+  (in CI, about one start in three, cause unknown). Its startup runs the
+  game in a loop instead, retrying up to 3 times only when this start's
+  `Logs/Server_<ID>.log` line says "Steam can not be initialized".
 - **Raptor's settings:** `arch: [amd64]`. `players: {query: source}` for
   games that answer A2S, with `port` when that isn't the game port (`"+1"`,
   `QUERY_PORT`). `backup` when the console can save: `pre` the save command and
