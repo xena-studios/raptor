@@ -83,7 +83,14 @@ func (s *Service) CreateSFTPAccess(ctx context.Context, req *panelv1.CreateSFTPA
 	var row store.SftpPassword
 	err := s.asUser(ctx, func(se *auth.Session, q *store.Queries) error {
 		sess = se
-		var err error
+		// SFTP is off in the demo.
+		org, err := parseID(req.GetOrgId(), "org")
+		if err != nil {
+			return err
+		}
+		if err := auth.RefuseDemo(ctx, q, se, org); err != nil {
+			return err
+		}
 		if node, err = serverWith(ctx, q, se, req.GetOrgId(), req.GetNodeId(), req.GetServerId(), "sftp"); err != nil {
 			return err
 		}

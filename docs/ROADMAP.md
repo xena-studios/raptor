@@ -144,7 +144,7 @@ Planned in [#432](https://github.com/xena-studios/raptor/issues/432): what Ptero
 2. **Follow-ups listed in their issues:** CounterStrikeSharp plugins as an add-on source (#414); Space Engineers and tModLoader Workshop lists (#408); BattlEye RCon (DayZ, Arma), more RCON games, and a ban list (#423); a scan after uploads and an alert on findings (#428); Needs attention's EULA button, connection results, server list dot, and alerts (#487); applying an add-on list to several servers at once (#437, with #374).
 3. **Bigger:** a command menu (Ctrl+K) with every server page and action (#436), and updates in one place with alerts and a schedule step (#418).
 
-A public demo to try Raptor and its eggs without an account is planned in [#449](https://github.com/xena-studios/raptor/issues/449), on a node of its own.
+A public demo to try Raptor and its eggs without an account is [#449](https://github.com/xena-studios/raptor/issues/449), on a node of its own. Phase 1 is built: guest sessions (`StartDemo`), the demo org flag, the Panel's deny list, the banner, the hourly reset of guests and trash, and "Try the demo" on the site (docs/PANEL.md#the-public-demo); it opens once staff set up the demo node (docs/DEPLOY.md#public-demo). Left: restoring the showcase servers each hour and per-guest sandbox servers, both with a Panel-held demo key only the demo node trusts (Phase 2, DECISIONS #375), then egress limits, caps, the console filter, the warm pool, the rebuild script, and analytics (Phase 3).
 
 ## Metrics
 

@@ -20,6 +20,20 @@ service AuthService {
   // starts a session.
   rpc FinishEmailSignIn(FinishEmailSignInRequest) returns (FinishEmailSignInResponse) {}
 
+  // GetDemo says whether the public demo is open (#449): whether a demo
+  // org is set up for StartDemo to drop guests into. Anyone may ask.
+  rpc GetDemo(GetDemoRequest) returns (GetDemoResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // StartDemo starts a guest session in the demo org (#449,
+  // docs/PANEL.md#the-public-demo): a throwaway account with no email and
+  // no sign-in method, a member of the demo org with its showcase servers'
+  // guest grants, that's deleted after an hour. Behind Turnstile and
+  // limited per address. FAILED_PRECONDITION when the demo isn't open, or
+  // the browser is signed in to a real account.
+  rpc StartDemo(StartDemoRequest) returns (StartDemoResponse) {}
+
   // GetSession returns who's signed in. UNAUTHENTICATED if no one is.
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
@@ -201,6 +215,24 @@ message StartEmailSignInRequest {
 
 message StartEmailSignInResponse {}
 
+message GetDemoRequest {}
+
+message GetDemoResponse {
+  // A demo org is set up, so StartDemo can work.
+  bool open = 1;
+}
+
+message StartDemoRequest {
+  // Cloudflare Turnstile's token from the demo page.
+  string turnstile_token = 1;
+}
+
+message StartDemoResponse {
+  // The demo org, to open.
+  string org_id = 1;
+  User user = 2;
+}
+
 message FinishEmailSignInRequest {
   oneof proof {
     EmailCode code = 1;
@@ -239,6 +271,9 @@ message User {
   string theme_style = 8;
   // The avatar's image ID (GET /api/images/<id>.png); empty for none.
   string avatar = 9;
+  // A demo guest's account (StartDemo): when it's deleted. Unset for real
+  // accounts.
+  google.protobuf.Timestamp guest_until = 10;
 }
 
 message GetSessionRequest {}

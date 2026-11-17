@@ -111,6 +111,185 @@ func (*StartEmailSignInResponse) Descriptor() ([]byte, []int) {
 	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{1}
 }
 
+type GetDemoRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDemoRequest) Reset() {
+	*x = GetDemoRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDemoRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDemoRequest) ProtoMessage() {}
+
+func (x *GetDemoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDemoRequest.ProtoReflect.Descriptor instead.
+func (*GetDemoRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{2}
+}
+
+type GetDemoResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// A demo org is set up, so StartDemo can work.
+	Open          bool `protobuf:"varint,1,opt,name=open,proto3" json:"open,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDemoResponse) Reset() {
+	*x = GetDemoResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDemoResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDemoResponse) ProtoMessage() {}
+
+func (x *GetDemoResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDemoResponse.ProtoReflect.Descriptor instead.
+func (*GetDemoResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetDemoResponse) GetOpen() bool {
+	if x != nil {
+		return x.Open
+	}
+	return false
+}
+
+type StartDemoRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Cloudflare Turnstile's token from the demo page.
+	TurnstileToken string `protobuf:"bytes,1,opt,name=turnstile_token,json=turnstileToken,proto3" json:"turnstile_token,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *StartDemoRequest) Reset() {
+	*x = StartDemoRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartDemoRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartDemoRequest) ProtoMessage() {}
+
+func (x *StartDemoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartDemoRequest.ProtoReflect.Descriptor instead.
+func (*StartDemoRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *StartDemoRequest) GetTurnstileToken() string {
+	if x != nil {
+		return x.TurnstileToken
+	}
+	return ""
+}
+
+type StartDemoResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The demo org, to open.
+	OrgId         string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	User          *User  `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartDemoResponse) Reset() {
+	*x = StartDemoResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartDemoResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartDemoResponse) ProtoMessage() {}
+
+func (x *StartDemoResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartDemoResponse.ProtoReflect.Descriptor instead.
+func (*StartDemoResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *StartDemoResponse) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *StartDemoResponse) GetUser() *User {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
 type FinishEmailSignInRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Proof:
@@ -124,7 +303,7 @@ type FinishEmailSignInRequest struct {
 
 func (x *FinishEmailSignInRequest) Reset() {
 	*x = FinishEmailSignInRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[2]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -136,7 +315,7 @@ func (x *FinishEmailSignInRequest) String() string {
 func (*FinishEmailSignInRequest) ProtoMessage() {}
 
 func (x *FinishEmailSignInRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[2]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -149,7 +328,7 @@ func (x *FinishEmailSignInRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishEmailSignInRequest.ProtoReflect.Descriptor instead.
 func (*FinishEmailSignInRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{2}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *FinishEmailSignInRequest) GetProof() isFinishEmailSignInRequest_Proof {
@@ -204,7 +383,7 @@ type EmailCode struct {
 
 func (x *EmailCode) Reset() {
 	*x = EmailCode{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[3]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -216,7 +395,7 @@ func (x *EmailCode) String() string {
 func (*EmailCode) ProtoMessage() {}
 
 func (x *EmailCode) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[3]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -229,7 +408,7 @@ func (x *EmailCode) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmailCode.ProtoReflect.Descriptor instead.
 func (*EmailCode) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{3}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *EmailCode) GetEmail() string {
@@ -260,7 +439,7 @@ type FinishEmailSignInResponse struct {
 
 func (x *FinishEmailSignInResponse) Reset() {
 	*x = FinishEmailSignInResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[4]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -272,7 +451,7 @@ func (x *FinishEmailSignInResponse) String() string {
 func (*FinishEmailSignInResponse) ProtoMessage() {}
 
 func (x *FinishEmailSignInResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[4]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -285,7 +464,7 @@ func (x *FinishEmailSignInResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishEmailSignInResponse.ProtoReflect.Descriptor instead.
 func (*FinishEmailSignInResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{4}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *FinishEmailSignInResponse) GetUser() *User {
@@ -322,14 +501,17 @@ type User struct {
 	// colour).
 	ThemeStyle string `protobuf:"bytes,8,opt,name=theme_style,json=themeStyle,proto3" json:"theme_style,omitempty"`
 	// The avatar's image ID (GET /api/images/<id>.png); empty for none.
-	Avatar        string `protobuf:"bytes,9,opt,name=avatar,proto3" json:"avatar,omitempty"`
+	Avatar string `protobuf:"bytes,9,opt,name=avatar,proto3" json:"avatar,omitempty"`
+	// A demo guest's account (StartDemo): when it's deleted. Unset for real
+	// accounts.
+	GuestUntil    *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=guest_until,json=guestUntil,proto3" json:"guest_until,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *User) Reset() {
 	*x = User{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[5]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -341,7 +523,7 @@ func (x *User) String() string {
 func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[5]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -354,7 +536,7 @@ func (x *User) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use User.ProtoReflect.Descriptor instead.
 func (*User) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{5}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *User) GetId() string {
@@ -413,6 +595,13 @@ func (x *User) GetAvatar() string {
 	return ""
 }
 
+func (x *User) GetGuestUntil() *timestamppb.Timestamp {
+	if x != nil {
+		return x.GuestUntil
+	}
+	return nil
+}
+
 type GetSessionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -421,7 +610,7 @@ type GetSessionRequest struct {
 
 func (x *GetSessionRequest) Reset() {
 	*x = GetSessionRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[6]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -433,7 +622,7 @@ func (x *GetSessionRequest) String() string {
 func (*GetSessionRequest) ProtoMessage() {}
 
 func (x *GetSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[6]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -446,7 +635,7 @@ func (x *GetSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionRequest.ProtoReflect.Descriptor instead.
 func (*GetSessionRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{6}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{10}
 }
 
 type GetSessionResponse struct {
@@ -461,7 +650,7 @@ type GetSessionResponse struct {
 
 func (x *GetSessionResponse) Reset() {
 	*x = GetSessionResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[7]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -473,7 +662,7 @@ func (x *GetSessionResponse) String() string {
 func (*GetSessionResponse) ProtoMessage() {}
 
 func (x *GetSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[7]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -486,7 +675,7 @@ func (x *GetSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionResponse.ProtoReflect.Descriptor instead.
 func (*GetSessionResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{7}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetSessionResponse) GetUser() *User {
@@ -532,7 +721,7 @@ type Session struct {
 
 func (x *Session) Reset() {
 	*x = Session{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[8]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -544,7 +733,7 @@ func (x *Session) String() string {
 func (*Session) ProtoMessage() {}
 
 func (x *Session) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[8]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -557,7 +746,7 @@ func (x *Session) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Session.ProtoReflect.Descriptor instead.
 func (*Session) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{8}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *Session) GetId() string {
@@ -631,7 +820,7 @@ type SignOutRequest struct {
 
 func (x *SignOutRequest) Reset() {
 	*x = SignOutRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[9]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -643,7 +832,7 @@ func (x *SignOutRequest) String() string {
 func (*SignOutRequest) ProtoMessage() {}
 
 func (x *SignOutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[9]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -656,7 +845,7 @@ func (x *SignOutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SignOutRequest.ProtoReflect.Descriptor instead.
 func (*SignOutRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{9}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{13}
 }
 
 type SignOutResponse struct {
@@ -667,7 +856,7 @@ type SignOutResponse struct {
 
 func (x *SignOutResponse) Reset() {
 	*x = SignOutResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[10]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -679,7 +868,7 @@ func (x *SignOutResponse) String() string {
 func (*SignOutResponse) ProtoMessage() {}
 
 func (x *SignOutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[10]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -692,7 +881,7 @@ func (x *SignOutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SignOutResponse.ProtoReflect.Descriptor instead.
 func (*SignOutResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{10}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{14}
 }
 
 type ListSessionsRequest struct {
@@ -703,7 +892,7 @@ type ListSessionsRequest struct {
 
 func (x *ListSessionsRequest) Reset() {
 	*x = ListSessionsRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[11]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -715,7 +904,7 @@ func (x *ListSessionsRequest) String() string {
 func (*ListSessionsRequest) ProtoMessage() {}
 
 func (x *ListSessionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[11]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -728,7 +917,7 @@ func (x *ListSessionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSessionsRequest.ProtoReflect.Descriptor instead.
 func (*ListSessionsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{11}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{15}
 }
 
 type ListSessionsResponse struct {
@@ -740,7 +929,7 @@ type ListSessionsResponse struct {
 
 func (x *ListSessionsResponse) Reset() {
 	*x = ListSessionsResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[12]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -752,7 +941,7 @@ func (x *ListSessionsResponse) String() string {
 func (*ListSessionsResponse) ProtoMessage() {}
 
 func (x *ListSessionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[12]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -765,7 +954,7 @@ func (x *ListSessionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSessionsResponse.ProtoReflect.Descriptor instead.
 func (*ListSessionsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{12}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ListSessionsResponse) GetSessions() []*Session {
@@ -788,7 +977,7 @@ type RevokeSessionRequest struct {
 
 func (x *RevokeSessionRequest) Reset() {
 	*x = RevokeSessionRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[13]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -800,7 +989,7 @@ func (x *RevokeSessionRequest) String() string {
 func (*RevokeSessionRequest) ProtoMessage() {}
 
 func (x *RevokeSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[13]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -813,7 +1002,7 @@ func (x *RevokeSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeSessionRequest.ProtoReflect.Descriptor instead.
 func (*RevokeSessionRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{13}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *RevokeSessionRequest) GetTarget() isRevokeSessionRequest_Target {
@@ -866,7 +1055,7 @@ type RevokeSessionResponse struct {
 
 func (x *RevokeSessionResponse) Reset() {
 	*x = RevokeSessionResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[14]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -878,7 +1067,7 @@ func (x *RevokeSessionResponse) String() string {
 func (*RevokeSessionResponse) ProtoMessage() {}
 
 func (x *RevokeSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[14]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -891,7 +1080,7 @@ func (x *RevokeSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeSessionResponse.ProtoReflect.Descriptor instead.
 func (*RevokeSessionResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{14}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{18}
 }
 
 // A WebAuthn ceremony the browser runs: options_json is the "publicKey"
@@ -907,7 +1096,7 @@ type PasskeyChallenge struct {
 
 func (x *PasskeyChallenge) Reset() {
 	*x = PasskeyChallenge{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[15]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -919,7 +1108,7 @@ func (x *PasskeyChallenge) String() string {
 func (*PasskeyChallenge) ProtoMessage() {}
 
 func (x *PasskeyChallenge) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[15]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -932,7 +1121,7 @@ func (x *PasskeyChallenge) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PasskeyChallenge.ProtoReflect.Descriptor instead.
 func (*PasskeyChallenge) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{15}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *PasskeyChallenge) GetCeremonyId() string {
@@ -960,7 +1149,7 @@ type PasskeyAnswer struct {
 
 func (x *PasskeyAnswer) Reset() {
 	*x = PasskeyAnswer{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[16]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -972,7 +1161,7 @@ func (x *PasskeyAnswer) String() string {
 func (*PasskeyAnswer) ProtoMessage() {}
 
 func (x *PasskeyAnswer) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[16]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -985,7 +1174,7 @@ func (x *PasskeyAnswer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PasskeyAnswer.ProtoReflect.Descriptor instead.
 func (*PasskeyAnswer) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{16}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *PasskeyAnswer) GetCeremonyId() string {
@@ -1010,7 +1199,7 @@ type BeginPasskeySignInRequest struct {
 
 func (x *BeginPasskeySignInRequest) Reset() {
 	*x = BeginPasskeySignInRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[17]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1022,7 +1211,7 @@ func (x *BeginPasskeySignInRequest) String() string {
 func (*BeginPasskeySignInRequest) ProtoMessage() {}
 
 func (x *BeginPasskeySignInRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[17]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1035,7 +1224,7 @@ func (x *BeginPasskeySignInRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BeginPasskeySignInRequest.ProtoReflect.Descriptor instead.
 func (*BeginPasskeySignInRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{17}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{21}
 }
 
 type BeginPasskeySignInResponse struct {
@@ -1047,7 +1236,7 @@ type BeginPasskeySignInResponse struct {
 
 func (x *BeginPasskeySignInResponse) Reset() {
 	*x = BeginPasskeySignInResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[18]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1059,7 +1248,7 @@ func (x *BeginPasskeySignInResponse) String() string {
 func (*BeginPasskeySignInResponse) ProtoMessage() {}
 
 func (x *BeginPasskeySignInResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[18]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1072,7 +1261,7 @@ func (x *BeginPasskeySignInResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BeginPasskeySignInResponse.ProtoReflect.Descriptor instead.
 func (*BeginPasskeySignInResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{18}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *BeginPasskeySignInResponse) GetChallenge() *PasskeyChallenge {
@@ -1091,7 +1280,7 @@ type FinishPasskeySignInRequest struct {
 
 func (x *FinishPasskeySignInRequest) Reset() {
 	*x = FinishPasskeySignInRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[19]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1103,7 +1292,7 @@ func (x *FinishPasskeySignInRequest) String() string {
 func (*FinishPasskeySignInRequest) ProtoMessage() {}
 
 func (x *FinishPasskeySignInRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[19]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1116,7 +1305,7 @@ func (x *FinishPasskeySignInRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishPasskeySignInRequest.ProtoReflect.Descriptor instead.
 func (*FinishPasskeySignInRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{19}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *FinishPasskeySignInRequest) GetAnswer() *PasskeyAnswer {
@@ -1135,7 +1324,7 @@ type FinishPasskeySignInResponse struct {
 
 func (x *FinishPasskeySignInResponse) Reset() {
 	*x = FinishPasskeySignInResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[20]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1147,7 +1336,7 @@ func (x *FinishPasskeySignInResponse) String() string {
 func (*FinishPasskeySignInResponse) ProtoMessage() {}
 
 func (x *FinishPasskeySignInResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[20]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1160,7 +1349,7 @@ func (x *FinishPasskeySignInResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishPasskeySignInResponse.ProtoReflect.Descriptor instead.
 func (*FinishPasskeySignInResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{20}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *FinishPasskeySignInResponse) GetUser() *User {
@@ -1178,7 +1367,7 @@ type BeginPasskeyRegistrationRequest struct {
 
 func (x *BeginPasskeyRegistrationRequest) Reset() {
 	*x = BeginPasskeyRegistrationRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[21]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1190,7 +1379,7 @@ func (x *BeginPasskeyRegistrationRequest) String() string {
 func (*BeginPasskeyRegistrationRequest) ProtoMessage() {}
 
 func (x *BeginPasskeyRegistrationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[21]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1203,7 +1392,7 @@ func (x *BeginPasskeyRegistrationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BeginPasskeyRegistrationRequest.ProtoReflect.Descriptor instead.
 func (*BeginPasskeyRegistrationRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{21}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{25}
 }
 
 type BeginPasskeyRegistrationResponse struct {
@@ -1215,7 +1404,7 @@ type BeginPasskeyRegistrationResponse struct {
 
 func (x *BeginPasskeyRegistrationResponse) Reset() {
 	*x = BeginPasskeyRegistrationResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[22]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1227,7 +1416,7 @@ func (x *BeginPasskeyRegistrationResponse) String() string {
 func (*BeginPasskeyRegistrationResponse) ProtoMessage() {}
 
 func (x *BeginPasskeyRegistrationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[22]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1240,7 +1429,7 @@ func (x *BeginPasskeyRegistrationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BeginPasskeyRegistrationResponse.ProtoReflect.Descriptor instead.
 func (*BeginPasskeyRegistrationResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{22}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *BeginPasskeyRegistrationResponse) GetChallenge() *PasskeyChallenge {
@@ -1261,7 +1450,7 @@ type FinishPasskeyRegistrationRequest struct {
 
 func (x *FinishPasskeyRegistrationRequest) Reset() {
 	*x = FinishPasskeyRegistrationRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[23]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1273,7 +1462,7 @@ func (x *FinishPasskeyRegistrationRequest) String() string {
 func (*FinishPasskeyRegistrationRequest) ProtoMessage() {}
 
 func (x *FinishPasskeyRegistrationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[23]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1286,7 +1475,7 @@ func (x *FinishPasskeyRegistrationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishPasskeyRegistrationRequest.ProtoReflect.Descriptor instead.
 func (*FinishPasskeyRegistrationRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{23}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *FinishPasskeyRegistrationRequest) GetAnswer() *PasskeyAnswer {
@@ -1312,7 +1501,7 @@ type FinishPasskeyRegistrationResponse struct {
 
 func (x *FinishPasskeyRegistrationResponse) Reset() {
 	*x = FinishPasskeyRegistrationResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[24]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1324,7 +1513,7 @@ func (x *FinishPasskeyRegistrationResponse) String() string {
 func (*FinishPasskeyRegistrationResponse) ProtoMessage() {}
 
 func (x *FinishPasskeyRegistrationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[24]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1337,7 +1526,7 @@ func (x *FinishPasskeyRegistrationResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use FinishPasskeyRegistrationResponse.ProtoReflect.Descriptor instead.
 func (*FinishPasskeyRegistrationResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{24}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *FinishPasskeyRegistrationResponse) GetPasskey() *Passkey {
@@ -1367,7 +1556,7 @@ type Passkey struct {
 
 func (x *Passkey) Reset() {
 	*x = Passkey{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[25]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1379,7 +1568,7 @@ func (x *Passkey) String() string {
 func (*Passkey) ProtoMessage() {}
 
 func (x *Passkey) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[25]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1392,7 +1581,7 @@ func (x *Passkey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Passkey.ProtoReflect.Descriptor instead.
 func (*Passkey) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{25}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *Passkey) GetId() string {
@@ -1452,7 +1641,7 @@ type ListPasskeysRequest struct {
 
 func (x *ListPasskeysRequest) Reset() {
 	*x = ListPasskeysRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[26]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1464,7 +1653,7 @@ func (x *ListPasskeysRequest) String() string {
 func (*ListPasskeysRequest) ProtoMessage() {}
 
 func (x *ListPasskeysRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[26]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1477,7 +1666,7 @@ func (x *ListPasskeysRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPasskeysRequest.ProtoReflect.Descriptor instead.
 func (*ListPasskeysRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{26}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{30}
 }
 
 type ListPasskeysResponse struct {
@@ -1489,7 +1678,7 @@ type ListPasskeysResponse struct {
 
 func (x *ListPasskeysResponse) Reset() {
 	*x = ListPasskeysResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[27]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1501,7 +1690,7 @@ func (x *ListPasskeysResponse) String() string {
 func (*ListPasskeysResponse) ProtoMessage() {}
 
 func (x *ListPasskeysResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[27]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1514,7 +1703,7 @@ func (x *ListPasskeysResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPasskeysResponse.ProtoReflect.Descriptor instead.
 func (*ListPasskeysResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{27}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ListPasskeysResponse) GetPasskeys() []*Passkey {
@@ -1534,7 +1723,7 @@ type RenamePasskeyRequest struct {
 
 func (x *RenamePasskeyRequest) Reset() {
 	*x = RenamePasskeyRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[28]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1546,7 +1735,7 @@ func (x *RenamePasskeyRequest) String() string {
 func (*RenamePasskeyRequest) ProtoMessage() {}
 
 func (x *RenamePasskeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[28]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1559,7 +1748,7 @@ func (x *RenamePasskeyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenamePasskeyRequest.ProtoReflect.Descriptor instead.
 func (*RenamePasskeyRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{28}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *RenamePasskeyRequest) GetId() string {
@@ -1584,7 +1773,7 @@ type RenamePasskeyResponse struct {
 
 func (x *RenamePasskeyResponse) Reset() {
 	*x = RenamePasskeyResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[29]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1596,7 +1785,7 @@ func (x *RenamePasskeyResponse) String() string {
 func (*RenamePasskeyResponse) ProtoMessage() {}
 
 func (x *RenamePasskeyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[29]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1609,7 +1798,7 @@ func (x *RenamePasskeyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenamePasskeyResponse.ProtoReflect.Descriptor instead.
 func (*RenamePasskeyResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{29}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{33}
 }
 
 type DeletePasskeyRequest struct {
@@ -1621,7 +1810,7 @@ type DeletePasskeyRequest struct {
 
 func (x *DeletePasskeyRequest) Reset() {
 	*x = DeletePasskeyRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[30]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1633,7 +1822,7 @@ func (x *DeletePasskeyRequest) String() string {
 func (*DeletePasskeyRequest) ProtoMessage() {}
 
 func (x *DeletePasskeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[30]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1646,7 +1835,7 @@ func (x *DeletePasskeyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePasskeyRequest.ProtoReflect.Descriptor instead.
 func (*DeletePasskeyRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{30}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *DeletePasskeyRequest) GetId() string {
@@ -1664,7 +1853,7 @@ type DeletePasskeyResponse struct {
 
 func (x *DeletePasskeyResponse) Reset() {
 	*x = DeletePasskeyResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[31]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1676,7 +1865,7 @@ func (x *DeletePasskeyResponse) String() string {
 func (*DeletePasskeyResponse) ProtoMessage() {}
 
 func (x *DeletePasskeyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[31]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1689,7 +1878,7 @@ func (x *DeletePasskeyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePasskeyResponse.ProtoReflect.Descriptor instead.
 func (*DeletePasskeyResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{31}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{35}
 }
 
 type BeginReauthRequest struct {
@@ -1700,7 +1889,7 @@ type BeginReauthRequest struct {
 
 func (x *BeginReauthRequest) Reset() {
 	*x = BeginReauthRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[32]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1712,7 +1901,7 @@ func (x *BeginReauthRequest) String() string {
 func (*BeginReauthRequest) ProtoMessage() {}
 
 func (x *BeginReauthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[32]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1725,7 +1914,7 @@ func (x *BeginReauthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BeginReauthRequest.ProtoReflect.Descriptor instead.
 func (*BeginReauthRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{32}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{36}
 }
 
 type BeginReauthResponse struct {
@@ -1746,7 +1935,7 @@ type BeginReauthResponse struct {
 
 func (x *BeginReauthResponse) Reset() {
 	*x = BeginReauthResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[33]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1758,7 +1947,7 @@ func (x *BeginReauthResponse) String() string {
 func (*BeginReauthResponse) ProtoMessage() {}
 
 func (x *BeginReauthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[33]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1771,7 +1960,7 @@ func (x *BeginReauthResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BeginReauthResponse.ProtoReflect.Descriptor instead.
 func (*BeginReauthResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{33}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *BeginReauthResponse) GetMethod() isBeginReauthResponse_Method {
@@ -1846,7 +2035,7 @@ type FinishReauthRequest struct {
 
 func (x *FinishReauthRequest) Reset() {
 	*x = FinishReauthRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[34]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1858,7 +2047,7 @@ func (x *FinishReauthRequest) String() string {
 func (*FinishReauthRequest) ProtoMessage() {}
 
 func (x *FinishReauthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[34]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1871,7 +2060,7 @@ func (x *FinishReauthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishReauthRequest.ProtoReflect.Descriptor instead.
 func (*FinishReauthRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{34}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *FinishReauthRequest) GetProof() isFinishReauthRequest_Proof {
@@ -1955,7 +2144,7 @@ type FinishReauthResponse struct {
 
 func (x *FinishReauthResponse) Reset() {
 	*x = FinishReauthResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[35]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1967,7 +2156,7 @@ func (x *FinishReauthResponse) String() string {
 func (*FinishReauthResponse) ProtoMessage() {}
 
 func (x *FinishReauthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[35]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1980,7 +2169,7 @@ func (x *FinishReauthResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishReauthResponse.ProtoReflect.Descriptor instead.
 func (*FinishReauthResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{35}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *FinishReauthResponse) GetReauthUntil() *timestamppb.Timestamp {
@@ -2004,7 +2193,7 @@ type FinishSecondFactorRequest struct {
 
 func (x *FinishSecondFactorRequest) Reset() {
 	*x = FinishSecondFactorRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[36]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2016,7 +2205,7 @@ func (x *FinishSecondFactorRequest) String() string {
 func (*FinishSecondFactorRequest) ProtoMessage() {}
 
 func (x *FinishSecondFactorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[36]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2029,7 +2218,7 @@ func (x *FinishSecondFactorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishSecondFactorRequest.ProtoReflect.Descriptor instead.
 func (*FinishSecondFactorRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{36}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *FinishSecondFactorRequest) GetProof() isFinishSecondFactorRequest_Proof {
@@ -2100,7 +2289,7 @@ type FinishSecondFactorResponse struct {
 
 func (x *FinishSecondFactorResponse) Reset() {
 	*x = FinishSecondFactorResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[37]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2112,7 +2301,7 @@ func (x *FinishSecondFactorResponse) String() string {
 func (*FinishSecondFactorResponse) ProtoMessage() {}
 
 func (x *FinishSecondFactorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[37]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2125,7 +2314,7 @@ func (x *FinishSecondFactorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishSecondFactorResponse.ProtoReflect.Descriptor instead.
 func (*FinishSecondFactorResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{37}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *FinishSecondFactorResponse) GetUser() *User {
@@ -2150,7 +2339,7 @@ type BeginTOTPSetupRequest struct {
 
 func (x *BeginTOTPSetupRequest) Reset() {
 	*x = BeginTOTPSetupRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[38]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2162,7 +2351,7 @@ func (x *BeginTOTPSetupRequest) String() string {
 func (*BeginTOTPSetupRequest) ProtoMessage() {}
 
 func (x *BeginTOTPSetupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[38]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2175,7 +2364,7 @@ func (x *BeginTOTPSetupRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BeginTOTPSetupRequest.ProtoReflect.Descriptor instead.
 func (*BeginTOTPSetupRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{38}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{42}
 }
 
 type BeginTOTPSetupResponse struct {
@@ -2190,7 +2379,7 @@ type BeginTOTPSetupResponse struct {
 
 func (x *BeginTOTPSetupResponse) Reset() {
 	*x = BeginTOTPSetupResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[39]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2202,7 +2391,7 @@ func (x *BeginTOTPSetupResponse) String() string {
 func (*BeginTOTPSetupResponse) ProtoMessage() {}
 
 func (x *BeginTOTPSetupResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[39]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2215,7 +2404,7 @@ func (x *BeginTOTPSetupResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BeginTOTPSetupResponse.ProtoReflect.Descriptor instead.
 func (*BeginTOTPSetupResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{39}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *BeginTOTPSetupResponse) GetSecret() string {
@@ -2241,7 +2430,7 @@ type FinishTOTPSetupRequest struct {
 
 func (x *FinishTOTPSetupRequest) Reset() {
 	*x = FinishTOTPSetupRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[40]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2253,7 +2442,7 @@ func (x *FinishTOTPSetupRequest) String() string {
 func (*FinishTOTPSetupRequest) ProtoMessage() {}
 
 func (x *FinishTOTPSetupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[40]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2266,7 +2455,7 @@ func (x *FinishTOTPSetupRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishTOTPSetupRequest.ProtoReflect.Descriptor instead.
 func (*FinishTOTPSetupRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{40}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *FinishTOTPSetupRequest) GetCode() string {
@@ -2285,7 +2474,7 @@ type FinishTOTPSetupResponse struct {
 
 func (x *FinishTOTPSetupResponse) Reset() {
 	*x = FinishTOTPSetupResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[41]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2297,7 +2486,7 @@ func (x *FinishTOTPSetupResponse) String() string {
 func (*FinishTOTPSetupResponse) ProtoMessage() {}
 
 func (x *FinishTOTPSetupResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[41]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2310,7 +2499,7 @@ func (x *FinishTOTPSetupResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishTOTPSetupResponse.ProtoReflect.Descriptor instead.
 func (*FinishTOTPSetupResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{41}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *FinishTOTPSetupResponse) GetRecoveryCodes() []string {
@@ -2328,7 +2517,7 @@ type DisableTOTPRequest struct {
 
 func (x *DisableTOTPRequest) Reset() {
 	*x = DisableTOTPRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[42]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2340,7 +2529,7 @@ func (x *DisableTOTPRequest) String() string {
 func (*DisableTOTPRequest) ProtoMessage() {}
 
 func (x *DisableTOTPRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[42]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2353,7 +2542,7 @@ func (x *DisableTOTPRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableTOTPRequest.ProtoReflect.Descriptor instead.
 func (*DisableTOTPRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{42}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{46}
 }
 
 type DisableTOTPResponse struct {
@@ -2364,7 +2553,7 @@ type DisableTOTPResponse struct {
 
 func (x *DisableTOTPResponse) Reset() {
 	*x = DisableTOTPResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[43]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2376,7 +2565,7 @@ func (x *DisableTOTPResponse) String() string {
 func (*DisableTOTPResponse) ProtoMessage() {}
 
 func (x *DisableTOTPResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[43]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2389,7 +2578,7 @@ func (x *DisableTOTPResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableTOTPResponse.ProtoReflect.Descriptor instead.
 func (*DisableTOTPResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{43}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{47}
 }
 
 type RegenerateRecoveryCodesRequest struct {
@@ -2400,7 +2589,7 @@ type RegenerateRecoveryCodesRequest struct {
 
 func (x *RegenerateRecoveryCodesRequest) Reset() {
 	*x = RegenerateRecoveryCodesRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[44]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2412,7 +2601,7 @@ func (x *RegenerateRecoveryCodesRequest) String() string {
 func (*RegenerateRecoveryCodesRequest) ProtoMessage() {}
 
 func (x *RegenerateRecoveryCodesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[44]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2425,7 +2614,7 @@ func (x *RegenerateRecoveryCodesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegenerateRecoveryCodesRequest.ProtoReflect.Descriptor instead.
 func (*RegenerateRecoveryCodesRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{44}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{48}
 }
 
 type RegenerateRecoveryCodesResponse struct {
@@ -2437,7 +2626,7 @@ type RegenerateRecoveryCodesResponse struct {
 
 func (x *RegenerateRecoveryCodesResponse) Reset() {
 	*x = RegenerateRecoveryCodesResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[45]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2449,7 +2638,7 @@ func (x *RegenerateRecoveryCodesResponse) String() string {
 func (*RegenerateRecoveryCodesResponse) ProtoMessage() {}
 
 func (x *RegenerateRecoveryCodesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[45]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2462,7 +2651,7 @@ func (x *RegenerateRecoveryCodesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegenerateRecoveryCodesResponse.ProtoReflect.Descriptor instead.
 func (*RegenerateRecoveryCodesResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{45}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *RegenerateRecoveryCodesResponse) GetRecoveryCodes() []string {
@@ -2480,7 +2669,7 @@ type GetSignInMethodsRequest struct {
 
 func (x *GetSignInMethodsRequest) Reset() {
 	*x = GetSignInMethodsRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[46]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2492,7 +2681,7 @@ func (x *GetSignInMethodsRequest) String() string {
 func (*GetSignInMethodsRequest) ProtoMessage() {}
 
 func (x *GetSignInMethodsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[46]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2505,7 +2694,7 @@ func (x *GetSignInMethodsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSignInMethodsRequest.ProtoReflect.Descriptor instead.
 func (*GetSignInMethodsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{46}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{50}
 }
 
 type GetSignInMethodsResponse struct {
@@ -2520,7 +2709,7 @@ type GetSignInMethodsResponse struct {
 
 func (x *GetSignInMethodsResponse) Reset() {
 	*x = GetSignInMethodsResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[47]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2532,7 +2721,7 @@ func (x *GetSignInMethodsResponse) String() string {
 func (*GetSignInMethodsResponse) ProtoMessage() {}
 
 func (x *GetSignInMethodsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[47]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2545,7 +2734,7 @@ func (x *GetSignInMethodsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSignInMethodsResponse.ProtoReflect.Descriptor instead.
 func (*GetSignInMethodsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{47}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *GetSignInMethodsResponse) GetEmail() bool {
@@ -2581,7 +2770,7 @@ type BeginOAuthRequest struct {
 
 func (x *BeginOAuthRequest) Reset() {
 	*x = BeginOAuthRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[48]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2593,7 +2782,7 @@ func (x *BeginOAuthRequest) String() string {
 func (*BeginOAuthRequest) ProtoMessage() {}
 
 func (x *BeginOAuthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[48]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2606,7 +2795,7 @@ func (x *BeginOAuthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BeginOAuthRequest.ProtoReflect.Descriptor instead.
 func (*BeginOAuthRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{48}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *BeginOAuthRequest) GetProvider() string {
@@ -2632,7 +2821,7 @@ type BeginOAuthResponse struct {
 
 func (x *BeginOAuthResponse) Reset() {
 	*x = BeginOAuthResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[49]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2644,7 +2833,7 @@ func (x *BeginOAuthResponse) String() string {
 func (*BeginOAuthResponse) ProtoMessage() {}
 
 func (x *BeginOAuthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[49]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2657,7 +2846,7 @@ func (x *BeginOAuthResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BeginOAuthResponse.ProtoReflect.Descriptor instead.
 func (*BeginOAuthResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{49}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *BeginOAuthResponse) GetUrl() string {
@@ -2680,7 +2869,7 @@ type OAuthAccount struct {
 
 func (x *OAuthAccount) Reset() {
 	*x = OAuthAccount{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[50]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2692,7 +2881,7 @@ func (x *OAuthAccount) String() string {
 func (*OAuthAccount) ProtoMessage() {}
 
 func (x *OAuthAccount) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[50]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2705,7 +2894,7 @@ func (x *OAuthAccount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OAuthAccount.ProtoReflect.Descriptor instead.
 func (*OAuthAccount) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{50}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *OAuthAccount) GetId() string {
@@ -2751,7 +2940,7 @@ type ListOAuthAccountsRequest struct {
 
 func (x *ListOAuthAccountsRequest) Reset() {
 	*x = ListOAuthAccountsRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[51]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2763,7 +2952,7 @@ func (x *ListOAuthAccountsRequest) String() string {
 func (*ListOAuthAccountsRequest) ProtoMessage() {}
 
 func (x *ListOAuthAccountsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[51]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2776,7 +2965,7 @@ func (x *ListOAuthAccountsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOAuthAccountsRequest.ProtoReflect.Descriptor instead.
 func (*ListOAuthAccountsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{51}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{55}
 }
 
 type ListOAuthAccountsResponse struct {
@@ -2788,7 +2977,7 @@ type ListOAuthAccountsResponse struct {
 
 func (x *ListOAuthAccountsResponse) Reset() {
 	*x = ListOAuthAccountsResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[52]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2800,7 +2989,7 @@ func (x *ListOAuthAccountsResponse) String() string {
 func (*ListOAuthAccountsResponse) ProtoMessage() {}
 
 func (x *ListOAuthAccountsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[52]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2813,7 +3002,7 @@ func (x *ListOAuthAccountsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOAuthAccountsResponse.ProtoReflect.Descriptor instead.
 func (*ListOAuthAccountsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{52}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *ListOAuthAccountsResponse) GetAccounts() []*OAuthAccount {
@@ -2832,7 +3021,7 @@ type UnlinkOAuthAccountRequest struct {
 
 func (x *UnlinkOAuthAccountRequest) Reset() {
 	*x = UnlinkOAuthAccountRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[53]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2844,7 +3033,7 @@ func (x *UnlinkOAuthAccountRequest) String() string {
 func (*UnlinkOAuthAccountRequest) ProtoMessage() {}
 
 func (x *UnlinkOAuthAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[53]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2857,7 +3046,7 @@ func (x *UnlinkOAuthAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnlinkOAuthAccountRequest.ProtoReflect.Descriptor instead.
 func (*UnlinkOAuthAccountRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{53}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *UnlinkOAuthAccountRequest) GetId() string {
@@ -2875,7 +3064,7 @@ type UnlinkOAuthAccountResponse struct {
 
 func (x *UnlinkOAuthAccountResponse) Reset() {
 	*x = UnlinkOAuthAccountResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[54]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2887,7 +3076,7 @@ func (x *UnlinkOAuthAccountResponse) String() string {
 func (*UnlinkOAuthAccountResponse) ProtoMessage() {}
 
 func (x *UnlinkOAuthAccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[54]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2900,7 +3089,7 @@ func (x *UnlinkOAuthAccountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnlinkOAuthAccountResponse.ProtoReflect.Descriptor instead.
 func (*UnlinkOAuthAccountResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{54}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{58}
 }
 
 type ListActivityRequest struct {
@@ -2914,7 +3103,7 @@ type ListActivityRequest struct {
 
 func (x *ListActivityRequest) Reset() {
 	*x = ListActivityRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[55]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2926,7 +3115,7 @@ func (x *ListActivityRequest) String() string {
 func (*ListActivityRequest) ProtoMessage() {}
 
 func (x *ListActivityRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[55]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2939,7 +3128,7 @@ func (x *ListActivityRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListActivityRequest.ProtoReflect.Descriptor instead.
 func (*ListActivityRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{55}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *ListActivityRequest) GetPageToken() string {
@@ -2966,7 +3155,7 @@ type ListActivityResponse struct {
 
 func (x *ListActivityResponse) Reset() {
 	*x = ListActivityResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[56]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2978,7 +3167,7 @@ func (x *ListActivityResponse) String() string {
 func (*ListActivityResponse) ProtoMessage() {}
 
 func (x *ListActivityResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[56]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2991,7 +3180,7 @@ func (x *ListActivityResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListActivityResponse.ProtoReflect.Descriptor instead.
 func (*ListActivityResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{56}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *ListActivityResponse) GetEvents() []*AuditEvent {
@@ -3020,7 +3209,7 @@ type UpdateProfileRequest struct {
 
 func (x *UpdateProfileRequest) Reset() {
 	*x = UpdateProfileRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[57]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3032,7 +3221,7 @@ func (x *UpdateProfileRequest) String() string {
 func (*UpdateProfileRequest) ProtoMessage() {}
 
 func (x *UpdateProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[57]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3045,7 +3234,7 @@ func (x *UpdateProfileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProfileRequest.ProtoReflect.Descriptor instead.
 func (*UpdateProfileRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{57}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *UpdateProfileRequest) GetName() string {
@@ -3078,7 +3267,7 @@ type UpdateProfileResponse struct {
 
 func (x *UpdateProfileResponse) Reset() {
 	*x = UpdateProfileResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[58]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3090,7 +3279,7 @@ func (x *UpdateProfileResponse) String() string {
 func (*UpdateProfileResponse) ProtoMessage() {}
 
 func (x *UpdateProfileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[58]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3103,7 +3292,7 @@ func (x *UpdateProfileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProfileResponse.ProtoReflect.Descriptor instead.
 func (*UpdateProfileResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{58}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *UpdateProfileResponse) GetUser() *User {
@@ -3124,7 +3313,7 @@ type SetAvatarRequest struct {
 
 func (x *SetAvatarRequest) Reset() {
 	*x = SetAvatarRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[59]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3136,7 +3325,7 @@ func (x *SetAvatarRequest) String() string {
 func (*SetAvatarRequest) ProtoMessage() {}
 
 func (x *SetAvatarRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[59]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3149,7 +3338,7 @@ func (x *SetAvatarRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetAvatarRequest.ProtoReflect.Descriptor instead.
 func (*SetAvatarRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{59}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *SetAvatarRequest) GetImage() []byte {
@@ -3168,7 +3357,7 @@ type SetAvatarResponse struct {
 
 func (x *SetAvatarResponse) Reset() {
 	*x = SetAvatarResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[60]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3180,7 +3369,7 @@ func (x *SetAvatarResponse) String() string {
 func (*SetAvatarResponse) ProtoMessage() {}
 
 func (x *SetAvatarResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[60]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3193,7 +3382,7 @@ func (x *SetAvatarResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetAvatarResponse.ProtoReflect.Descriptor instead.
 func (*SetAvatarResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{60}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *SetAvatarResponse) GetUser() *User {
@@ -3212,7 +3401,7 @@ type StartEmailChangeRequest struct {
 
 func (x *StartEmailChangeRequest) Reset() {
 	*x = StartEmailChangeRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[61]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3224,7 +3413,7 @@ func (x *StartEmailChangeRequest) String() string {
 func (*StartEmailChangeRequest) ProtoMessage() {}
 
 func (x *StartEmailChangeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[61]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3237,7 +3426,7 @@ func (x *StartEmailChangeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartEmailChangeRequest.ProtoReflect.Descriptor instead.
 func (*StartEmailChangeRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{61}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *StartEmailChangeRequest) GetNewEmail() string {
@@ -3255,7 +3444,7 @@ type StartEmailChangeResponse struct {
 
 func (x *StartEmailChangeResponse) Reset() {
 	*x = StartEmailChangeResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[62]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3267,7 +3456,7 @@ func (x *StartEmailChangeResponse) String() string {
 func (*StartEmailChangeResponse) ProtoMessage() {}
 
 func (x *StartEmailChangeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[62]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3280,7 +3469,7 @@ func (x *StartEmailChangeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartEmailChangeResponse.ProtoReflect.Descriptor instead.
 func (*StartEmailChangeResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{62}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{66}
 }
 
 type FinishEmailChangeRequest struct {
@@ -3293,7 +3482,7 @@ type FinishEmailChangeRequest struct {
 
 func (x *FinishEmailChangeRequest) Reset() {
 	*x = FinishEmailChangeRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[63]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3305,7 +3494,7 @@ func (x *FinishEmailChangeRequest) String() string {
 func (*FinishEmailChangeRequest) ProtoMessage() {}
 
 func (x *FinishEmailChangeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[63]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3318,7 +3507,7 @@ func (x *FinishEmailChangeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishEmailChangeRequest.ProtoReflect.Descriptor instead.
 func (*FinishEmailChangeRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{63}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *FinishEmailChangeRequest) GetNewEmail() string {
@@ -3344,7 +3533,7 @@ type FinishEmailChangeResponse struct {
 
 func (x *FinishEmailChangeResponse) Reset() {
 	*x = FinishEmailChangeResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[64]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3356,7 +3545,7 @@ func (x *FinishEmailChangeResponse) String() string {
 func (*FinishEmailChangeResponse) ProtoMessage() {}
 
 func (x *FinishEmailChangeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[64]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3369,7 +3558,7 @@ func (x *FinishEmailChangeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishEmailChangeResponse.ProtoReflect.Descriptor instead.
 func (*FinishEmailChangeResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{64}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *FinishEmailChangeResponse) GetUser() *User {
@@ -3387,7 +3576,7 @@ type DeleteAccountRequest struct {
 
 func (x *DeleteAccountRequest) Reset() {
 	*x = DeleteAccountRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[65]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3399,7 +3588,7 @@ func (x *DeleteAccountRequest) String() string {
 func (*DeleteAccountRequest) ProtoMessage() {}
 
 func (x *DeleteAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[65]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3412,7 +3601,7 @@ func (x *DeleteAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAccountRequest.ProtoReflect.Descriptor instead.
 func (*DeleteAccountRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{65}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{69}
 }
 
 type DeleteAccountResponse struct {
@@ -3423,7 +3612,7 @@ type DeleteAccountResponse struct {
 
 func (x *DeleteAccountResponse) Reset() {
 	*x = DeleteAccountResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[66]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3435,7 +3624,7 @@ func (x *DeleteAccountResponse) String() string {
 func (*DeleteAccountResponse) ProtoMessage() {}
 
 func (x *DeleteAccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[66]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3448,7 +3637,7 @@ func (x *DeleteAccountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAccountResponse.ProtoReflect.Descriptor instead.
 func (*DeleteAccountResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{66}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{70}
 }
 
 type ApproveAppRequest struct {
@@ -3467,7 +3656,7 @@ type ApproveAppRequest struct {
 
 func (x *ApproveAppRequest) Reset() {
 	*x = ApproveAppRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[67]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3479,7 +3668,7 @@ func (x *ApproveAppRequest) String() string {
 func (*ApproveAppRequest) ProtoMessage() {}
 
 func (x *ApproveAppRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[67]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3492,7 +3681,7 @@ func (x *ApproveAppRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApproveAppRequest.ProtoReflect.Descriptor instead.
 func (*ApproveAppRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{67}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *ApproveAppRequest) GetClientId() string {
@@ -3533,7 +3722,7 @@ type ApproveAppResponse struct {
 
 func (x *ApproveAppResponse) Reset() {
 	*x = ApproveAppResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[68]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3545,7 +3734,7 @@ func (x *ApproveAppResponse) String() string {
 func (*ApproveAppResponse) ProtoMessage() {}
 
 func (x *ApproveAppResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[68]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3558,7 +3747,7 @@ func (x *ApproveAppResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApproveAppResponse.ProtoReflect.Descriptor instead.
 func (*ApproveAppResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{68}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *ApproveAppResponse) GetCode() string {
@@ -3576,7 +3765,7 @@ type GetPhoneApproverRequest struct {
 
 func (x *GetPhoneApproverRequest) Reset() {
 	*x = GetPhoneApproverRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[69]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3588,7 +3777,7 @@ func (x *GetPhoneApproverRequest) String() string {
 func (*GetPhoneApproverRequest) ProtoMessage() {}
 
 func (x *GetPhoneApproverRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[69]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3601,7 +3790,7 @@ func (x *GetPhoneApproverRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPhoneApproverRequest.ProtoReflect.Descriptor instead.
 func (*GetPhoneApproverRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{69}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{73}
 }
 
 type GetPhoneApproverResponse struct {
@@ -3617,7 +3806,7 @@ type GetPhoneApproverResponse struct {
 
 func (x *GetPhoneApproverResponse) Reset() {
 	*x = GetPhoneApproverResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[70]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3629,7 +3818,7 @@ func (x *GetPhoneApproverResponse) String() string {
 func (*GetPhoneApproverResponse) ProtoMessage() {}
 
 func (x *GetPhoneApproverResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[70]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3642,7 +3831,7 @@ func (x *GetPhoneApproverResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPhoneApproverResponse.ProtoReflect.Descriptor instead.
 func (*GetPhoneApproverResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{70}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *GetPhoneApproverResponse) GetEnrolled() bool {
@@ -3676,7 +3865,7 @@ type EnrollPhoneApproverRequest struct {
 
 func (x *EnrollPhoneApproverRequest) Reset() {
 	*x = EnrollPhoneApproverRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[71]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3688,7 +3877,7 @@ func (x *EnrollPhoneApproverRequest) String() string {
 func (*EnrollPhoneApproverRequest) ProtoMessage() {}
 
 func (x *EnrollPhoneApproverRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[71]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3701,7 +3890,7 @@ func (x *EnrollPhoneApproverRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnrollPhoneApproverRequest.ProtoReflect.Descriptor instead.
 func (*EnrollPhoneApproverRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{71}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *EnrollPhoneApproverRequest) GetSecret() []byte {
@@ -3719,7 +3908,7 @@ type EnrollPhoneApproverResponse struct {
 
 func (x *EnrollPhoneApproverResponse) Reset() {
 	*x = EnrollPhoneApproverResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[72]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3731,7 +3920,7 @@ func (x *EnrollPhoneApproverResponse) String() string {
 func (*EnrollPhoneApproverResponse) ProtoMessage() {}
 
 func (x *EnrollPhoneApproverResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[72]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3744,7 +3933,7 @@ func (x *EnrollPhoneApproverResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnrollPhoneApproverResponse.ProtoReflect.Descriptor instead.
 func (*EnrollPhoneApproverResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{72}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{76}
 }
 
 type RemovePhoneApproverRequest struct {
@@ -3755,7 +3944,7 @@ type RemovePhoneApproverRequest struct {
 
 func (x *RemovePhoneApproverRequest) Reset() {
 	*x = RemovePhoneApproverRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[73]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3767,7 +3956,7 @@ func (x *RemovePhoneApproverRequest) String() string {
 func (*RemovePhoneApproverRequest) ProtoMessage() {}
 
 func (x *RemovePhoneApproverRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[73]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3780,7 +3969,7 @@ func (x *RemovePhoneApproverRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemovePhoneApproverRequest.ProtoReflect.Descriptor instead.
 func (*RemovePhoneApproverRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{73}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{77}
 }
 
 type RemovePhoneApproverResponse struct {
@@ -3791,7 +3980,7 @@ type RemovePhoneApproverResponse struct {
 
 func (x *RemovePhoneApproverResponse) Reset() {
 	*x = RemovePhoneApproverResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[74]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3803,7 +3992,7 @@ func (x *RemovePhoneApproverResponse) String() string {
 func (*RemovePhoneApproverResponse) ProtoMessage() {}
 
 func (x *RemovePhoneApproverResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[74]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3816,7 +4005,7 @@ func (x *RemovePhoneApproverResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemovePhoneApproverResponse.ProtoReflect.Descriptor instead.
 func (*RemovePhoneApproverResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{74}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{78}
 }
 
 type StartPhoneApprovalRequest struct {
@@ -3830,7 +4019,7 @@ type StartPhoneApprovalRequest struct {
 
 func (x *StartPhoneApprovalRequest) Reset() {
 	*x = StartPhoneApprovalRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[75]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3842,7 +4031,7 @@ func (x *StartPhoneApprovalRequest) String() string {
 func (*StartPhoneApprovalRequest) ProtoMessage() {}
 
 func (x *StartPhoneApprovalRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[75]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3855,7 +4044,7 @@ func (x *StartPhoneApprovalRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartPhoneApprovalRequest.ProtoReflect.Descriptor instead.
 func (*StartPhoneApprovalRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{75}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *StartPhoneApprovalRequest) GetPurpose() string {
@@ -3880,7 +4069,7 @@ type StartPhoneApprovalResponse struct {
 
 func (x *StartPhoneApprovalResponse) Reset() {
 	*x = StartPhoneApprovalResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[76]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3892,7 +4081,7 @@ func (x *StartPhoneApprovalResponse) String() string {
 func (*StartPhoneApprovalResponse) ProtoMessage() {}
 
 func (x *StartPhoneApprovalResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[76]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3905,7 +4094,7 @@ func (x *StartPhoneApprovalResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartPhoneApprovalResponse.ProtoReflect.Descriptor instead.
 func (*StartPhoneApprovalResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{76}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *StartPhoneApprovalResponse) GetApprovalId() string {
@@ -3945,7 +4134,7 @@ type CheckPhoneApprovalRequest struct {
 
 func (x *CheckPhoneApprovalRequest) Reset() {
 	*x = CheckPhoneApprovalRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[77]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3957,7 +4146,7 @@ func (x *CheckPhoneApprovalRequest) String() string {
 func (*CheckPhoneApprovalRequest) ProtoMessage() {}
 
 func (x *CheckPhoneApprovalRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[77]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3970,7 +4159,7 @@ func (x *CheckPhoneApprovalRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckPhoneApprovalRequest.ProtoReflect.Descriptor instead.
 func (*CheckPhoneApprovalRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{77}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *CheckPhoneApprovalRequest) GetApprovalId() string {
@@ -3990,7 +4179,7 @@ type CheckPhoneApprovalResponse struct {
 
 func (x *CheckPhoneApprovalResponse) Reset() {
 	*x = CheckPhoneApprovalResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[78]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4002,7 +4191,7 @@ func (x *CheckPhoneApprovalResponse) String() string {
 func (*CheckPhoneApprovalResponse) ProtoMessage() {}
 
 func (x *CheckPhoneApprovalResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[78]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4015,7 +4204,7 @@ func (x *CheckPhoneApprovalResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckPhoneApprovalResponse.ProtoReflect.Descriptor instead.
 func (*CheckPhoneApprovalResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{78}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *CheckPhoneApprovalResponse) GetStatus() string {
@@ -4033,7 +4222,7 @@ type ListPhoneApprovalsRequest struct {
 
 func (x *ListPhoneApprovalsRequest) Reset() {
 	*x = ListPhoneApprovalsRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[79]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4045,7 +4234,7 @@ func (x *ListPhoneApprovalsRequest) String() string {
 func (*ListPhoneApprovalsRequest) ProtoMessage() {}
 
 func (x *ListPhoneApprovalsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[79]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4058,7 +4247,7 @@ func (x *ListPhoneApprovalsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPhoneApprovalsRequest.ProtoReflect.Descriptor instead.
 func (*ListPhoneApprovalsRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{79}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{83}
 }
 
 type PhoneApproval struct {
@@ -4081,7 +4270,7 @@ type PhoneApproval struct {
 
 func (x *PhoneApproval) Reset() {
 	*x = PhoneApproval{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[80]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4093,7 +4282,7 @@ func (x *PhoneApproval) String() string {
 func (*PhoneApproval) ProtoMessage() {}
 
 func (x *PhoneApproval) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[80]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4106,7 +4295,7 @@ func (x *PhoneApproval) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PhoneApproval.ProtoReflect.Descriptor instead.
 func (*PhoneApproval) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{80}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *PhoneApproval) GetId() string {
@@ -4174,7 +4363,7 @@ type ListPhoneApprovalsResponse struct {
 
 func (x *ListPhoneApprovalsResponse) Reset() {
 	*x = ListPhoneApprovalsResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[81]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4186,7 +4375,7 @@ func (x *ListPhoneApprovalsResponse) String() string {
 func (*ListPhoneApprovalsResponse) ProtoMessage() {}
 
 func (x *ListPhoneApprovalsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[81]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4199,7 +4388,7 @@ func (x *ListPhoneApprovalsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPhoneApprovalsResponse.ProtoReflect.Descriptor instead.
 func (*ListPhoneApprovalsResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{81}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *ListPhoneApprovalsResponse) GetApprovals() []*PhoneApproval {
@@ -4225,7 +4414,7 @@ type DecidePhoneApprovalRequest struct {
 
 func (x *DecidePhoneApprovalRequest) Reset() {
 	*x = DecidePhoneApprovalRequest{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[82]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4237,7 +4426,7 @@ func (x *DecidePhoneApprovalRequest) String() string {
 func (*DecidePhoneApprovalRequest) ProtoMessage() {}
 
 func (x *DecidePhoneApprovalRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[82]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4250,7 +4439,7 @@ func (x *DecidePhoneApprovalRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DecidePhoneApprovalRequest.ProtoReflect.Descriptor instead.
 func (*DecidePhoneApprovalRequest) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{82}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *DecidePhoneApprovalRequest) GetApprovalId() string {
@@ -4291,7 +4480,7 @@ type DecidePhoneApprovalResponse struct {
 
 func (x *DecidePhoneApprovalResponse) Reset() {
 	*x = DecidePhoneApprovalResponse{}
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[83]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4303,7 +4492,7 @@ func (x *DecidePhoneApprovalResponse) String() string {
 func (*DecidePhoneApprovalResponse) ProtoMessage() {}
 
 func (x *DecidePhoneApprovalResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_raptor_panel_v1_auth_proto_msgTypes[83]
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4316,7 +4505,7 @@ func (x *DecidePhoneApprovalResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DecidePhoneApprovalResponse.ProtoReflect.Descriptor instead.
 func (*DecidePhoneApprovalResponse) Descriptor() ([]byte, []int) {
-	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{83}
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *DecidePhoneApprovalResponse) GetStatus() string {
@@ -4334,7 +4523,15 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\x17StartEmailSignInRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12'\n" +
 	"\x0fturnstile_token\x18\x02 \x01(\tR\x0eturnstileToken\"\x1a\n" +
-	"\x18StartEmailSignInResponse\"v\n" +
+	"\x18StartEmailSignInResponse\"\x10\n" +
+	"\x0eGetDemoRequest\"%\n" +
+	"\x0fGetDemoResponse\x12\x12\n" +
+	"\x04open\x18\x01 \x01(\bR\x04open\";\n" +
+	"\x10StartDemoRequest\x12'\n" +
+	"\x0fturnstile_token\x18\x01 \x01(\tR\x0eturnstileToken\"U\n" +
+	"\x11StartDemoResponse\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12)\n" +
+	"\x04user\x18\x02 \x01(\v2\x15.raptor.panel.v1.UserR\x04user\"v\n" +
 	"\x18FinishEmailSignInRequest\x120\n" +
 	"\x04code\x18\x01 \x01(\v2\x1a.raptor.panel.v1.EmailCodeH\x00R\x04code\x12\x1f\n" +
 	"\n" +
@@ -4347,7 +4544,7 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\x04user\x18\x01 \x01(\v2\x15.raptor.panel.v1.UserR\x04user\x12\x1f\n" +
 	"\vnew_account\x18\x02 \x01(\bR\n" +
 	"newAccount\x124\n" +
-	"\x16second_factor_required\x18\x03 \x01(\bR\x14secondFactorRequired\"\x82\x02\n" +
+	"\x16second_factor_required\x18\x03 \x01(\bR\x14secondFactorRequired\"\xbf\x02\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
@@ -4358,7 +4555,10 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\x05theme\x18\a \x01(\tR\x05theme\x12\x1f\n" +
 	"\vtheme_style\x18\b \x01(\tR\n" +
 	"themeStyle\x12\x16\n" +
-	"\x06avatar\x18\t \x01(\tR\x06avatarJ\x04\b\x05\x10\x06R\rsftp_username\"\x13\n" +
+	"\x06avatar\x18\t \x01(\tR\x06avatar\x12;\n" +
+	"\vguest_until\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"guestUntilJ\x04\b\x05\x10\x06R\rsftp_username\"\x13\n" +
 	"\x11GetSessionRequest\"\xa3\x01\n" +
 	"\x12GetSessionResponse\x12)\n" +
 	"\x04user\x18\x01 \x01(\v2\x15.raptor.panel.v1.UserR\x04user\x122\n" +
@@ -4581,10 +4781,12 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\x06number\x18\x03 \x01(\x05R\x06number\x12\x10\n" +
 	"\x03mac\x18\x04 \x01(\fR\x03mac\"5\n" +
 	"\x1bDecidePhoneApprovalResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status2\xbb\x1f\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status2\xe4 \n" +
 	"\vAuthService\x12i\n" +
 	"\x10StartEmailSignIn\x12(.raptor.panel.v1.StartEmailSignInRequest\x1a).raptor.panel.v1.StartEmailSignInResponse\"\x00\x12l\n" +
-	"\x11FinishEmailSignIn\x12).raptor.panel.v1.FinishEmailSignInRequest\x1a*.raptor.panel.v1.FinishEmailSignInResponse\"\x00\x12Z\n" +
+	"\x11FinishEmailSignIn\x12).raptor.panel.v1.FinishEmailSignInRequest\x1a*.raptor.panel.v1.FinishEmailSignInResponse\"\x00\x12Q\n" +
+	"\aGetDemo\x12\x1f.raptor.panel.v1.GetDemoRequest\x1a .raptor.panel.v1.GetDemoResponse\"\x03\x90\x02\x01\x12T\n" +
+	"\tStartDemo\x12!.raptor.panel.v1.StartDemoRequest\x1a\".raptor.panel.v1.StartDemoResponse\"\x00\x12Z\n" +
 	"\n" +
 	"GetSession\x12\".raptor.panel.v1.GetSessionRequest\x1a#.raptor.panel.v1.GetSessionResponse\"\x03\x90\x02\x01\x12N\n" +
 	"\aSignOut\x12\x1f.raptor.panel.v1.SignOutRequest\x1a .raptor.panel.v1.SignOutResponse\"\x00\x12`\n" +
@@ -4638,212 +4840,222 @@ func file_raptor_panel_v1_auth_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_auth_proto_rawDescData
 }
 
-var file_raptor_panel_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 84)
+var file_raptor_panel_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 88)
 var file_raptor_panel_v1_auth_proto_goTypes = []any{
 	(*StartEmailSignInRequest)(nil),           // 0: raptor.panel.v1.StartEmailSignInRequest
 	(*StartEmailSignInResponse)(nil),          // 1: raptor.panel.v1.StartEmailSignInResponse
-	(*FinishEmailSignInRequest)(nil),          // 2: raptor.panel.v1.FinishEmailSignInRequest
-	(*EmailCode)(nil),                         // 3: raptor.panel.v1.EmailCode
-	(*FinishEmailSignInResponse)(nil),         // 4: raptor.panel.v1.FinishEmailSignInResponse
-	(*User)(nil),                              // 5: raptor.panel.v1.User
-	(*GetSessionRequest)(nil),                 // 6: raptor.panel.v1.GetSessionRequest
-	(*GetSessionResponse)(nil),                // 7: raptor.panel.v1.GetSessionResponse
-	(*Session)(nil),                           // 8: raptor.panel.v1.Session
-	(*SignOutRequest)(nil),                    // 9: raptor.panel.v1.SignOutRequest
-	(*SignOutResponse)(nil),                   // 10: raptor.panel.v1.SignOutResponse
-	(*ListSessionsRequest)(nil),               // 11: raptor.panel.v1.ListSessionsRequest
-	(*ListSessionsResponse)(nil),              // 12: raptor.panel.v1.ListSessionsResponse
-	(*RevokeSessionRequest)(nil),              // 13: raptor.panel.v1.RevokeSessionRequest
-	(*RevokeSessionResponse)(nil),             // 14: raptor.panel.v1.RevokeSessionResponse
-	(*PasskeyChallenge)(nil),                  // 15: raptor.panel.v1.PasskeyChallenge
-	(*PasskeyAnswer)(nil),                     // 16: raptor.panel.v1.PasskeyAnswer
-	(*BeginPasskeySignInRequest)(nil),         // 17: raptor.panel.v1.BeginPasskeySignInRequest
-	(*BeginPasskeySignInResponse)(nil),        // 18: raptor.panel.v1.BeginPasskeySignInResponse
-	(*FinishPasskeySignInRequest)(nil),        // 19: raptor.panel.v1.FinishPasskeySignInRequest
-	(*FinishPasskeySignInResponse)(nil),       // 20: raptor.panel.v1.FinishPasskeySignInResponse
-	(*BeginPasskeyRegistrationRequest)(nil),   // 21: raptor.panel.v1.BeginPasskeyRegistrationRequest
-	(*BeginPasskeyRegistrationResponse)(nil),  // 22: raptor.panel.v1.BeginPasskeyRegistrationResponse
-	(*FinishPasskeyRegistrationRequest)(nil),  // 23: raptor.panel.v1.FinishPasskeyRegistrationRequest
-	(*FinishPasskeyRegistrationResponse)(nil), // 24: raptor.panel.v1.FinishPasskeyRegistrationResponse
-	(*Passkey)(nil),                           // 25: raptor.panel.v1.Passkey
-	(*ListPasskeysRequest)(nil),               // 26: raptor.panel.v1.ListPasskeysRequest
-	(*ListPasskeysResponse)(nil),              // 27: raptor.panel.v1.ListPasskeysResponse
-	(*RenamePasskeyRequest)(nil),              // 28: raptor.panel.v1.RenamePasskeyRequest
-	(*RenamePasskeyResponse)(nil),             // 29: raptor.panel.v1.RenamePasskeyResponse
-	(*DeletePasskeyRequest)(nil),              // 30: raptor.panel.v1.DeletePasskeyRequest
-	(*DeletePasskeyResponse)(nil),             // 31: raptor.panel.v1.DeletePasskeyResponse
-	(*BeginReauthRequest)(nil),                // 32: raptor.panel.v1.BeginReauthRequest
-	(*BeginReauthResponse)(nil),               // 33: raptor.panel.v1.BeginReauthResponse
-	(*FinishReauthRequest)(nil),               // 34: raptor.panel.v1.FinishReauthRequest
-	(*FinishReauthResponse)(nil),              // 35: raptor.panel.v1.FinishReauthResponse
-	(*FinishSecondFactorRequest)(nil),         // 36: raptor.panel.v1.FinishSecondFactorRequest
-	(*FinishSecondFactorResponse)(nil),        // 37: raptor.panel.v1.FinishSecondFactorResponse
-	(*BeginTOTPSetupRequest)(nil),             // 38: raptor.panel.v1.BeginTOTPSetupRequest
-	(*BeginTOTPSetupResponse)(nil),            // 39: raptor.panel.v1.BeginTOTPSetupResponse
-	(*FinishTOTPSetupRequest)(nil),            // 40: raptor.panel.v1.FinishTOTPSetupRequest
-	(*FinishTOTPSetupResponse)(nil),           // 41: raptor.panel.v1.FinishTOTPSetupResponse
-	(*DisableTOTPRequest)(nil),                // 42: raptor.panel.v1.DisableTOTPRequest
-	(*DisableTOTPResponse)(nil),               // 43: raptor.panel.v1.DisableTOTPResponse
-	(*RegenerateRecoveryCodesRequest)(nil),    // 44: raptor.panel.v1.RegenerateRecoveryCodesRequest
-	(*RegenerateRecoveryCodesResponse)(nil),   // 45: raptor.panel.v1.RegenerateRecoveryCodesResponse
-	(*GetSignInMethodsRequest)(nil),           // 46: raptor.panel.v1.GetSignInMethodsRequest
-	(*GetSignInMethodsResponse)(nil),          // 47: raptor.panel.v1.GetSignInMethodsResponse
-	(*BeginOAuthRequest)(nil),                 // 48: raptor.panel.v1.BeginOAuthRequest
-	(*BeginOAuthResponse)(nil),                // 49: raptor.panel.v1.BeginOAuthResponse
-	(*OAuthAccount)(nil),                      // 50: raptor.panel.v1.OAuthAccount
-	(*ListOAuthAccountsRequest)(nil),          // 51: raptor.panel.v1.ListOAuthAccountsRequest
-	(*ListOAuthAccountsResponse)(nil),         // 52: raptor.panel.v1.ListOAuthAccountsResponse
-	(*UnlinkOAuthAccountRequest)(nil),         // 53: raptor.panel.v1.UnlinkOAuthAccountRequest
-	(*UnlinkOAuthAccountResponse)(nil),        // 54: raptor.panel.v1.UnlinkOAuthAccountResponse
-	(*ListActivityRequest)(nil),               // 55: raptor.panel.v1.ListActivityRequest
-	(*ListActivityResponse)(nil),              // 56: raptor.panel.v1.ListActivityResponse
-	(*UpdateProfileRequest)(nil),              // 57: raptor.panel.v1.UpdateProfileRequest
-	(*UpdateProfileResponse)(nil),             // 58: raptor.panel.v1.UpdateProfileResponse
-	(*SetAvatarRequest)(nil),                  // 59: raptor.panel.v1.SetAvatarRequest
-	(*SetAvatarResponse)(nil),                 // 60: raptor.panel.v1.SetAvatarResponse
-	(*StartEmailChangeRequest)(nil),           // 61: raptor.panel.v1.StartEmailChangeRequest
-	(*StartEmailChangeResponse)(nil),          // 62: raptor.panel.v1.StartEmailChangeResponse
-	(*FinishEmailChangeRequest)(nil),          // 63: raptor.panel.v1.FinishEmailChangeRequest
-	(*FinishEmailChangeResponse)(nil),         // 64: raptor.panel.v1.FinishEmailChangeResponse
-	(*DeleteAccountRequest)(nil),              // 65: raptor.panel.v1.DeleteAccountRequest
-	(*DeleteAccountResponse)(nil),             // 66: raptor.panel.v1.DeleteAccountResponse
-	(*ApproveAppRequest)(nil),                 // 67: raptor.panel.v1.ApproveAppRequest
-	(*ApproveAppResponse)(nil),                // 68: raptor.panel.v1.ApproveAppResponse
-	(*GetPhoneApproverRequest)(nil),           // 69: raptor.panel.v1.GetPhoneApproverRequest
-	(*GetPhoneApproverResponse)(nil),          // 70: raptor.panel.v1.GetPhoneApproverResponse
-	(*EnrollPhoneApproverRequest)(nil),        // 71: raptor.panel.v1.EnrollPhoneApproverRequest
-	(*EnrollPhoneApproverResponse)(nil),       // 72: raptor.panel.v1.EnrollPhoneApproverResponse
-	(*RemovePhoneApproverRequest)(nil),        // 73: raptor.panel.v1.RemovePhoneApproverRequest
-	(*RemovePhoneApproverResponse)(nil),       // 74: raptor.panel.v1.RemovePhoneApproverResponse
-	(*StartPhoneApprovalRequest)(nil),         // 75: raptor.panel.v1.StartPhoneApprovalRequest
-	(*StartPhoneApprovalResponse)(nil),        // 76: raptor.panel.v1.StartPhoneApprovalResponse
-	(*CheckPhoneApprovalRequest)(nil),         // 77: raptor.panel.v1.CheckPhoneApprovalRequest
-	(*CheckPhoneApprovalResponse)(nil),        // 78: raptor.panel.v1.CheckPhoneApprovalResponse
-	(*ListPhoneApprovalsRequest)(nil),         // 79: raptor.panel.v1.ListPhoneApprovalsRequest
-	(*PhoneApproval)(nil),                     // 80: raptor.panel.v1.PhoneApproval
-	(*ListPhoneApprovalsResponse)(nil),        // 81: raptor.panel.v1.ListPhoneApprovalsResponse
-	(*DecidePhoneApprovalRequest)(nil),        // 82: raptor.panel.v1.DecidePhoneApprovalRequest
-	(*DecidePhoneApprovalResponse)(nil),       // 83: raptor.panel.v1.DecidePhoneApprovalResponse
-	(*timestamppb.Timestamp)(nil),             // 84: google.protobuf.Timestamp
-	(*ActivityFilter)(nil),                    // 85: raptor.panel.v1.ActivityFilter
-	(*AuditEvent)(nil),                        // 86: raptor.panel.v1.AuditEvent
+	(*GetDemoRequest)(nil),                    // 2: raptor.panel.v1.GetDemoRequest
+	(*GetDemoResponse)(nil),                   // 3: raptor.panel.v1.GetDemoResponse
+	(*StartDemoRequest)(nil),                  // 4: raptor.panel.v1.StartDemoRequest
+	(*StartDemoResponse)(nil),                 // 5: raptor.panel.v1.StartDemoResponse
+	(*FinishEmailSignInRequest)(nil),          // 6: raptor.panel.v1.FinishEmailSignInRequest
+	(*EmailCode)(nil),                         // 7: raptor.panel.v1.EmailCode
+	(*FinishEmailSignInResponse)(nil),         // 8: raptor.panel.v1.FinishEmailSignInResponse
+	(*User)(nil),                              // 9: raptor.panel.v1.User
+	(*GetSessionRequest)(nil),                 // 10: raptor.panel.v1.GetSessionRequest
+	(*GetSessionResponse)(nil),                // 11: raptor.panel.v1.GetSessionResponse
+	(*Session)(nil),                           // 12: raptor.panel.v1.Session
+	(*SignOutRequest)(nil),                    // 13: raptor.panel.v1.SignOutRequest
+	(*SignOutResponse)(nil),                   // 14: raptor.panel.v1.SignOutResponse
+	(*ListSessionsRequest)(nil),               // 15: raptor.panel.v1.ListSessionsRequest
+	(*ListSessionsResponse)(nil),              // 16: raptor.panel.v1.ListSessionsResponse
+	(*RevokeSessionRequest)(nil),              // 17: raptor.panel.v1.RevokeSessionRequest
+	(*RevokeSessionResponse)(nil),             // 18: raptor.panel.v1.RevokeSessionResponse
+	(*PasskeyChallenge)(nil),                  // 19: raptor.panel.v1.PasskeyChallenge
+	(*PasskeyAnswer)(nil),                     // 20: raptor.panel.v1.PasskeyAnswer
+	(*BeginPasskeySignInRequest)(nil),         // 21: raptor.panel.v1.BeginPasskeySignInRequest
+	(*BeginPasskeySignInResponse)(nil),        // 22: raptor.panel.v1.BeginPasskeySignInResponse
+	(*FinishPasskeySignInRequest)(nil),        // 23: raptor.panel.v1.FinishPasskeySignInRequest
+	(*FinishPasskeySignInResponse)(nil),       // 24: raptor.panel.v1.FinishPasskeySignInResponse
+	(*BeginPasskeyRegistrationRequest)(nil),   // 25: raptor.panel.v1.BeginPasskeyRegistrationRequest
+	(*BeginPasskeyRegistrationResponse)(nil),  // 26: raptor.panel.v1.BeginPasskeyRegistrationResponse
+	(*FinishPasskeyRegistrationRequest)(nil),  // 27: raptor.panel.v1.FinishPasskeyRegistrationRequest
+	(*FinishPasskeyRegistrationResponse)(nil), // 28: raptor.panel.v1.FinishPasskeyRegistrationResponse
+	(*Passkey)(nil),                           // 29: raptor.panel.v1.Passkey
+	(*ListPasskeysRequest)(nil),               // 30: raptor.panel.v1.ListPasskeysRequest
+	(*ListPasskeysResponse)(nil),              // 31: raptor.panel.v1.ListPasskeysResponse
+	(*RenamePasskeyRequest)(nil),              // 32: raptor.panel.v1.RenamePasskeyRequest
+	(*RenamePasskeyResponse)(nil),             // 33: raptor.panel.v1.RenamePasskeyResponse
+	(*DeletePasskeyRequest)(nil),              // 34: raptor.panel.v1.DeletePasskeyRequest
+	(*DeletePasskeyResponse)(nil),             // 35: raptor.panel.v1.DeletePasskeyResponse
+	(*BeginReauthRequest)(nil),                // 36: raptor.panel.v1.BeginReauthRequest
+	(*BeginReauthResponse)(nil),               // 37: raptor.panel.v1.BeginReauthResponse
+	(*FinishReauthRequest)(nil),               // 38: raptor.panel.v1.FinishReauthRequest
+	(*FinishReauthResponse)(nil),              // 39: raptor.panel.v1.FinishReauthResponse
+	(*FinishSecondFactorRequest)(nil),         // 40: raptor.panel.v1.FinishSecondFactorRequest
+	(*FinishSecondFactorResponse)(nil),        // 41: raptor.panel.v1.FinishSecondFactorResponse
+	(*BeginTOTPSetupRequest)(nil),             // 42: raptor.panel.v1.BeginTOTPSetupRequest
+	(*BeginTOTPSetupResponse)(nil),            // 43: raptor.panel.v1.BeginTOTPSetupResponse
+	(*FinishTOTPSetupRequest)(nil),            // 44: raptor.panel.v1.FinishTOTPSetupRequest
+	(*FinishTOTPSetupResponse)(nil),           // 45: raptor.panel.v1.FinishTOTPSetupResponse
+	(*DisableTOTPRequest)(nil),                // 46: raptor.panel.v1.DisableTOTPRequest
+	(*DisableTOTPResponse)(nil),               // 47: raptor.panel.v1.DisableTOTPResponse
+	(*RegenerateRecoveryCodesRequest)(nil),    // 48: raptor.panel.v1.RegenerateRecoveryCodesRequest
+	(*RegenerateRecoveryCodesResponse)(nil),   // 49: raptor.panel.v1.RegenerateRecoveryCodesResponse
+	(*GetSignInMethodsRequest)(nil),           // 50: raptor.panel.v1.GetSignInMethodsRequest
+	(*GetSignInMethodsResponse)(nil),          // 51: raptor.panel.v1.GetSignInMethodsResponse
+	(*BeginOAuthRequest)(nil),                 // 52: raptor.panel.v1.BeginOAuthRequest
+	(*BeginOAuthResponse)(nil),                // 53: raptor.panel.v1.BeginOAuthResponse
+	(*OAuthAccount)(nil),                      // 54: raptor.panel.v1.OAuthAccount
+	(*ListOAuthAccountsRequest)(nil),          // 55: raptor.panel.v1.ListOAuthAccountsRequest
+	(*ListOAuthAccountsResponse)(nil),         // 56: raptor.panel.v1.ListOAuthAccountsResponse
+	(*UnlinkOAuthAccountRequest)(nil),         // 57: raptor.panel.v1.UnlinkOAuthAccountRequest
+	(*UnlinkOAuthAccountResponse)(nil),        // 58: raptor.panel.v1.UnlinkOAuthAccountResponse
+	(*ListActivityRequest)(nil),               // 59: raptor.panel.v1.ListActivityRequest
+	(*ListActivityResponse)(nil),              // 60: raptor.panel.v1.ListActivityResponse
+	(*UpdateProfileRequest)(nil),              // 61: raptor.panel.v1.UpdateProfileRequest
+	(*UpdateProfileResponse)(nil),             // 62: raptor.panel.v1.UpdateProfileResponse
+	(*SetAvatarRequest)(nil),                  // 63: raptor.panel.v1.SetAvatarRequest
+	(*SetAvatarResponse)(nil),                 // 64: raptor.panel.v1.SetAvatarResponse
+	(*StartEmailChangeRequest)(nil),           // 65: raptor.panel.v1.StartEmailChangeRequest
+	(*StartEmailChangeResponse)(nil),          // 66: raptor.panel.v1.StartEmailChangeResponse
+	(*FinishEmailChangeRequest)(nil),          // 67: raptor.panel.v1.FinishEmailChangeRequest
+	(*FinishEmailChangeResponse)(nil),         // 68: raptor.panel.v1.FinishEmailChangeResponse
+	(*DeleteAccountRequest)(nil),              // 69: raptor.panel.v1.DeleteAccountRequest
+	(*DeleteAccountResponse)(nil),             // 70: raptor.panel.v1.DeleteAccountResponse
+	(*ApproveAppRequest)(nil),                 // 71: raptor.panel.v1.ApproveAppRequest
+	(*ApproveAppResponse)(nil),                // 72: raptor.panel.v1.ApproveAppResponse
+	(*GetPhoneApproverRequest)(nil),           // 73: raptor.panel.v1.GetPhoneApproverRequest
+	(*GetPhoneApproverResponse)(nil),          // 74: raptor.panel.v1.GetPhoneApproverResponse
+	(*EnrollPhoneApproverRequest)(nil),        // 75: raptor.panel.v1.EnrollPhoneApproverRequest
+	(*EnrollPhoneApproverResponse)(nil),       // 76: raptor.panel.v1.EnrollPhoneApproverResponse
+	(*RemovePhoneApproverRequest)(nil),        // 77: raptor.panel.v1.RemovePhoneApproverRequest
+	(*RemovePhoneApproverResponse)(nil),       // 78: raptor.panel.v1.RemovePhoneApproverResponse
+	(*StartPhoneApprovalRequest)(nil),         // 79: raptor.panel.v1.StartPhoneApprovalRequest
+	(*StartPhoneApprovalResponse)(nil),        // 80: raptor.panel.v1.StartPhoneApprovalResponse
+	(*CheckPhoneApprovalRequest)(nil),         // 81: raptor.panel.v1.CheckPhoneApprovalRequest
+	(*CheckPhoneApprovalResponse)(nil),        // 82: raptor.panel.v1.CheckPhoneApprovalResponse
+	(*ListPhoneApprovalsRequest)(nil),         // 83: raptor.panel.v1.ListPhoneApprovalsRequest
+	(*PhoneApproval)(nil),                     // 84: raptor.panel.v1.PhoneApproval
+	(*ListPhoneApprovalsResponse)(nil),        // 85: raptor.panel.v1.ListPhoneApprovalsResponse
+	(*DecidePhoneApprovalRequest)(nil),        // 86: raptor.panel.v1.DecidePhoneApprovalRequest
+	(*DecidePhoneApprovalResponse)(nil),       // 87: raptor.panel.v1.DecidePhoneApprovalResponse
+	(*timestamppb.Timestamp)(nil),             // 88: google.protobuf.Timestamp
+	(*ActivityFilter)(nil),                    // 89: raptor.panel.v1.ActivityFilter
+	(*AuditEvent)(nil),                        // 90: raptor.panel.v1.AuditEvent
 }
 var file_raptor_panel_v1_auth_proto_depIdxs = []int32{
-	3,  // 0: raptor.panel.v1.FinishEmailSignInRequest.code:type_name -> raptor.panel.v1.EmailCode
-	5,  // 1: raptor.panel.v1.FinishEmailSignInResponse.user:type_name -> raptor.panel.v1.User
-	84, // 2: raptor.panel.v1.User.created_at:type_name -> google.protobuf.Timestamp
-	5,  // 3: raptor.panel.v1.GetSessionResponse.user:type_name -> raptor.panel.v1.User
-	8,  // 4: raptor.panel.v1.GetSessionResponse.session:type_name -> raptor.panel.v1.Session
-	84, // 5: raptor.panel.v1.Session.created_at:type_name -> google.protobuf.Timestamp
-	84, // 6: raptor.panel.v1.Session.last_seen_at:type_name -> google.protobuf.Timestamp
-	84, // 7: raptor.panel.v1.Session.reauth_until:type_name -> google.protobuf.Timestamp
-	8,  // 8: raptor.panel.v1.ListSessionsResponse.sessions:type_name -> raptor.panel.v1.Session
-	15, // 9: raptor.panel.v1.BeginPasskeySignInResponse.challenge:type_name -> raptor.panel.v1.PasskeyChallenge
-	16, // 10: raptor.panel.v1.FinishPasskeySignInRequest.answer:type_name -> raptor.panel.v1.PasskeyAnswer
-	5,  // 11: raptor.panel.v1.FinishPasskeySignInResponse.user:type_name -> raptor.panel.v1.User
-	15, // 12: raptor.panel.v1.BeginPasskeyRegistrationResponse.challenge:type_name -> raptor.panel.v1.PasskeyChallenge
-	16, // 13: raptor.panel.v1.FinishPasskeyRegistrationRequest.answer:type_name -> raptor.panel.v1.PasskeyAnswer
-	25, // 14: raptor.panel.v1.FinishPasskeyRegistrationResponse.passkey:type_name -> raptor.panel.v1.Passkey
-	84, // 15: raptor.panel.v1.Passkey.created_at:type_name -> google.protobuf.Timestamp
-	84, // 16: raptor.panel.v1.Passkey.last_used_at:type_name -> google.protobuf.Timestamp
-	25, // 17: raptor.panel.v1.ListPasskeysResponse.passkeys:type_name -> raptor.panel.v1.Passkey
-	15, // 18: raptor.panel.v1.BeginReauthResponse.passkey:type_name -> raptor.panel.v1.PasskeyChallenge
-	16, // 19: raptor.panel.v1.FinishReauthRequest.passkey:type_name -> raptor.panel.v1.PasskeyAnswer
-	84, // 20: raptor.panel.v1.FinishReauthResponse.reauth_until:type_name -> google.protobuf.Timestamp
-	5,  // 21: raptor.panel.v1.FinishSecondFactorResponse.user:type_name -> raptor.panel.v1.User
-	84, // 22: raptor.panel.v1.OAuthAccount.created_at:type_name -> google.protobuf.Timestamp
-	84, // 23: raptor.panel.v1.OAuthAccount.last_used_at:type_name -> google.protobuf.Timestamp
-	50, // 24: raptor.panel.v1.ListOAuthAccountsResponse.accounts:type_name -> raptor.panel.v1.OAuthAccount
-	85, // 25: raptor.panel.v1.ListActivityRequest.filter:type_name -> raptor.panel.v1.ActivityFilter
-	86, // 26: raptor.panel.v1.ListActivityResponse.events:type_name -> raptor.panel.v1.AuditEvent
-	5,  // 27: raptor.panel.v1.UpdateProfileResponse.user:type_name -> raptor.panel.v1.User
-	5,  // 28: raptor.panel.v1.SetAvatarResponse.user:type_name -> raptor.panel.v1.User
-	5,  // 29: raptor.panel.v1.FinishEmailChangeResponse.user:type_name -> raptor.panel.v1.User
-	84, // 30: raptor.panel.v1.StartPhoneApprovalResponse.expires_at:type_name -> google.protobuf.Timestamp
-	84, // 31: raptor.panel.v1.PhoneApproval.created_at:type_name -> google.protobuf.Timestamp
-	84, // 32: raptor.panel.v1.PhoneApproval.expires_at:type_name -> google.protobuf.Timestamp
-	80, // 33: raptor.panel.v1.ListPhoneApprovalsResponse.approvals:type_name -> raptor.panel.v1.PhoneApproval
-	0,  // 34: raptor.panel.v1.AuthService.StartEmailSignIn:input_type -> raptor.panel.v1.StartEmailSignInRequest
-	2,  // 35: raptor.panel.v1.AuthService.FinishEmailSignIn:input_type -> raptor.panel.v1.FinishEmailSignInRequest
-	6,  // 36: raptor.panel.v1.AuthService.GetSession:input_type -> raptor.panel.v1.GetSessionRequest
-	9,  // 37: raptor.panel.v1.AuthService.SignOut:input_type -> raptor.panel.v1.SignOutRequest
-	11, // 38: raptor.panel.v1.AuthService.ListSessions:input_type -> raptor.panel.v1.ListSessionsRequest
-	13, // 39: raptor.panel.v1.AuthService.RevokeSession:input_type -> raptor.panel.v1.RevokeSessionRequest
-	17, // 40: raptor.panel.v1.AuthService.BeginPasskeySignIn:input_type -> raptor.panel.v1.BeginPasskeySignInRequest
-	19, // 41: raptor.panel.v1.AuthService.FinishPasskeySignIn:input_type -> raptor.panel.v1.FinishPasskeySignInRequest
-	21, // 42: raptor.panel.v1.AuthService.BeginPasskeyRegistration:input_type -> raptor.panel.v1.BeginPasskeyRegistrationRequest
-	23, // 43: raptor.panel.v1.AuthService.FinishPasskeyRegistration:input_type -> raptor.panel.v1.FinishPasskeyRegistrationRequest
-	26, // 44: raptor.panel.v1.AuthService.ListPasskeys:input_type -> raptor.panel.v1.ListPasskeysRequest
-	28, // 45: raptor.panel.v1.AuthService.RenamePasskey:input_type -> raptor.panel.v1.RenamePasskeyRequest
-	30, // 46: raptor.panel.v1.AuthService.DeletePasskey:input_type -> raptor.panel.v1.DeletePasskeyRequest
-	32, // 47: raptor.panel.v1.AuthService.BeginReauth:input_type -> raptor.panel.v1.BeginReauthRequest
-	34, // 48: raptor.panel.v1.AuthService.FinishReauth:input_type -> raptor.panel.v1.FinishReauthRequest
-	36, // 49: raptor.panel.v1.AuthService.FinishSecondFactor:input_type -> raptor.panel.v1.FinishSecondFactorRequest
-	38, // 50: raptor.panel.v1.AuthService.BeginTOTPSetup:input_type -> raptor.panel.v1.BeginTOTPSetupRequest
-	40, // 51: raptor.panel.v1.AuthService.FinishTOTPSetup:input_type -> raptor.panel.v1.FinishTOTPSetupRequest
-	42, // 52: raptor.panel.v1.AuthService.DisableTOTP:input_type -> raptor.panel.v1.DisableTOTPRequest
-	44, // 53: raptor.panel.v1.AuthService.RegenerateRecoveryCodes:input_type -> raptor.panel.v1.RegenerateRecoveryCodesRequest
-	46, // 54: raptor.panel.v1.AuthService.GetSignInMethods:input_type -> raptor.panel.v1.GetSignInMethodsRequest
-	48, // 55: raptor.panel.v1.AuthService.BeginOAuth:input_type -> raptor.panel.v1.BeginOAuthRequest
-	51, // 56: raptor.panel.v1.AuthService.ListOAuthAccounts:input_type -> raptor.panel.v1.ListOAuthAccountsRequest
-	53, // 57: raptor.panel.v1.AuthService.UnlinkOAuthAccount:input_type -> raptor.panel.v1.UnlinkOAuthAccountRequest
-	55, // 58: raptor.panel.v1.AuthService.ListActivity:input_type -> raptor.panel.v1.ListActivityRequest
-	57, // 59: raptor.panel.v1.AuthService.UpdateProfile:input_type -> raptor.panel.v1.UpdateProfileRequest
-	59, // 60: raptor.panel.v1.AuthService.SetAvatar:input_type -> raptor.panel.v1.SetAvatarRequest
-	61, // 61: raptor.panel.v1.AuthService.StartEmailChange:input_type -> raptor.panel.v1.StartEmailChangeRequest
-	63, // 62: raptor.panel.v1.AuthService.FinishEmailChange:input_type -> raptor.panel.v1.FinishEmailChangeRequest
-	65, // 63: raptor.panel.v1.AuthService.DeleteAccount:input_type -> raptor.panel.v1.DeleteAccountRequest
-	67, // 64: raptor.panel.v1.AuthService.ApproveApp:input_type -> raptor.panel.v1.ApproveAppRequest
-	69, // 65: raptor.panel.v1.AuthService.GetPhoneApprover:input_type -> raptor.panel.v1.GetPhoneApproverRequest
-	71, // 66: raptor.panel.v1.AuthService.EnrollPhoneApprover:input_type -> raptor.panel.v1.EnrollPhoneApproverRequest
-	73, // 67: raptor.panel.v1.AuthService.RemovePhoneApprover:input_type -> raptor.panel.v1.RemovePhoneApproverRequest
-	75, // 68: raptor.panel.v1.AuthService.StartPhoneApproval:input_type -> raptor.panel.v1.StartPhoneApprovalRequest
-	77, // 69: raptor.panel.v1.AuthService.CheckPhoneApproval:input_type -> raptor.panel.v1.CheckPhoneApprovalRequest
-	79, // 70: raptor.panel.v1.AuthService.ListPhoneApprovals:input_type -> raptor.panel.v1.ListPhoneApprovalsRequest
-	82, // 71: raptor.panel.v1.AuthService.DecidePhoneApproval:input_type -> raptor.panel.v1.DecidePhoneApprovalRequest
-	1,  // 72: raptor.panel.v1.AuthService.StartEmailSignIn:output_type -> raptor.panel.v1.StartEmailSignInResponse
-	4,  // 73: raptor.panel.v1.AuthService.FinishEmailSignIn:output_type -> raptor.panel.v1.FinishEmailSignInResponse
-	7,  // 74: raptor.panel.v1.AuthService.GetSession:output_type -> raptor.panel.v1.GetSessionResponse
-	10, // 75: raptor.panel.v1.AuthService.SignOut:output_type -> raptor.panel.v1.SignOutResponse
-	12, // 76: raptor.panel.v1.AuthService.ListSessions:output_type -> raptor.panel.v1.ListSessionsResponse
-	14, // 77: raptor.panel.v1.AuthService.RevokeSession:output_type -> raptor.panel.v1.RevokeSessionResponse
-	18, // 78: raptor.panel.v1.AuthService.BeginPasskeySignIn:output_type -> raptor.panel.v1.BeginPasskeySignInResponse
-	20, // 79: raptor.panel.v1.AuthService.FinishPasskeySignIn:output_type -> raptor.panel.v1.FinishPasskeySignInResponse
-	22, // 80: raptor.panel.v1.AuthService.BeginPasskeyRegistration:output_type -> raptor.panel.v1.BeginPasskeyRegistrationResponse
-	24, // 81: raptor.panel.v1.AuthService.FinishPasskeyRegistration:output_type -> raptor.panel.v1.FinishPasskeyRegistrationResponse
-	27, // 82: raptor.panel.v1.AuthService.ListPasskeys:output_type -> raptor.panel.v1.ListPasskeysResponse
-	29, // 83: raptor.panel.v1.AuthService.RenamePasskey:output_type -> raptor.panel.v1.RenamePasskeyResponse
-	31, // 84: raptor.panel.v1.AuthService.DeletePasskey:output_type -> raptor.panel.v1.DeletePasskeyResponse
-	33, // 85: raptor.panel.v1.AuthService.BeginReauth:output_type -> raptor.panel.v1.BeginReauthResponse
-	35, // 86: raptor.panel.v1.AuthService.FinishReauth:output_type -> raptor.panel.v1.FinishReauthResponse
-	37, // 87: raptor.panel.v1.AuthService.FinishSecondFactor:output_type -> raptor.panel.v1.FinishSecondFactorResponse
-	39, // 88: raptor.panel.v1.AuthService.BeginTOTPSetup:output_type -> raptor.panel.v1.BeginTOTPSetupResponse
-	41, // 89: raptor.panel.v1.AuthService.FinishTOTPSetup:output_type -> raptor.panel.v1.FinishTOTPSetupResponse
-	43, // 90: raptor.panel.v1.AuthService.DisableTOTP:output_type -> raptor.panel.v1.DisableTOTPResponse
-	45, // 91: raptor.panel.v1.AuthService.RegenerateRecoveryCodes:output_type -> raptor.panel.v1.RegenerateRecoveryCodesResponse
-	47, // 92: raptor.panel.v1.AuthService.GetSignInMethods:output_type -> raptor.panel.v1.GetSignInMethodsResponse
-	49, // 93: raptor.panel.v1.AuthService.BeginOAuth:output_type -> raptor.panel.v1.BeginOAuthResponse
-	52, // 94: raptor.panel.v1.AuthService.ListOAuthAccounts:output_type -> raptor.panel.v1.ListOAuthAccountsResponse
-	54, // 95: raptor.panel.v1.AuthService.UnlinkOAuthAccount:output_type -> raptor.panel.v1.UnlinkOAuthAccountResponse
-	56, // 96: raptor.panel.v1.AuthService.ListActivity:output_type -> raptor.panel.v1.ListActivityResponse
-	58, // 97: raptor.panel.v1.AuthService.UpdateProfile:output_type -> raptor.panel.v1.UpdateProfileResponse
-	60, // 98: raptor.panel.v1.AuthService.SetAvatar:output_type -> raptor.panel.v1.SetAvatarResponse
-	62, // 99: raptor.panel.v1.AuthService.StartEmailChange:output_type -> raptor.panel.v1.StartEmailChangeResponse
-	64, // 100: raptor.panel.v1.AuthService.FinishEmailChange:output_type -> raptor.panel.v1.FinishEmailChangeResponse
-	66, // 101: raptor.panel.v1.AuthService.DeleteAccount:output_type -> raptor.panel.v1.DeleteAccountResponse
-	68, // 102: raptor.panel.v1.AuthService.ApproveApp:output_type -> raptor.panel.v1.ApproveAppResponse
-	70, // 103: raptor.panel.v1.AuthService.GetPhoneApprover:output_type -> raptor.panel.v1.GetPhoneApproverResponse
-	72, // 104: raptor.panel.v1.AuthService.EnrollPhoneApprover:output_type -> raptor.panel.v1.EnrollPhoneApproverResponse
-	74, // 105: raptor.panel.v1.AuthService.RemovePhoneApprover:output_type -> raptor.panel.v1.RemovePhoneApproverResponse
-	76, // 106: raptor.panel.v1.AuthService.StartPhoneApproval:output_type -> raptor.panel.v1.StartPhoneApprovalResponse
-	78, // 107: raptor.panel.v1.AuthService.CheckPhoneApproval:output_type -> raptor.panel.v1.CheckPhoneApprovalResponse
-	81, // 108: raptor.panel.v1.AuthService.ListPhoneApprovals:output_type -> raptor.panel.v1.ListPhoneApprovalsResponse
-	83, // 109: raptor.panel.v1.AuthService.DecidePhoneApproval:output_type -> raptor.panel.v1.DecidePhoneApprovalResponse
-	72, // [72:110] is the sub-list for method output_type
-	34, // [34:72] is the sub-list for method input_type
-	34, // [34:34] is the sub-list for extension type_name
-	34, // [34:34] is the sub-list for extension extendee
-	0,  // [0:34] is the sub-list for field type_name
+	9,  // 0: raptor.panel.v1.StartDemoResponse.user:type_name -> raptor.panel.v1.User
+	7,  // 1: raptor.panel.v1.FinishEmailSignInRequest.code:type_name -> raptor.panel.v1.EmailCode
+	9,  // 2: raptor.panel.v1.FinishEmailSignInResponse.user:type_name -> raptor.panel.v1.User
+	88, // 3: raptor.panel.v1.User.created_at:type_name -> google.protobuf.Timestamp
+	88, // 4: raptor.panel.v1.User.guest_until:type_name -> google.protobuf.Timestamp
+	9,  // 5: raptor.panel.v1.GetSessionResponse.user:type_name -> raptor.panel.v1.User
+	12, // 6: raptor.panel.v1.GetSessionResponse.session:type_name -> raptor.panel.v1.Session
+	88, // 7: raptor.panel.v1.Session.created_at:type_name -> google.protobuf.Timestamp
+	88, // 8: raptor.panel.v1.Session.last_seen_at:type_name -> google.protobuf.Timestamp
+	88, // 9: raptor.panel.v1.Session.reauth_until:type_name -> google.protobuf.Timestamp
+	12, // 10: raptor.panel.v1.ListSessionsResponse.sessions:type_name -> raptor.panel.v1.Session
+	19, // 11: raptor.panel.v1.BeginPasskeySignInResponse.challenge:type_name -> raptor.panel.v1.PasskeyChallenge
+	20, // 12: raptor.panel.v1.FinishPasskeySignInRequest.answer:type_name -> raptor.panel.v1.PasskeyAnswer
+	9,  // 13: raptor.panel.v1.FinishPasskeySignInResponse.user:type_name -> raptor.panel.v1.User
+	19, // 14: raptor.panel.v1.BeginPasskeyRegistrationResponse.challenge:type_name -> raptor.panel.v1.PasskeyChallenge
+	20, // 15: raptor.panel.v1.FinishPasskeyRegistrationRequest.answer:type_name -> raptor.panel.v1.PasskeyAnswer
+	29, // 16: raptor.panel.v1.FinishPasskeyRegistrationResponse.passkey:type_name -> raptor.panel.v1.Passkey
+	88, // 17: raptor.panel.v1.Passkey.created_at:type_name -> google.protobuf.Timestamp
+	88, // 18: raptor.panel.v1.Passkey.last_used_at:type_name -> google.protobuf.Timestamp
+	29, // 19: raptor.panel.v1.ListPasskeysResponse.passkeys:type_name -> raptor.panel.v1.Passkey
+	19, // 20: raptor.panel.v1.BeginReauthResponse.passkey:type_name -> raptor.panel.v1.PasskeyChallenge
+	20, // 21: raptor.panel.v1.FinishReauthRequest.passkey:type_name -> raptor.panel.v1.PasskeyAnswer
+	88, // 22: raptor.panel.v1.FinishReauthResponse.reauth_until:type_name -> google.protobuf.Timestamp
+	9,  // 23: raptor.panel.v1.FinishSecondFactorResponse.user:type_name -> raptor.panel.v1.User
+	88, // 24: raptor.panel.v1.OAuthAccount.created_at:type_name -> google.protobuf.Timestamp
+	88, // 25: raptor.panel.v1.OAuthAccount.last_used_at:type_name -> google.protobuf.Timestamp
+	54, // 26: raptor.panel.v1.ListOAuthAccountsResponse.accounts:type_name -> raptor.panel.v1.OAuthAccount
+	89, // 27: raptor.panel.v1.ListActivityRequest.filter:type_name -> raptor.panel.v1.ActivityFilter
+	90, // 28: raptor.panel.v1.ListActivityResponse.events:type_name -> raptor.panel.v1.AuditEvent
+	9,  // 29: raptor.panel.v1.UpdateProfileResponse.user:type_name -> raptor.panel.v1.User
+	9,  // 30: raptor.panel.v1.SetAvatarResponse.user:type_name -> raptor.panel.v1.User
+	9,  // 31: raptor.panel.v1.FinishEmailChangeResponse.user:type_name -> raptor.panel.v1.User
+	88, // 32: raptor.panel.v1.StartPhoneApprovalResponse.expires_at:type_name -> google.protobuf.Timestamp
+	88, // 33: raptor.panel.v1.PhoneApproval.created_at:type_name -> google.protobuf.Timestamp
+	88, // 34: raptor.panel.v1.PhoneApproval.expires_at:type_name -> google.protobuf.Timestamp
+	84, // 35: raptor.panel.v1.ListPhoneApprovalsResponse.approvals:type_name -> raptor.panel.v1.PhoneApproval
+	0,  // 36: raptor.panel.v1.AuthService.StartEmailSignIn:input_type -> raptor.panel.v1.StartEmailSignInRequest
+	6,  // 37: raptor.panel.v1.AuthService.FinishEmailSignIn:input_type -> raptor.panel.v1.FinishEmailSignInRequest
+	2,  // 38: raptor.panel.v1.AuthService.GetDemo:input_type -> raptor.panel.v1.GetDemoRequest
+	4,  // 39: raptor.panel.v1.AuthService.StartDemo:input_type -> raptor.panel.v1.StartDemoRequest
+	10, // 40: raptor.panel.v1.AuthService.GetSession:input_type -> raptor.panel.v1.GetSessionRequest
+	13, // 41: raptor.panel.v1.AuthService.SignOut:input_type -> raptor.panel.v1.SignOutRequest
+	15, // 42: raptor.panel.v1.AuthService.ListSessions:input_type -> raptor.panel.v1.ListSessionsRequest
+	17, // 43: raptor.panel.v1.AuthService.RevokeSession:input_type -> raptor.panel.v1.RevokeSessionRequest
+	21, // 44: raptor.panel.v1.AuthService.BeginPasskeySignIn:input_type -> raptor.panel.v1.BeginPasskeySignInRequest
+	23, // 45: raptor.panel.v1.AuthService.FinishPasskeySignIn:input_type -> raptor.panel.v1.FinishPasskeySignInRequest
+	25, // 46: raptor.panel.v1.AuthService.BeginPasskeyRegistration:input_type -> raptor.panel.v1.BeginPasskeyRegistrationRequest
+	27, // 47: raptor.panel.v1.AuthService.FinishPasskeyRegistration:input_type -> raptor.panel.v1.FinishPasskeyRegistrationRequest
+	30, // 48: raptor.panel.v1.AuthService.ListPasskeys:input_type -> raptor.panel.v1.ListPasskeysRequest
+	32, // 49: raptor.panel.v1.AuthService.RenamePasskey:input_type -> raptor.panel.v1.RenamePasskeyRequest
+	34, // 50: raptor.panel.v1.AuthService.DeletePasskey:input_type -> raptor.panel.v1.DeletePasskeyRequest
+	36, // 51: raptor.panel.v1.AuthService.BeginReauth:input_type -> raptor.panel.v1.BeginReauthRequest
+	38, // 52: raptor.panel.v1.AuthService.FinishReauth:input_type -> raptor.panel.v1.FinishReauthRequest
+	40, // 53: raptor.panel.v1.AuthService.FinishSecondFactor:input_type -> raptor.panel.v1.FinishSecondFactorRequest
+	42, // 54: raptor.panel.v1.AuthService.BeginTOTPSetup:input_type -> raptor.panel.v1.BeginTOTPSetupRequest
+	44, // 55: raptor.panel.v1.AuthService.FinishTOTPSetup:input_type -> raptor.panel.v1.FinishTOTPSetupRequest
+	46, // 56: raptor.panel.v1.AuthService.DisableTOTP:input_type -> raptor.panel.v1.DisableTOTPRequest
+	48, // 57: raptor.panel.v1.AuthService.RegenerateRecoveryCodes:input_type -> raptor.panel.v1.RegenerateRecoveryCodesRequest
+	50, // 58: raptor.panel.v1.AuthService.GetSignInMethods:input_type -> raptor.panel.v1.GetSignInMethodsRequest
+	52, // 59: raptor.panel.v1.AuthService.BeginOAuth:input_type -> raptor.panel.v1.BeginOAuthRequest
+	55, // 60: raptor.panel.v1.AuthService.ListOAuthAccounts:input_type -> raptor.panel.v1.ListOAuthAccountsRequest
+	57, // 61: raptor.panel.v1.AuthService.UnlinkOAuthAccount:input_type -> raptor.panel.v1.UnlinkOAuthAccountRequest
+	59, // 62: raptor.panel.v1.AuthService.ListActivity:input_type -> raptor.panel.v1.ListActivityRequest
+	61, // 63: raptor.panel.v1.AuthService.UpdateProfile:input_type -> raptor.panel.v1.UpdateProfileRequest
+	63, // 64: raptor.panel.v1.AuthService.SetAvatar:input_type -> raptor.panel.v1.SetAvatarRequest
+	65, // 65: raptor.panel.v1.AuthService.StartEmailChange:input_type -> raptor.panel.v1.StartEmailChangeRequest
+	67, // 66: raptor.panel.v1.AuthService.FinishEmailChange:input_type -> raptor.panel.v1.FinishEmailChangeRequest
+	69, // 67: raptor.panel.v1.AuthService.DeleteAccount:input_type -> raptor.panel.v1.DeleteAccountRequest
+	71, // 68: raptor.panel.v1.AuthService.ApproveApp:input_type -> raptor.panel.v1.ApproveAppRequest
+	73, // 69: raptor.panel.v1.AuthService.GetPhoneApprover:input_type -> raptor.panel.v1.GetPhoneApproverRequest
+	75, // 70: raptor.panel.v1.AuthService.EnrollPhoneApprover:input_type -> raptor.panel.v1.EnrollPhoneApproverRequest
+	77, // 71: raptor.panel.v1.AuthService.RemovePhoneApprover:input_type -> raptor.panel.v1.RemovePhoneApproverRequest
+	79, // 72: raptor.panel.v1.AuthService.StartPhoneApproval:input_type -> raptor.panel.v1.StartPhoneApprovalRequest
+	81, // 73: raptor.panel.v1.AuthService.CheckPhoneApproval:input_type -> raptor.panel.v1.CheckPhoneApprovalRequest
+	83, // 74: raptor.panel.v1.AuthService.ListPhoneApprovals:input_type -> raptor.panel.v1.ListPhoneApprovalsRequest
+	86, // 75: raptor.panel.v1.AuthService.DecidePhoneApproval:input_type -> raptor.panel.v1.DecidePhoneApprovalRequest
+	1,  // 76: raptor.panel.v1.AuthService.StartEmailSignIn:output_type -> raptor.panel.v1.StartEmailSignInResponse
+	8,  // 77: raptor.panel.v1.AuthService.FinishEmailSignIn:output_type -> raptor.panel.v1.FinishEmailSignInResponse
+	3,  // 78: raptor.panel.v1.AuthService.GetDemo:output_type -> raptor.panel.v1.GetDemoResponse
+	5,  // 79: raptor.panel.v1.AuthService.StartDemo:output_type -> raptor.panel.v1.StartDemoResponse
+	11, // 80: raptor.panel.v1.AuthService.GetSession:output_type -> raptor.panel.v1.GetSessionResponse
+	14, // 81: raptor.panel.v1.AuthService.SignOut:output_type -> raptor.panel.v1.SignOutResponse
+	16, // 82: raptor.panel.v1.AuthService.ListSessions:output_type -> raptor.panel.v1.ListSessionsResponse
+	18, // 83: raptor.panel.v1.AuthService.RevokeSession:output_type -> raptor.panel.v1.RevokeSessionResponse
+	22, // 84: raptor.panel.v1.AuthService.BeginPasskeySignIn:output_type -> raptor.panel.v1.BeginPasskeySignInResponse
+	24, // 85: raptor.panel.v1.AuthService.FinishPasskeySignIn:output_type -> raptor.panel.v1.FinishPasskeySignInResponse
+	26, // 86: raptor.panel.v1.AuthService.BeginPasskeyRegistration:output_type -> raptor.panel.v1.BeginPasskeyRegistrationResponse
+	28, // 87: raptor.panel.v1.AuthService.FinishPasskeyRegistration:output_type -> raptor.panel.v1.FinishPasskeyRegistrationResponse
+	31, // 88: raptor.panel.v1.AuthService.ListPasskeys:output_type -> raptor.panel.v1.ListPasskeysResponse
+	33, // 89: raptor.panel.v1.AuthService.RenamePasskey:output_type -> raptor.panel.v1.RenamePasskeyResponse
+	35, // 90: raptor.panel.v1.AuthService.DeletePasskey:output_type -> raptor.panel.v1.DeletePasskeyResponse
+	37, // 91: raptor.panel.v1.AuthService.BeginReauth:output_type -> raptor.panel.v1.BeginReauthResponse
+	39, // 92: raptor.panel.v1.AuthService.FinishReauth:output_type -> raptor.panel.v1.FinishReauthResponse
+	41, // 93: raptor.panel.v1.AuthService.FinishSecondFactor:output_type -> raptor.panel.v1.FinishSecondFactorResponse
+	43, // 94: raptor.panel.v1.AuthService.BeginTOTPSetup:output_type -> raptor.panel.v1.BeginTOTPSetupResponse
+	45, // 95: raptor.panel.v1.AuthService.FinishTOTPSetup:output_type -> raptor.panel.v1.FinishTOTPSetupResponse
+	47, // 96: raptor.panel.v1.AuthService.DisableTOTP:output_type -> raptor.panel.v1.DisableTOTPResponse
+	49, // 97: raptor.panel.v1.AuthService.RegenerateRecoveryCodes:output_type -> raptor.panel.v1.RegenerateRecoveryCodesResponse
+	51, // 98: raptor.panel.v1.AuthService.GetSignInMethods:output_type -> raptor.panel.v1.GetSignInMethodsResponse
+	53, // 99: raptor.panel.v1.AuthService.BeginOAuth:output_type -> raptor.panel.v1.BeginOAuthResponse
+	56, // 100: raptor.panel.v1.AuthService.ListOAuthAccounts:output_type -> raptor.panel.v1.ListOAuthAccountsResponse
+	58, // 101: raptor.panel.v1.AuthService.UnlinkOAuthAccount:output_type -> raptor.panel.v1.UnlinkOAuthAccountResponse
+	60, // 102: raptor.panel.v1.AuthService.ListActivity:output_type -> raptor.panel.v1.ListActivityResponse
+	62, // 103: raptor.panel.v1.AuthService.UpdateProfile:output_type -> raptor.panel.v1.UpdateProfileResponse
+	64, // 104: raptor.panel.v1.AuthService.SetAvatar:output_type -> raptor.panel.v1.SetAvatarResponse
+	66, // 105: raptor.panel.v1.AuthService.StartEmailChange:output_type -> raptor.panel.v1.StartEmailChangeResponse
+	68, // 106: raptor.panel.v1.AuthService.FinishEmailChange:output_type -> raptor.panel.v1.FinishEmailChangeResponse
+	70, // 107: raptor.panel.v1.AuthService.DeleteAccount:output_type -> raptor.panel.v1.DeleteAccountResponse
+	72, // 108: raptor.panel.v1.AuthService.ApproveApp:output_type -> raptor.panel.v1.ApproveAppResponse
+	74, // 109: raptor.panel.v1.AuthService.GetPhoneApprover:output_type -> raptor.panel.v1.GetPhoneApproverResponse
+	76, // 110: raptor.panel.v1.AuthService.EnrollPhoneApprover:output_type -> raptor.panel.v1.EnrollPhoneApproverResponse
+	78, // 111: raptor.panel.v1.AuthService.RemovePhoneApprover:output_type -> raptor.panel.v1.RemovePhoneApproverResponse
+	80, // 112: raptor.panel.v1.AuthService.StartPhoneApproval:output_type -> raptor.panel.v1.StartPhoneApprovalResponse
+	82, // 113: raptor.panel.v1.AuthService.CheckPhoneApproval:output_type -> raptor.panel.v1.CheckPhoneApprovalResponse
+	85, // 114: raptor.panel.v1.AuthService.ListPhoneApprovals:output_type -> raptor.panel.v1.ListPhoneApprovalsResponse
+	87, // 115: raptor.panel.v1.AuthService.DecidePhoneApproval:output_type -> raptor.panel.v1.DecidePhoneApprovalResponse
+	76, // [76:116] is the sub-list for method output_type
+	36, // [36:76] is the sub-list for method input_type
+	36, // [36:36] is the sub-list for extension type_name
+	36, // [36:36] is the sub-list for extension extendee
+	0,  // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_auth_proto_init() }
@@ -4852,37 +5064,37 @@ func file_raptor_panel_v1_auth_proto_init() {
 		return
 	}
 	file_raptor_panel_v1_audit_proto_init()
-	file_raptor_panel_v1_auth_proto_msgTypes[2].OneofWrappers = []any{
+	file_raptor_panel_v1_auth_proto_msgTypes[6].OneofWrappers = []any{
 		(*FinishEmailSignInRequest_Code)(nil),
 		(*FinishEmailSignInRequest_LinkToken)(nil),
 	}
-	file_raptor_panel_v1_auth_proto_msgTypes[13].OneofWrappers = []any{
+	file_raptor_panel_v1_auth_proto_msgTypes[17].OneofWrappers = []any{
 		(*RevokeSessionRequest_Id)(nil),
 		(*RevokeSessionRequest_AllOthers)(nil),
 	}
-	file_raptor_panel_v1_auth_proto_msgTypes[33].OneofWrappers = []any{
+	file_raptor_panel_v1_auth_proto_msgTypes[37].OneofWrappers = []any{
 		(*BeginReauthResponse_Passkey)(nil),
 		(*BeginReauthResponse_EmailSent)(nil),
 	}
-	file_raptor_panel_v1_auth_proto_msgTypes[34].OneofWrappers = []any{
+	file_raptor_panel_v1_auth_proto_msgTypes[38].OneofWrappers = []any{
 		(*FinishReauthRequest_Passkey)(nil),
 		(*FinishReauthRequest_EmailCode)(nil),
 		(*FinishReauthRequest_TotpCode)(nil),
 		(*FinishReauthRequest_PhoneApprovalId)(nil),
 	}
-	file_raptor_panel_v1_auth_proto_msgTypes[36].OneofWrappers = []any{
+	file_raptor_panel_v1_auth_proto_msgTypes[40].OneofWrappers = []any{
 		(*FinishSecondFactorRequest_TotpCode)(nil),
 		(*FinishSecondFactorRequest_RecoveryCode)(nil),
 		(*FinishSecondFactorRequest_PhoneApprovalId)(nil),
 	}
-	file_raptor_panel_v1_auth_proto_msgTypes[57].OneofWrappers = []any{}
+	file_raptor_panel_v1_auth_proto_msgTypes[61].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_auth_proto_rawDesc), len(file_raptor_panel_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   84,
+			NumMessages:   88,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

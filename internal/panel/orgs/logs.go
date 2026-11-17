@@ -48,6 +48,10 @@ func (s *Service) ShareLog(ctx context.Context, req *panelv1.ShareLogRequest) (*
 			return errNoServer
 		}
 		org = o
+		// Sharing logs to mclo.gs is off in the demo.
+		if err := auth.RefuseDemo(ctx, q, se, o); err != nil {
+			return err
+		}
 		// Whoever can read the console or the files can read the log
 		// (admins and owners: "*").
 		if !slices.Contains(granted, "*") && !perms.Allows(granted, perms.ConsoleRead) && !perms.Allows(granted, perms.FilesRead) {

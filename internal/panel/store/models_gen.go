@@ -224,6 +224,15 @@ type BillingWebhook struct {
 	ReceivedAt pgtype.Timestamptz
 }
 
+type DemoServer struct {
+	OrgID           pgtype.UUID
+	NodeID          pgtype.UUID
+	ServerID        string
+	Permissions     []string
+	KnownGoodBackup string
+	CreatedAt       pgtype.Timestamptz
+}
+
 type DiscordSetting struct {
 	ID          bool
 	RemoveRoles bool
@@ -473,6 +482,8 @@ type Org struct {
 	SuspendedReason string
 	DeletedAt       pgtype.Timestamptz
 	Logo            pgtype.Text
+	Demo            bool
+	DemoResetAt     pgtype.Timestamptz
 }
 
 type OrgInvitation struct {
@@ -703,6 +714,7 @@ type User struct {
 	ThemeStyle      string
 	Avatar          pgtype.Text
 	AvatarSource    string
+	GuestUntil      pgtype.Timestamptz
 }
 
 type WebauthnCeremony struct {

@@ -214,3 +214,11 @@ var page = template.Must(template.New("email").Funcs(template.FuncMap{
 </body>
 </html>
 `))
+
+// Undeliverable reports whether an address is at the reserved .invalid
+// top-level domain (RFC 2606), as demo guests' placeholder addresses are
+// (#449): nothing is sent there, so a guest never costs the sending
+// domain a bounce.
+func Undeliverable(to string) bool {
+	return strings.HasSuffix(strings.ToLower(strings.TrimSpace(to)), ".invalid")
+}

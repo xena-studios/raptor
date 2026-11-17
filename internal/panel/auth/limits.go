@@ -66,10 +66,10 @@ func (s *Service) allow(ctx context.Context, key string, l Limit) (bool, error) 
 
 // Prune deletes what's no longer needed: old rate events, expired codes and
 // ceremonies, sessions long past their end, SFTP passwords that ran out,
-// and pictures nothing uses any more.
+// pictures nothing uses any more, and demo guests whose hour is up.
 func (s *Service) Prune(ctx context.Context) error {
 	q := s.q()
-	for _, f := range []func(context.Context) error{q.PruneRateEvents, q.PruneEmailCodes, q.PruneCeremonies, q.PruneSessions, q.PrunePending, q.PruneTOTPSetups, q.PruneOAuthFlows, q.PruneAppCodes, q.PrunePhoneApprovals, q.PruneAuditLog, q.PruneSFTPPasswords, q.PruneImages} {
+	for _, f := range []func(context.Context) error{q.PruneRateEvents, q.PruneEmailCodes, q.PruneCeremonies, q.PruneSessions, q.PrunePending, q.PruneTOTPSetups, q.PruneOAuthFlows, q.PruneAppCodes, q.PrunePhoneApprovals, q.PruneAuditLog, q.PruneSFTPPasswords, q.PruneImages, s.pruneGuests} {
 		if err := f(ctx); err != nil {
 			return err
 		}
@@ -100,5 +100,12 @@ func (s *Service) RunJanitor(ctx context.Context, every time.Duration) {
 // fixed code (ReviewSignIn).
 func lockCodeChecks(ctx context.Context, tx pgx.Tx, email string) error {
 	_, err := tx.Exec(ctx, "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", "code-check:"+email)
+	return err
+}
+
+// pruneGuests deletes demo guests whose hour is up, with their sessions,
+// memberships, and grants.
+func (s *Service) pruneGuests(ctx context.Context) error {
+	_, err := s.q().PruneGuests(ctx)
 	return err
 }

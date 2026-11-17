@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthorizeRouteImport } from './routes/authorize'
+import { Route as DemoRouteImport } from './routes/demo'
 import { Route as InviteRouteImport } from './routes/invite'
 import { Route as PopoutRouteImport } from './routes/popout'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -113,6 +114,11 @@ const AdminRoute = AdminRouteImport.update({
 const AuthorizeRoute = AuthorizeRouteImport.update({
   id: '/authorize',
   path: '/authorize',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoRoute = DemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InviteRoute = InviteRouteImport.update({
@@ -600,6 +606,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/authorize': typeof AuthorizeRoute
+  '/demo': typeof DemoRoute
   '/invite': typeof InviteRoute
   '/popout': typeof PopoutRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
@@ -691,6 +698,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/authorize': typeof AuthorizeRoute
+  '/demo': typeof DemoRoute
   '/invite': typeof InviteRoute
   '/popout': typeof PopoutRouteWithChildren
   '/admin/announcements': typeof AdminAnnouncementsRoute
@@ -778,6 +786,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/authorize': typeof AuthorizeRoute
+  '/demo': typeof DemoRoute
   '/invite': typeof InviteRoute
   '/popout': typeof PopoutRouteWithChildren
   '/settings': typeof SettingsRouteWithChildren
@@ -872,6 +881,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/authorize'
+    | '/demo'
     | '/invite'
     | '/popout'
     | '/settings'
@@ -963,6 +973,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/authorize'
+    | '/demo'
     | '/invite'
     | '/popout'
     | '/admin/announcements'
@@ -1049,6 +1060,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/authorize'
+    | '/demo'
     | '/invite'
     | '/popout'
     | '/settings'
@@ -1142,6 +1154,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   AuthorizeRoute: typeof AuthorizeRoute
+  DemoRoute: typeof DemoRoute
   InviteRoute: typeof InviteRoute
   PopoutRoute: typeof PopoutRouteWithChildren
   SettingsRoute: typeof SettingsRouteWithChildren
@@ -1172,6 +1185,13 @@ declare module '@tanstack/react-router' {
       path: '/authorize'
       fullPath: '/authorize'
       preLoaderRoute: typeof AuthorizeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo': {
+      id: '/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof DemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invite': {
@@ -2093,6 +2113,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   AuthorizeRoute: AuthorizeRoute,
+  DemoRoute: DemoRoute,
   InviteRoute: InviteRoute,
   PopoutRoute: PopoutRouteWithChildren,
   SettingsRoute: SettingsRouteWithChildren,

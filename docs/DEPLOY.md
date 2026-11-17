@@ -390,6 +390,42 @@ docker compose exec panel-a panel staff add you@example.com admin
 docker compose exec panel-a panel staff list
 ```
 
+`panel staff demo` sets up the public demo ([Public demo](#public-demo)).
+
+## Public demo
+
+Raptor's public demo (#449, docs/PANEL.md#the-public-demo) runs in the production Panel, in its own org on its own node: a Contabo 8 GB VPS ("Demo node" in 1Password), never the Oracle tenancy. Until it's set up, "Try the demo" says the demo isn't open, so the app and site can ship first. It needs no new environment variables: guests use `PANEL_TURNSTILE_SECRET` and `PANEL_TURNSTILE_HOSTNAME` like the sign-in form, and the web app's `VITE_TURNSTILE_URL` and `VITE_TURNSTILE_SITEKEY`.
+
+**Set it up** (an operator, once):
+
+1. **An account for it.** Sign up in the app as a staff-held address kept for the demo (for example demo@raptorpanel.net), not a person's: guests see the owner's address in activity. Add a passkey to it.
+2. **The org.** Signed in as that account, make an org named "Raptor demo". Its full ID is on its page in the admin panel (Orgs, search for it), as are its node's ID and its servers' IDs once they exist. Give it a billing waiver there so it never goes read-only.
+3. **The node.** On the demo VPS, link it to that org the usual way (`curl -fsSL https://get.raptorpanel.net | sh`, then `raptor bootstrap` with a join token from the org's Add node page), with the demo account's passkey pinned. Keep SSH key-only. Leave SFTP off on the node.
+4. **The showcase servers**, from the app as the owner (each is passkey-signed):
+   - **Paper**, with a few plugins installed (LuckPerms, EssentialsX, a map plugin), `online-mode` on, and guests not in `ops.json`.
+   - **Fabric**, with a handful of mods, including one with a dependency and one with an update available, so the badges show.
+   - **Uptime Kuma**, a software egg with a web page, so the dashboard link shows. Make its admin account first so a guest can't claim it.
+   Keep each at modest memory (Paper 2 GB, Fabric 2 GB, Uptime Kuma 512 MB) to leave room for Phase 2's sandboxes.
+5. **Known-good backups.** When each server looks right, take a backup, **lock** it (so retention never prunes it), and note its ID (Backups tab).
+6. **Turn it on**, on the Panel's server:
+
+```bash
+cd /opt/raptor/deploy/panel
+docker compose exec panel-a panel staff demo on <org-id>
+docker compose exec panel-a panel staff demo server <org-id> <node-id> <paper-server-id>
+docker compose exec panel-a panel staff demo server <org-id> <node-id> <fabric-server-id>
+# Uptime Kuma: no console commands to send, and its files hold its database.
+docker compose exec panel-a panel staff demo server <org-id> <node-id> <kuma-server-id> console.read,power,files.read,backups,schedules,startup
+docker compose exec panel-a panel staff demo backup <node-id> <paper-server-id> <backup-id>   # and the others
+docker compose exec panel-a panel staff demo status
+```
+
+Then open https://app.raptorpanel.net/demo in a private window and check: the banner shows, the console streams, a file saves, an add-on installs, and creating a server, SFTP, Upload from a link, and the org's Members page all say they're off in the demo.
+
+**Each hour** the Panel removes the demo's guests and empties the showcase servers' trash (`demo reset` in the Panel's log, with how many guests went and which servers' trash failed). It doesn't restore the servers from their known-good backups yet (that needs Phase 2's demo key, DECISIONS #375), so **when a showcase server is broken**, restore it by hand: signed in as the demo account, open the server's Backups tab and restore its locked known-good backup (passkey-signed).
+
+**To close the demo** (abuse, or maintenance): `panel staff demo off <org-id>`. New guests are refused at once; guests already in stay until their hour is up, or delete them with the next reset by turning it back on. `panel staff demo remove <node-id> <server-id>` stops giving guests a server.
+
 ## Backups
 
 - **WAL:** every change is archived within 60 seconds (`archive_timeout`), so the most you can lose to losing the server is about a minute.

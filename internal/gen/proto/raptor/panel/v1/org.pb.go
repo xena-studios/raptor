@@ -85,7 +85,10 @@ type Org struct {
 	// (its servers keep running).
 	Suspended bool `protobuf:"varint,5,opt,name=suspended,proto3" json:"suspended,omitempty"`
 	// The logo's image ID (GET /api/images/<id>.png); empty for none.
-	Logo          string `protobuf:"bytes,6,opt,name=logo,proto3" json:"logo,omitempty"`
+	Logo string `protobuf:"bytes,6,opt,name=logo,proto3" json:"logo,omitempty"`
+	// Raptor's public demo org (#449): a banner says so, and the Panel
+	// refuses what's off in the demo to everyone but its owners.
+	Demo          bool `protobuf:"varint,7,opt,name=demo,proto3" json:"demo,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -160,6 +163,13 @@ func (x *Org) GetLogo() string {
 		return x.Logo
 	}
 	return ""
+}
+
+func (x *Org) GetDemo() bool {
+	if x != nil {
+		return x.Demo
+	}
+	return false
 }
 
 type CreateOrgRequest struct {
@@ -6063,7 +6073,7 @@ var File_raptor_panel_v1_org_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"\n" +
-	"\x19raptor/panel/v1/org.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1braptor/panel/v1/staff.proto\x1a\x1braptor/panel/v1/audit.proto\x1a\x1araptor/panel/v1/auth.proto\"\xc1\x01\n" +
+	"\x19raptor/panel/v1/org.proto\x12\x0fraptor.panel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1braptor/panel/v1/staff.proto\x1a\x1braptor/panel/v1/audit.proto\x1a\x1araptor/panel/v1/auth.proto\"\xd5\x01\n" +
 	"\x03Org\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x129\n" +
@@ -6071,7 +6081,8 @@ const file_raptor_panel_v1_org_proto_rawDesc = "" +
 	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12)\n" +
 	"\x04role\x18\x04 \x01(\x0e2\x15.raptor.panel.v1.RoleR\x04role\x12\x1c\n" +
 	"\tsuspended\x18\x05 \x01(\bR\tsuspended\x12\x12\n" +
-	"\x04logo\x18\x06 \x01(\tR\x04logo\"&\n" +
+	"\x04logo\x18\x06 \x01(\tR\x04logo\x12\x12\n" +
+	"\x04demo\x18\a \x01(\bR\x04demo\"&\n" +
 	"\x10CreateOrgRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\";\n" +
 	"\x11CreateOrgResponse\x12&\n" +

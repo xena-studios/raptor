@@ -41,6 +41,12 @@ type Session struct {
 // hasn't been used from this browser before, after is the email that says
 // so, for the caller to send once the transaction commits.
 func (s *Service) startSession(ctx context.Context, q *store.Queries, user store.User, reauthed bool, method string) (after func(), err error) {
+	return s.startSessionUntil(ctx, q, user, reauthed, method, s.now().Add(SessionMax))
+}
+
+// startSessionUntil is startSession with the session ending at until: a
+// demo guest's ends with its account.
+func (s *Service) startSessionUntil(ctx context.Context, q *store.Queries, user store.User, reauthed bool, method string, until time.Time) (after func(), err error) {
 	if user.SuspendedAt.Valid {
 		return nil, ErrSuspended
 	}
@@ -72,7 +78,7 @@ func (s *Service) startSession(ctx context.Context, q *store.Queries, user store
 	}
 	newDevice := seen.Total > 0 && seen.Same == 0
 	sess, err := q.CreateSession(ctx, store.CreateSessionParams{
-		UserID: user.ID, TokenHash: hash(token), ExpiresAt: pgtype.Timestamptz{Time: s.now().Add(SessionMax), Valid: true},
+		UserID: user.ID, TokenHash: hash(token), ExpiresAt: pgtype.Timestamptz{Time: until, Valid: true},
 		Ip: ip, UserAgent: ua, ReauthAt: pgtype.Timestamptz{Time: s.now(), Valid: reauthed},
 	})
 	if err != nil {
@@ -90,8 +96,12 @@ func (s *Service) startSession(ctx context.Context, q *store.Queries, user store
 		return nil, err
 	}
 	if ok {
-		setCookie(c.resp, token, SessionMax)
-		s.setHint(c.resp, true)
+		setCookie(c.resp, token, until.Sub(s.now()))
+		// A guest isn't signed in to Raptor as far as the site is concerned:
+		// it should still offer to get started.
+		if !user.GuestUntil.Valid {
+			s.setHint(c.resp, true)
+		}
 	}
 	if !newDevice {
 		return func() {}, nil
@@ -175,6 +185,12 @@ func (s *Service) Current(ctx context.Context) (*Session, error) {
 	if sess.App() {
 		return nil, errSignedOut
 	}
+	// A demo guest reaches only what the demo offers (guestMay).
+	if sess.Guest() {
+		if err := guestMay(ctx); err != nil {
+			return nil, err
+		}
+	}
 	return sess, nil
 }
 
@@ -195,8 +211,15 @@ func (s *Service) lookup(ctx context.Context, token string) (*Session, error) {
 		return nil, errSignedOut
 	}
 	user, err := q.GetUser(ctx, sess.UserID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// A guest deleted since (at the demo's reset).
+		return nil, errSignedOut
+	}
 	if err != nil {
 		return nil, err
+	}
+	if user.GuestUntil.Valid && !user.GuestUntil.Time.After(now) {
+		return nil, errSignedOut
 	}
 	if user.SuspendedAt.Valid {
 		return nil, ErrSuspended

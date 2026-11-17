@@ -91,6 +91,12 @@ var (
 // authorize checks the user may run action on the server, as them under
 // row-level security: nodes of other orgs aren't visible at all.
 func (s *Service) authorize(ctx context.Context, q *store.Queries, sess *auth.Session, node pgtype.UUID, action, server string) (pgtype.UUID, error) {
+	return s.authorizeCommand(ctx, q, sess, node, action, server, nil, false)
+}
+
+// authorizeCommand is authorize with the command's params and whether
+// it's passkey-signed, for the demo's deny list (perms.DemoRefuses).
+func (s *Service) authorizeCommand(ctx context.Context, q *store.Queries, sess *auth.Session, node pgtype.UUID, action, server string, params json.RawMessage, signed bool) (pgtype.UUID, error) {
 	perm, ok := perms.For(action)
 	if !ok {
 		return pgtype.UUID{}, connect.NewError(connect.CodeInvalidArgument, errors.New("unknown action "+action))
@@ -111,6 +117,13 @@ func (s *Service) authorize(ctx context.Context, q *store.Queries, sess *auth.Se
 	}
 	if err := auth.OrgUsable(ctx, q, org); err != nil {
 		return org, err
+	}
+	// The public demo (#449): the Panel refuses what's off there to
+	// everyone but the demo org's owners, whatever their grants say.
+	if d, err := q.OrgDemoRole(ctx, store.OrgDemoRoleParams{OrgID: org, UserID: sess.UserID}); err != nil {
+		return org, err
+	} else if auth.DemoRestricted(d.Demo, m.Role) && perms.DemoRefuses(action, params, signed) {
+		return org, auth.ErrDemo
 	}
 	if m.Role == "owner" || m.Role == "admin" {
 		return org, nil
@@ -215,7 +228,7 @@ func (s *Service) execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 		err = s.Auth.AsUser(ctx, func(se *auth.Session, q *store.Queries) error {
 			sess = se
 			var err error
-			org, err = s.authorize(ctx, q, se, nodeID, env.Action, env.ServerID)
+			org, err = s.authorizeCommand(ctx, q, se, nodeID, env.Action, env.ServerID, env.Params, env.Signature != nil)
 			return err
 		})
 	}
