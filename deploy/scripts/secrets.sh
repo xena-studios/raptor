@@ -14,15 +14,33 @@ install -d -m 0750 -o root -g 65532 /run/raptor /run/raptor/keys
 install -d -m 0700 /run/raptor/tls
 op inject --force -i secrets/panel.env.tpl -o /run/raptor/panel.env
 # Features that can wait: each is added once its item is in the vault, and
-# skipped with a warning until then. An item that's there but wrong still
-# fails here.
+# skipped with a warning until then. A field the item doesn't have (an item
+# made with only some of its fields, like push with Apple's keys and not
+# Google's yet) skips just that setting, also with a warning: the Panel
+# runs with that part off. A whole optional item never stops a deploy.
 for tpl in secrets/optional/*.env.tpl; do
   item=$(grep -om1 "op://$VAULT/[^/]*" "$tpl" | cut -d/ -f4)
   if ! op item get "$item" --vault "$VAULT" >/dev/null 2>&1; then
     echo "secrets: no \"$item\" in 1Password, skipping $(basename "$tpl" .env.tpl)" >&2
     continue
   fi
-  op inject -i "$tpl" >>/run/raptor/panel.env
+  if out=$(op inject -i "$tpl" 2>/dev/null); then
+    printf '%s\n' "$out" >>/run/raptor/panel.env
+    continue
+  fi
+  # Line by line, to keep the settings whose fields are there.
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+    *"{{ op://"*)
+      if val=$(printf '%s\n' "$line" | op inject 2>/dev/null); then
+        printf '%s\n' "$val" >>/run/raptor/panel.env
+      else
+        field=$(printf '%s' "$line" | sed -E 's#.*op://[^}]*/([^/} ]*) *\}\}.*#\1#')
+        echo "secrets: \"$item\" has no $field field in 1Password, skipping ${line%%=*}" >&2
+      fi
+      ;;
+    esac
+  done <"$tpl"
 done
 op inject --force -i secrets/postgres.env.tpl -o /run/raptor/postgres.env
 op read "op://$VAULT/Panel signing key/key" > /run/raptor/keys/signing.key

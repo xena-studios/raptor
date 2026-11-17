@@ -216,12 +216,19 @@ func run(args []string, log *slog.Logger) error {
 
 // serveAPI runs the API. With a database it also enrolls nodes and holds
 // their connections, which needs the signing key.
-func serveAPI(ctx context.Context, log *slog.Logger) error {
+func serveAPI(ctx context.Context, log *slog.Logger) (err error) {
 	cfg := api.Config{Addr: envOr("PANEL_API_ADDR", ":8080")}
 	if key := os.Getenv("PANEL_CURSEFORGE_API_KEY"); key != "" {
 		cfg.CurseForge = &curseforge.Client{Key: key, UserAgent: "xena-studios/raptor/" + buildinfo.Version + " (raptorpanel.net)"}
 	}
 	host, _ := os.Hostname()
+	// A start-up failure is logged once everything below has stopped,
+	// which closePool bounds, so a failed start is seen and exits.
+	defer func() {
+		if err != nil {
+			log.Error("the panel couldn't start", "err", err)
+		}
+	}()
 	stopTelemetry, err := telemetry.Setup(ctx, buildinfo.Version, host, log)
 	if err != nil {
 		return fmt.Errorf("telemetry: %w", err)
@@ -238,7 +245,12 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 		if err != nil {
 			return err
 		}
-		defer pool.Close()
+		// Background work started below holds connections; it stops
+		// first, so closing the pool can't wait on it forever.
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithCancel(ctx)
+		defer closePool(pool, log)
+		defer cancel()
 		cfg.Ready = pool.Ping
 		reg, err := registry(pool)
 		if err != nil {
@@ -447,32 +459,59 @@ func serveAPI(ctx context.Context, log *slog.Logger) error {
 	return api.Run(ctx, cfg, log)
 }
 
+// closePool closes the database pool, waiting at most 10 seconds for
+// connections still in use: Close waits for every one, and a goroutine
+// that never lets go would otherwise keep a failed Panel from exiting
+// (as v0.18.0's first deploy did, with the error never logged).
+func closePool(pool *pgxpool.Pool, log *slog.Logger) {
+	closePoolWithin(pool, log, 10*time.Second)
+}
+
+func closePoolWithin(pool *pgxpool.Pool, log *slog.Logger, wait time.Duration) {
+	done := make(chan struct{})
+	go func() {
+		pool.Close()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(wait):
+		log.Warn("the database pool didn't close in time; exiting anyway", "waited", wait)
+	}
+}
+
 // pushService is push notifications to Raptor's phone app
 // (docs/DEPLOY.md#push-notifications): Apple's with PANEL_APNS_KEY (the
 // .p8 key's contents), PANEL_APNS_KEY_ID, and PANEL_APNS_TEAM_ID; Google's
 // with PANEL_FCM_CREDENTIALS (a service account's JSON key). Each is off
 // without its settings, and they need PANEL_DATA_KEY to seal push tokens.
-func pushService() (*alerts.Push, error) {
+//
+// A setting that's there but wrong turns that one off, with an error in the
+// log, rather than stopping the Panel: push is optional, and a bad value
+// in the vault mustn't take the API down (v0.18.0's deploy).
+func pushService(log *slog.Logger) *alerts.Push {
 	p := &alerts.Push{}
 	if k := os.Getenv("PANEL_APNS_KEY"); k != "" {
 		key, err := alerts.ParseAPNsKey([]byte(k))
-		if err != nil {
-			return nil, fmt.Errorf("PANEL_APNS_KEY: %w", err)
-		}
 		id, team := os.Getenv("PANEL_APNS_KEY_ID"), os.Getenv("PANEL_APNS_TEAM_ID")
-		if id == "" || team == "" {
-			return nil, errors.New("PANEL_APNS_KEY_ID and PANEL_APNS_TEAM_ID must be set with PANEL_APNS_KEY")
+		switch {
+		case err != nil:
+			log.Error("PANEL_APNS_KEY isn't a .p8 key: no push notifications to iPhones", "err", err)
+		case id == "" || team == "":
+			log.Error("PANEL_APNS_KEY_ID and PANEL_APNS_TEAM_ID must be set with PANEL_APNS_KEY: no push notifications to iPhones")
+		default:
+			p.APNs = &alerts.APNs{KeyID: id, TeamID: team, Topic: envOr("PANEL_APNS_TOPIC", "net.raptorpanel.app"), Key: key}
 		}
-		p.APNs = &alerts.APNs{KeyID: id, TeamID: team, Topic: envOr("PANEL_APNS_TOPIC", "net.raptorpanel.app"), Key: key}
 	}
 	if c := os.Getenv("PANEL_FCM_CREDENTIALS"); c != "" {
 		f, err := alerts.NewFCM([]byte(c), nil)
 		if err != nil {
-			return nil, fmt.Errorf("PANEL_FCM_CREDENTIALS: %w", err)
+			log.Error("PANEL_FCM_CREDENTIALS isn't a service account's JSON key: no push notifications to Android phones", "err", err)
+		} else {
+			p.FCM = f
 		}
-		p.FCM = f
 	}
-	return p, nil
+	return p
 }
 
 // alertService sends orgs' alerts (docs/PANEL.md#alerts), with Telegram
@@ -491,15 +530,12 @@ func alertService(ctx context.Context, pool *pgxpool.Pool, a *auth.Service, node
 	if len(s.DataKey) != 32 {
 		log.Warn("PANEL_DATA_KEY is not set: only email and Telegram alert channels can be added")
 	}
-	push, err := pushService()
-	if err != nil {
-		return nil, err
-	}
+	push := pushService(log)
 	s.Push = push
-	if !push.Offers(alerts.IOS) {
+	if !push.Offers(alerts.IOS) && os.Getenv("PANEL_APNS_KEY") == "" {
 		log.Warn("PANEL_APNS_KEY is not set: no push notifications to iPhones")
 	}
-	if !push.Offers(alerts.Android) {
+	if !push.Offers(alerts.Android) && os.Getenv("PANEL_FCM_CREDENTIALS") == "" {
 		log.Warn("PANEL_FCM_CREDENTIALS is not set: no push notifications to Android phones")
 	}
 	tok := os.Getenv("PANEL_TELEGRAM_BOT_TOKEN")
