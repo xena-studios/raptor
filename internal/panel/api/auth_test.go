@@ -283,3 +283,60 @@ func TestBrowserGuard(t *testing.T) {
 		t.Errorf("cookie has a Domain: %q", setCookie)
 	}
 }
+
+// The App Store reviewer's account signs in with its fixed code, emailed to
+// nobody; everyone else's codes are as before.
+func TestReviewSignIn(t *testing.T) {
+	db := paneltest.NewDB(t)
+	ctx := context.Background()
+	mail := &inbox{}
+	review, err := auth.NewReviewSignIn("Review@Example.com", "246810")
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc := &auth.Service{DB: db, Mailer: mail, AppURL: appOrigin, Review: review}
+	srv := httptest.NewTLSServer(Handler(Config{Auth: svc, AppOrigin: appOrigin}))
+	defer srv.Close()
+	b := newBrowser(t, srv, appOrigin)
+	finish := func(email, code string) error {
+		_, err := b.auth.FinishEmailSignIn(ctx, &panelv1.FinishEmailSignInRequest{Proof: &panelv1.FinishEmailSignInRequest_Code{
+			Code: &panelv1.EmailCode{Email: email, Code: code},
+		}})
+		return err
+	}
+
+	// Without asking for a code first, the fixed one doesn't work.
+	if err := finish("review@example.com", "246810"); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Fatalf("no code asked for: %v", err)
+	}
+	if _, err := b.auth.StartEmailSignIn(ctx, &panelv1.StartEmailSignInRequest{Email: "review@example.com"}); err != nil {
+		t.Fatal(err)
+	}
+	if len(mail.mail) != 0 {
+		t.Fatalf("the reviewer's code was emailed: %v", mail.mail)
+	}
+	if err := finish("review@example.com", "135791"); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Fatalf("wrong code: %v", err)
+	}
+	if err := finish("review@example.com", "246810"); err != nil {
+		t.Fatalf("review code: %v", err)
+	}
+	// It works once, like any code.
+	if err := finish("review@example.com", "246810"); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Fatalf("used twice: %v", err)
+	}
+
+	// Someone else still gets an emailed, random code.
+	if _, err := b.auth.StartEmailSignIn(ctx, &panelv1.StartEmailSignInRequest{Email: "bob@example.com"}); err != nil {
+		t.Fatal(err)
+	}
+	if code, _ := mail.last(t); code == "246810" {
+		t.Fatal("bob got the review code")
+	}
+
+	for _, bad := range [][2]string{{"review@example.com", ""}, {"", "246810"}, {"review@example.com", "12345"}, {"review@example.com", "12345a"}, {"nope", "246810"}} {
+		if _, err := auth.NewReviewSignIn(bad[0], bad[1]); err == nil {
+			t.Errorf("NewReviewSignIn(%q, %q) took it", bad[0], bad[1])
+		}
+	}
+}

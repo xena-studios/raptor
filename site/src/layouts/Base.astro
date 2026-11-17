@@ -45,7 +45,7 @@ const here = (href: string) => path === href || (href !== "/" && path.startsWith
     <meta name="twitter:card" content="summary_large_image" />
     <slot name="head" />
     <!-- Signed in to the app? The Panel sets raptor_signed_in=1 on
-         raptorpanel.net at sign-in (DECISIONS #366); it holds no token. Set
+         raptorpanel.net at sign-in (DECISIONS #374); it holds no token. Set
          before the page paints, so the buttons never flicker. -->
     <script is:inline>try{if(/(?:^|; )raptor_signed_in=1(?:;|$)/.test(document.cookie))document.documentElement.classList.add("signed-in")}catch(e){}</script>
   </head>

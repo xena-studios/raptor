@@ -2,18 +2,22 @@ import { useQuery } from "@connectrpc/connect-query";
 import { useMemo } from "react";
 
 import { OrgService, type Server } from "@/gen/raptor/panel/v1/org_pb";
+import { hasFrameworks } from "@/lib/cs2-frameworks";
 import { addonKinds } from "@/lib/eggs";
 import { can } from "@/lib/org-data";
 import type { ServerConfig } from "@/lib/servers";
 
 // AddonSection is one part of a server's Add-ons tab (#436): an add-on
-// kind's page (Plugins, Mods, Datapacks) or the Workshop.
+// kind's page (Plugins, Mods, Datapacks), Arma Reforger's mods, the
+// Workshop, or CS2's Frameworks.
 export type AddonSection = { key: string; label: string };
 
 // useAddonSections is what a server's Add-ons tab holds, in order, for
 // this user: the egg's add-on kinds (to those who can read its files; a
 // kind that needs a node capability only on nodes that have it), then the
-// Workshop (to those who change its startup). Empty: no Add-ons tab.
+// Workshop (to those who change its startup, or read its files when a
+// config file lists the items), and CS2's plugin frameworks (to those who
+// change its startup). Empty: no Add-ons tab.
 export function useAddonSections(
   orgId: string,
   nodeId: string,
@@ -45,8 +49,15 @@ export function useAddonSections(
       /^minecraft\/(bedrock|endstone)$/.test(server?.eggSource ?? "") ||
       /^Minecraft: (Bedrock|Endstone)$/.test(server?.eggName ?? "");
     if (bedrock && can(server, "files.read")) out.push({ key: "bedrock", label: "Packs" });
-    if (cfg?.egg?.workshop && can(server, "startup"))
+    if (cfg?.egg?.reforger && can(server, "files.read"))
+      out.push({ key: "reforger", label: "Mods" });
+    // A Workshop in a config file (#408) is read with files.read.
+    const ws = cfg?.egg?.workshop;
+    if (ws && can(server, ws.file ? "files.read" : "startup"))
       out.push({ key: "workshop", label: "Workshop" });
+    // Metamod:Source and CounterStrikeSharp: eggs with their variables.
+    if (hasFrameworks((cfg?.egg?.variables ?? []).map((v) => v.env)) && can(server, "startup"))
+      out.push({ key: "frameworks", label: "Frameworks" });
     return out;
   }, [details.data?.configJson, server, capabilities]);
   return { sections, loading: details.isPending && details.fetchStatus !== "idle" };

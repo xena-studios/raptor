@@ -281,6 +281,24 @@ func (s *Service) execute(ctx context.Context, req *panelv1.ExecuteRequest) (*pa
 				meta["permanent"] = true
 			}
 		}
+		if env.Action == "players.manage" {
+			// Who was kicked, banned, or listed, and how (#422, #423); not
+			// the reason or the message.
+			var p struct {
+				Op   string `json:"op"`
+				ID   string `json:"id"`
+				Name string `json:"name"`
+				IP   string `json:"ip"`
+			}
+			if json.Unmarshal(env.Params, &p) == nil && p.Op != "" {
+				meta["op"] = p.Op
+				for k, v := range map[string]string{"player_id": p.ID, "player": p.Name, "ip": p.IP} {
+					if v != "" && len(v) <= 64 {
+						meta[k] = v
+					}
+				}
+			}
+		}
 		switch {
 		case err != nil:
 			meta["error"] = err.Error()

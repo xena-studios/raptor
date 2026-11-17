@@ -105,12 +105,31 @@ type eggInfo struct {
 	// Workshop is where the game takes Steam Workshop items
 	// (docs/EGGS.md#steam-workshop).
 	Workshop *eggWorkshop `json:"workshop,omitempty"`
+	// Reforger is where Arma Reforger takes Bohemia Workshop mods
+	// (docs/EGGS.md#arma-reforger-mods).
+	Reforger *eggReforger `json:"reforger,omitempty"`
 	// Web is a web dashboard the server serves (#428).
 	Web *eggWeb `json:"web,omitempty"`
 	// Modpack names the variables that pick a modpack (#413).
 	Modpack *eggModpack `json:"modpack,omitempty"`
+	// Scan says the server's scripts can be scanned for backdoors (#428).
+	Scan *eggScan `json:"scan,omitempty"`
 	// Players is how the game answers player queries ("minecraft" for the
 	// Java edition), so the Panel knows which servers get an SRV record.
+	Players string `json:"players,omitempty"`
+	// RCON is how Wings reaches the game's remote console (#423): its
+	// variables' names, never their values.
+	RCON *eggRCON `json:"rcon,omitempty"`
+}
+
+type eggRCON struct {
+	Protocol string `json:"protocol"`
+	Port     string `json:"port,omitempty"`
+	// PwVar is the variable holding the password: its name only.
+	PwVar   string `json:"password"`
+	Enabled string `json:"enabled,omitempty"`
+	// Players is the Players tab's command set ("source", "ark",
+	// "palworld", "rust"); empty: none.
 	Players string `json:"players,omitempty"`
 }
 
@@ -121,6 +140,11 @@ type eggModpack struct {
 	GameVersion string `json:"game_version,omitempty"`
 }
 
+type eggScan struct {
+	Rules string   `json:"rules"`
+	Dirs  []string `json:"dirs"`
+}
+
 type eggWeb struct {
 	Name    string `json:"name"`
 	Port    string `json:"port,omitempty"`
@@ -128,10 +152,25 @@ type eggWeb struct {
 }
 
 type eggWorkshop struct {
-	AppID      int64  `json:"app_id"`
-	Variable   string `json:"variable"`
-	Collection bool   `json:"collection,omitempty"`
-	Apply      string `json:"apply"`
+	AppID      int64            `json:"app_id"`
+	Variable   string           `json:"variable"`
+	Collection bool             `json:"collection,omitempty"`
+	File       *eggWorkshopFile `json:"file,omitempty"`
+	Apply      string           `json:"apply"`
+}
+
+// eggWorkshopFile is the config file that lists the items (#408).
+type eggWorkshopFile struct {
+	Path      string   `json:"path"`
+	Format    string   `json:"format"`
+	Key       string   `json:"key,omitempty"`
+	Separator string   `json:"separator,omitempty"`
+	ModsKey   string   `json:"mods_key,omitempty"`
+	Overrides []string `json:"overrides,omitempty"`
+}
+
+type eggReforger struct {
+	Config string `json:"config"`
 }
 
 type eggAddon struct {
@@ -174,8 +213,14 @@ func describeEgg(s *server.Server) *eggInfo {
 	if w := e.Raptor.Web; w != nil {
 		out.Web = &eggWeb{Name: w.Name, Port: w.Port, Enabled: w.Enabled}
 	}
+	if r := e.Raptor.RCON; r != nil {
+		out.RCON = &eggRCON{Protocol: r.Protocol, Port: r.Port, PwVar: r.PwVar, Enabled: r.Enabled, Players: r.Players}
+	}
 	if m := e.Raptor.Modpack; m != nil {
 		out.Modpack = &eggModpack{Source: m.Source, Project: m.Project, Version: m.Version, GameVersion: m.GameVersion}
+	}
+	if sc := e.Raptor.Scan; sc != nil {
+		out.Scan = &eggScan{Rules: sc.Rules, Dirs: sc.Dirs}
 	}
 	if w := e.Raptor.Workshop; w != nil {
 		apply := w.Apply
@@ -183,6 +228,12 @@ func describeEgg(s *server.Server) *eggInfo {
 			apply = "restart"
 		}
 		out.Workshop = &eggWorkshop{AppID: w.AppID, Variable: w.Variable, Collection: w.Collection, Apply: apply}
+		if f := w.File; f != nil {
+			out.Workshop.File = &eggWorkshopFile{Path: f.Path, Format: f.Format, Key: f.Key, Separator: f.Separator, ModsKey: f.ModsKey, Overrides: f.Overrides}
+		}
+	}
+	if r := e.Raptor.Reforger; r != nil {
+		out.Reforger = &eggReforger{Config: r.Config}
 	}
 	for _, i := range e.Images {
 		out.Images = append(out.Images, eggImage{Name: i.Name, Ref: i.Ref})

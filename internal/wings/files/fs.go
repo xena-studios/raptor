@@ -481,6 +481,21 @@ func (f *FS) Link(from, to string) error {
 	return f.root.Link(from, to)
 }
 
+// WalkDir walks dir in name order without following symlinks, leaving
+// out what the egg's denylist hides (a denied folder isn't entered). A dir
+// that doesn't exist is an fs.ErrNotExist error.
+func (f *FS) WalkDir(dir string, fn fs.WalkDirFunc) error {
+	return fs.WalkDir(f.root.FS(), Rel(dir), func(p string, d fs.DirEntry, err error) error {
+		if err == nil && f.deny.Denied(p, d.IsDir()) {
+			if d.IsDir() {
+				return fs.SkipDir
+			}
+			return nil
+		}
+		return fn(p, d, err)
+	})
+}
+
 // ReadFile reads a whole regular file of at most limit bytes.
 func (f *FS) ReadFile(name string, limit int64) ([]byte, fs.FileInfo, error) {
 	file, err := f.Open(name, os.O_RDONLY)

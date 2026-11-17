@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Raptor store art</title>
+<style>
+  @font-face { font-family: "Hanken Grotesk"; src: url(assets/hanken.woff2) format("woff2"); font-weight: 100 900; }
+  @font-face { font-family: "JetBrains Mono"; src: url(assets/mono.woff2) format("woff2"); font-weight: 100 800; }
+  :root {
+    --ink: #0f0808;
+    --raised: #181110;
+    --bone: #f5f0f0;
+    --ash: #a89f9e;
+    --red: #f05653;
+    /* The burgundy finish: a deep wine, lit from the upper left. */
+    --wine-hi: #b04358;
+    --wine: #7a2233;
+    --wine-lo: #40101b;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { background: var(--ink); }
+  body { width: var(--w); height: var(--h); overflow: hidden; position: relative; font-family: "Hanken Grotesk", sans-serif; color: var(--bone); }
+
+  /* A low red light behind the phones, as if the screens glow. */
+  .glow { position: absolute; border-radius: 50%; filter: blur(var(--blur)); background: radial-gradient(closest-side, rgba(240,86,83,.30), rgba(240,86,83,0)); pointer-events: none; }
+  .rule { position: absolute; left: 0; right: 0; height: 1px; background: rgba(245,240,240,.07); }
+
+  .kicker { font-family: "JetBrains Mono"; font-weight: 500; color: var(--red); text-transform: uppercase; letter-spacing: .22em; }
+  .headline { font-weight: 700; letter-spacing: -0.025em; line-height: 1.02; text-wrap: balance; }
+  .headline em { font-style: normal; color: var(--red); }
+  .sub { color: var(--ash); line-height: 1.35; text-wrap: pretty; }
+
+  /* The phone: a burgundy band, a black bezel, the screen, the island. Its
+     size is --pw; everything else is a share of it. */
+  .phone { position: absolute; width: var(--pw); aspect-ratio: 1206 / 2622; }
+  .phone .band {
+    position: absolute; inset: calc(var(--pw) * -0.04);
+    border-radius: calc(var(--pw) * 0.18);
+    background:
+      linear-gradient(145deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 18%),
+      linear-gradient(160deg, var(--wine-hi) 0%, var(--wine) 35%, var(--wine-lo) 70%, var(--wine) 100%);
+    box-shadow:
+      inset 0 0 0 calc(var(--pw) * 0.0025) rgba(255,255,255,.28),
+      inset 0 0 calc(var(--pw) * 0.01) rgba(0,0,0,.6),
+      0 calc(var(--pw) * 0.08) calc(var(--pw) * 0.16) rgba(0,0,0,.55);
+  }
+  .phone .bezel {
+    position: absolute; inset: calc(var(--pw) * -0.022);
+    border-radius: calc(var(--pw) * 0.162);
+    background: #050303;
+  }
+  .phone img.screen { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: calc(var(--pw) * 0.142); display: block; }
+  /* The glass: a faint light across it from the upper left. */
+  .phone .glare { position: absolute; inset: 0; border-radius: calc(var(--pw) * 0.142); background: linear-gradient(118deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,.025) 22%, rgba(255,255,255,0) 38%); pointer-events: none; }
+  .phone .island {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    top: calc(var(--pw) * 0.027); width: calc(var(--pw) * 0.31); height: calc(var(--pw) * 0.092);
+    border-radius: 999px; background: #000;
+  }
+  /* Side buttons, in the band's finish. */
+  .phone .btn { position: absolute; width: calc(var(--pw) * 0.014); border-radius: calc(var(--pw) * 0.007); background: linear-gradient(90deg, var(--wine-lo), var(--wine-hi) 45%, var(--wine)); }
+  .phone .btn.l { left: calc(var(--pw) * -0.046); }
+  .phone .btn.r { right: calc(var(--pw) * -0.046); }
+
+  /* A notification, as iOS shows one over the app. */
+  .note {
+    position: absolute; display: flex; gap: calc(var(--nw) * .035); align-items: flex-start;
+    width: var(--nw); padding: calc(var(--nw) * .04);
+    border-radius: calc(var(--nw) * .07);
+    background: rgba(44, 36, 36, .97);
+    border: 1px solid rgba(245,240,240,.10);
+    box-shadow: 0 calc(var(--nw) * .05) calc(var(--nw) * .12) rgba(0,0,0,.5);
+  }
+  .note img { width: calc(var(--nw) * .12); height: calc(var(--nw) * .12); border-radius: calc(var(--nw) * .028); flex: none; }
+  .note .body { flex: 1; min-width: 0; }
+  .note .top { display: flex; justify-content: space-between; font-size: calc(var(--nw) * .036); color: var(--ash); text-transform: uppercase; letter-spacing: .04em; }
+  .note .title { font-weight: 650; font-size: calc(var(--nw) * .05); margin-top: calc(var(--nw) * .008); }
+  .note .text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: calc(var(--nw) * .044); color: #d9d1d0; margin-top: calc(var(--nw) * .006); line-height: 1.3; }
+  .note .actions { display: flex; gap: calc(var(--nw) * .02); margin-top: calc(var(--nw) * .026); }
+  .note .actions span { flex: 1; text-align: center; padding: calc(var(--nw) * .022) 0; border-radius: calc(var(--nw) * .03); background: rgba(245,240,240,.09); font-size: calc(var(--nw) * .042); font-weight: 600; }
+  .note .actions span.go { color: var(--red); }
+
+  .logo { display: block; }
+</style>
+</head>
+<body>
+<script src="assets/brand.js"></script>
+<script>
+const q = new URLSearchParams(location.search);
+const kind = q.get("kind");
+const W = +q.get("w"), H = +q.get("h");
+document.documentElement.style.setProperty("--w", W + "px");
+document.documentElement.style.setProperty("--h", H + "px");
+// Laid out at one size and shown at another (render.cjs).
+if (q.get("zoom")) document.documentElement.style.zoom = q.get("zoom");
+
+const el = (tag, attrs = {}, kids = []) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "style") Object.assign(e.style, v);
+    else if (k === "html") e.innerHTML = v;
+    else e.setAttribute(k, v);
+  }
+  for (const c of kids) e.append(c);
+  return e;
+};
+
+// phone(shot, width, left, top, extra style)
+function phone(shot, pw, x, y, style = {}) {
+  const p = el("div", { class: "phone", style: { "--pw": pw + "px", left: x + "px", top: y + "px", ...style } });
+  p.style.setProperty("--pw", pw + "px");
+  const btn = (side, top, h) => el("div", { class: "btn " + side, style: { top: pw * top + "px", height: pw * h + "px" } });
+  p.append(
+    btn("l", 0.30, 0.075), btn("l", 0.43, 0.13), btn("l", 0.60, 0.13),
+    btn("r", 0.46, 0.20), btn("r", 1.36, 0.09),
+    el("div", { class: "band" }), el("div", { class: "bezel" }),
+    el("img", { class: "screen", src: "raw/" + shot + ".png" }),
+    el("div", { class: "glare" }),
+    el("div", { class: "island" }),
+  );
+  return p;
+}
+
+function glow(x, y, size, blur) {
+  const g = el("div", { class: "glow", style: { left: x - size / 2 + "px", top: y - size / 2 + "px", width: size + "px", height: size + "px" } });
+  g.style.setProperty("--blur", blur + "px");
+  return g;
+}
+
+function note(nw, x, y) {
+  const n = el("div", { class: "note", style: { left: x + "px", top: y + "px" } });
+  n.style.setProperty("--nw", nw + "px");
+  n.append(
+    el("img", { src: "assets/icon.png" }),
+    el("div", { class: "body" }, [
+      el("div", { class: "top", html: "<span>Raptor</span><span>now</span>" }),
+      el("div", { class: "title", html: "Server crashed" }),
+      el("div", { class: "text", html: "Factorio on ash-1 · exit code 139" }),
+      el("div", { class: "actions", html: '<span class="go">Restart</span><span>Mute 1 hour</span>' }),
+    ]),
+  );
+  return n;
+}
+
+async function logo(height) {
+  // The full logo, as the app draws it: the raptor beside the wordmark.
+  const src = window.BRAND;
+  const H0 = 46, rw = 96, gap = 0.45 * H0, wh = 0.5 * H0, ww = (wh * 5356) / 711, W0 = rw + gap + ww;
+  const s = el("div", { html:
+    `<svg class="logo" xmlns="http://www.w3.org/2000/svg" height="${height}" viewBox="0 0 ${W0} ${H0}">` +
+    `<g transform="translate(0 -3)"><path d="${src.raptor}" fill-rule="evenodd" fill="#f05653"/></g>` +
+    `<g transform="translate(${rw + gap} ${(H0 - wh) / 2}) scale(${wh / 711}) translate(-82 699)"><path d="${src.wordmark}" fill="#f5f0f0"/></g></svg>` });
+  return s.firstChild;
+}
+
+const shots = {
+  alerts: { kicker: "Alerts", head: "Know the moment a server <em>goes down.</em>", sub: "Crashes, offline machines, and full disks.", note: true },
+  servers: { kicker: "Servers", head: "Every server, <em>at a glance.</em>", sub: "What's up, what isn't, and who's playing, on every machine." },
+  server: { kicker: "Control", head: "Start, stop, restart. <em>From anywhere.</em>", sub: "Live CPU, memory, and players, with power one tap away." },
+  console: { kicker: "Console", head: "The live console, <em>in your pocket.</em>", sub: "Watch it as it happens, and send commands from your phone." },
+};
+
+(async () => {
+  await document.fonts.load('700 100px "Hanken Grotesk"');
+  await document.fonts.load('500 40px "JetBrains Mono"');
+  const b = document.body;
+
+  if (kind === "shot") {
+    const s = shots[q.get("shot")];
+    const pad = 112;
+    b.append(glow(W / 2, 1900, 1500, 160));
+    const text = el("div", { style: { position: "absolute", left: pad + "px", right: pad + "px", top: "150px" } }, [
+      el("div", { class: "kicker", style: { fontSize: "36px" }, html: "// " + s.kicker }),
+      el("div", { class: "headline", style: { fontSize: "118px", marginTop: "34px" }, html: s.head }),
+      el("div", { class: "sub", style: { fontSize: "46px", marginTop: "36px", maxWidth: "1000px" }, html: s.sub }),
+    ]);
+    b.append(text);
+    const pw = 900, top = 850;
+    b.append(phone(q.get("shot"), pw, (W - pw) / 2, top));
+    if (s.note) {
+      const n = note(1040, (W - 1040) / 2, 0);
+      b.append(n);
+      // Its bottom edge just below the status bar, as a banner comes in.
+      n.style.top = top + pw * (2622 / 1206) * 0.072 - n.offsetHeight + "px";
+    }
+  }
+
+  if (kind === "header" || kind === "search") {
+    const tall = kind === "search";
+    b.append(glow(W * 0.66, H * 0.62, H * 1.3, 220));
+    // Three phones: the list in front, alerts and the console behind it.
+    const pw = tall ? 760 : 620;
+    const cy = tall ? H * 0.30 : H * 0.17;
+    const cx = tall ? W * 0.5 : W * 0.66;
+    const back = { filter: "brightness(.78)" };
+    b.append(phone("alerts", pw * 0.9, cx - pw * 1.38, cy + pw * 0.22, back));
+    b.append(phone("console", pw * 0.9, cx + pw * 0.48, cy + pw * 0.22, back));
+    b.append(phone("servers", pw, cx - pw / 2, cy));
+    // Fade the phones into the bottom edge.
+    b.append(el("div", { style: { position: "absolute", left: 0, right: 0, bottom: 0, height: (tall ? H * 0.22 : H * 0.28) + "px", background: "linear-gradient(rgba(15,8,8,0), var(--ink))" } }));
+    const lg = await logo(tall ? 96 : 84);
+    if (!tall) lg.style.alignSelf = "flex-start";
+    const text = tall
+      ? el("div", { style: { position: "absolute", left: 0, right: 0, top: "170px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" } }, [
+          lg,
+          el("div", { class: "headline", style: { fontSize: "150px", marginTop: "70px", maxWidth: "2600px" }, html: "Your game servers, <em>in your pocket.</em>" }),
+        ])
+      : el("div", { style: { position: "absolute", left: W * 0.12 + "px", top: "0", bottom: "0", width: W * 0.34 + "px", display: "flex", flexDirection: "column", justifyContent: "center" } }, [
+          lg,
+          el("div", { class: "headline", style: { fontSize: "132px", marginTop: "64px" }, html: "Your game servers, <em>in your pocket.</em>" }),
+          el("div", { class: "kicker", style: { fontSize: "38px", marginTop: "56px", color: "var(--ash)" }, html: "Alerts · Console · Control" }),
+        ]);
+    b.append(text);
+  }
+
+  document.body.dataset.ready = "1";
+})();
+</script>
+</body>
+</html>

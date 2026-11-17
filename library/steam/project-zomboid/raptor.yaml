@@ -7,6 +7,16 @@ credits:
   - "Icon: Project Zomboid's icon, from Steam (The Indie Stone)"
 certified: true
 arch: [amd64]
+# Mods are listed in the server's ini (made on its first start), by two
+# lists: the Workshop items to download and the mods in them to load.
+workshop:
+  app_id: 108600
+  file:
+    path: .cache/Server/{{SERVER_NAME}}.ini
+    format: ini
+    key: WorkshopItems
+    mods_key: Mods
+  apply: restart
 # Project Zomboid can't pause saving, so a backup saves first and has nothing
 # to undo. "World saved" comes when the save is only queued; "Saving finish"
 # when it's written.

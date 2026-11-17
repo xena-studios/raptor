@@ -78,7 +78,22 @@ type pushMessage struct {
 	Urgent      bool
 	// Group is what notifications are stacked by (a server, a node).
 	Group string
-	Data  map[string]string
+	// Category picks the buttons the app puts on it (iOS): "server" for an
+	// alert about a server that's still going on (Restart, Mute 1 hour),
+	// "node" for a node (Mute 1 hour).
+	Category string
+	Data     map[string]string
+}
+
+// pushCategory is which buttons an alert's notification gets.
+func pushCategory(m Message) string {
+	switch {
+	case m.Resolved || m.OrgID == "" || m.NodeID == "":
+		return ""
+	case m.ServerID != "":
+		return "server"
+	}
+	return "node"
 }
 
 func pushFor(m Message) pushMessage {
@@ -91,10 +106,11 @@ func pushFor(m Message) pushMessage {
 	}
 	p := pushMessage{
 		Title: truncate(m.Title, 120), Body: truncate(body, 400), Urgent: m.Level == Critical && !m.Resolved,
-		Group: cmpOr(m.ServerID, m.NodeID, m.Condition),
-		Data:  map[string]string{},
+		Group:    cmpOr(m.ServerID, m.NodeID, m.Condition),
+		Category: pushCategory(m),
+		Data:     map[string]string{},
 	}
-	for k, v := range map[string]string{"url": m.URL, "node_id": m.NodeID, "server_id": m.ServerID, "condition": m.Condition, "level": m.Level} {
+	for k, v := range map[string]string{"url": m.URL, "org_id": m.OrgID, "node_id": m.NodeID, "server_id": m.ServerID, "condition": m.Condition, "level": m.Level} {
 		if v != "" {
 			p.Data[k] = v
 		}
@@ -209,12 +225,14 @@ func (a *APNs) send(ctx context.Context, c *http.Client, device string, sandbox 
 	if m.Urgent {
 		level = "time-sensitive"
 	}
-	payload := map[string]any{
-		"aps": map[string]any{
-			"alert": map[string]string{"title": m.Title, "body": m.Body}, "sound": "default",
-			"interruption-level": level, "thread-id": m.Group,
-		},
+	aps := map[string]any{
+		"alert": map[string]string{"title": m.Title, "body": m.Body}, "sound": "default",
+		"interruption-level": level, "thread-id": m.Group,
 	}
+	if m.Category != "" {
+		aps["category"] = m.Category
+	}
+	payload := map[string]any{"aps": aps}
 	for k, v := range m.Data {
 		payload[k] = v
 	}

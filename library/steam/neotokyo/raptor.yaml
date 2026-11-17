@@ -11,6 +11,12 @@ arch: [amd64]
 players:
   query: source
 # Its console runs under Wine without input, so Ctrl+C stops it.
+# The Players tab talks to the game over RCON, on its game port; RCON is
+# off until a password is set.
+rcon:
+  protocol: source
+  password: RCON_PASSWORD
+  players: source
 test:
   tier: slow
   memory_mib: 2048

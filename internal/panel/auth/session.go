@@ -21,7 +21,7 @@ import (
 const CookieName = "__Host-raptor_session"
 
 // HintCookie tells raptorpanel.net that this browser is signed in, so the
-// site can offer the dashboard instead of "Start free" (DECISIONS #366). It
+// site can offer the dashboard instead of "Start free" (DECISIONS #374). It
 // holds only "1", never the token: it's readable by scripts on every
 // subdomain of HintDomain, so it proves nothing and the API never reads it.
 // It can outlive the session (a sign-out elsewhere, an idle expiry); the
@@ -135,7 +135,7 @@ func (s *Service) setHint(h http.Header, on bool) {
 		return
 	}
 	// Not HttpOnly on purpose: the site's script reads it, and it holds no secret.
-	c := &http.Cookie{ //nolint:gosec // G124: a token-free hint the site must read (DECISIONS #366)
+	c := &http.Cookie{ //nolint:gosec // G124: a token-free hint the site must read (DECISIONS #374)
 		Name: HintCookie, Value: "1", Path: "/", Domain: s.HintDomain, MaxAge: int(SessionMax.Seconds()),
 		Secure: true, SameSite: http.SameSiteLaxMode,
 	}

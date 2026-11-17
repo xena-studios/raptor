@@ -14,6 +14,11 @@ web:
   name: txAdmin
   port: TXHOST_TXA_PORT
   enabled: TXADMIN_ENABLE
+# Resources can be scanned for known backdoors (#428): those in resources/
+# and those txAdmin's recipes put in txData/.
+scan:
+  rules: fivem
+  dirs: [resources, txData]
 test:
   tier: manual
   reason: "FXServer only starts with a Cfx.re license key, which is tied to an account (free from portal.cfx.re)."

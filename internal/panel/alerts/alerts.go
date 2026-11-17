@@ -293,9 +293,25 @@ type People struct {
 	AdminsOnly bool
 }
 
+// MuteTargets are what an alert about this node or server can be muted by
+// (alert_mutes.target).
+func MuteTargets(nodeID, serverID string) []string {
+	var t []string
+	if serverID != "" {
+		t = append(t, "server:"+serverID)
+	}
+	if nodeID != "" {
+		t = append(t, "node:"+nodeID)
+	}
+	return t
+}
+
 // queue queues an alert to the rule's team channels and to its people: in
 // each one's inbox, and to each of their own channels that's on.
 func (s *Service) queue(ctx context.Context, q *store.Queries, org, rule pgtype.UUID, chans []pgtype.UUID, who People, m Message) error {
+	if org.Valid {
+		m.OrgID = uuid.UUID(org.Bytes).String()
+	}
 	body, err := json.Marshal(m)
 	if err != nil {
 		return err
@@ -322,6 +338,15 @@ func (s *Service) queue(ctx context.Context, q *store.Queries, org, rule pgtype.
 		if err := q.InsertAlertNotification(ctx, store.InsertAlertNotificationParams{UserID: p.UserID, OrgID: org, RuleID: rule, Message: body}); err != nil {
 			return err
 		}
+	}
+	// People who muted alerts about this server or node get it in their
+	// inbox, but not on their own channels.
+	if targets := MuteTargets(m.NodeID, m.ServerID); len(targets) > 0 {
+		muted, err := q.MutedUsers(ctx, store.MutedUsersParams{OrgID: org, Users: ids, Targets: targets})
+		if err != nil {
+			return err
+		}
+		ids = slices.DeleteFunc(ids, func(id pgtype.UUID) bool { return slices.Contains(muted, id) })
 	}
 	own, err := q.ActiveUserAlertChannels(ctx, ids)
 	if err != nil {
@@ -401,6 +426,9 @@ func (s *Service) tick(ctx context.Context, syncNodes, prune bool) {
 		}
 		if err := q.PruneTelegramLinks(ctx); err != nil {
 			s.Log.Warn("alerts: pruning Telegram links failed", "err", err)
+		}
+		if err := q.PruneAlertMutes(ctx); err != nil {
+			s.Log.Warn("alerts: pruning mutes failed", "err", err)
 		}
 	}
 }
@@ -799,6 +827,7 @@ func (s *Service) Test(ctx context.Context, owner Owner, ch store.AlertChannel, 
 	}
 	if owner.Org.Valid {
 		m.URL = s.link(owner.Org, "", "")
+		m.OrgID = uuid.UUID(owner.Org.Bytes).String()
 	} else {
 		m.Text = "Your alerts from Raptor reach this channel."
 	}
@@ -857,6 +886,31 @@ func (s *Service) RegisterPhone(ctx context.Context, in PhoneInput) (pgtype.UUID
 	return store.New(s.DB).UpsertPhoneChannel(ctx, store.UpsertPhoneChannelParams{
 		UserID: in.User, Name: name, Config: cfg, Secret: sealed, Hint: name, SessionID: in.Session,
 	})
+}
+
+// PushToSession sends one notification to the phone app signed in as
+// session, outside the alert queue: an approval request (auth.ApprovalPusher).
+// It's urgent (time-sensitive on iOS) and isn't retried; the request also
+// shows when the app is opened.
+func (s *Service) PushToSession(ctx context.Context, session pgtype.UUID, title, body string, data map[string]string) error {
+	s.init()
+	ch, err := store.New(s.DB).PhoneChannelBySession(ctx, session)
+	if err != nil {
+		return err
+	}
+	t, err := s.target(ctx, channelOwner(ch.OrgID, ch.UserID), ch.Type, ch.Config, ch.Secret)
+	if err != nil {
+		return err
+	}
+	sctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	err = s.send.push.send(sctx, t.Config.Platform, t.Secret.Token, t.Config.Sandbox, pushMessage{
+		Title: title, Body: body, Urgent: true, Group: "approval", Data: data,
+	})
+	if errors.As(err, new(gone)) {
+		_ = store.New(s.DB).DropPhoneChannel(ctx, ch.ID)
+	}
+	return err
 }
 
 // UnregisterPhone removes an app session's phone channel.

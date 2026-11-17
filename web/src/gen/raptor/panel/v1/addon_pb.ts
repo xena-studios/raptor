@@ -12,7 +12,55 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file raptor/panel/v1/addon.proto.
  */
 export const file_raptor_panel_v1_addon: GenFile = /*@__PURE__*/
-  fileDesc("ChtyYXB0b3IvcGFuZWwvdjEvYWRkb24ucHJvdG8SD3JhcHRvci5wYW5lbC52MSIpChdMaXN0QWRkb25Tb3VyY2VzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkiKwoYTGlzdEFkZG9uU291cmNlc1Jlc3BvbnNlEg8KB3NvdXJjZXMYASADKAkiyAEKDEFkZG9uUHJvamVjdBIKCgJpZBgBIAEoCRIMCgRzbHVnGAIgASgJEg0KBXRpdGxlGAMgASgJEhMKC2Rlc2NyaXB0aW9uGAQgASgJEhAKCGljb25fdXJsGAUgASgJEhEKCWRvd25sb2FkcxgGIAEoAxIOCgZhdXRob3IYByABKAkSCwoDdXJsGAggASgJEg4KBnNvdXJjZRgJIAEoCRITCgtzZXJ2ZXJfc2lkZRgKIAEoCRITCgtjbGllbnRfc2lkZRgLIAEoCSJHCg9BZGRvbkRlcGVuZGVuY3kSEgoKcHJvamVjdF9pZBgBIAEoCRISCgp2ZXJzaW9uX2lkGAIgASgJEgwKBHR5cGUYAyABKAkiegoJQWRkb25GaWxlEgsKA3VybBgBIAEoCRIQCghmaWxlbmFtZRgCIAEoCRIMCgRzaXplGAMgASgDEg4KBnNoYTUxMhgEIAEoCRIOCgZzaGEyNTYYBSABKAkSDAoEc2hhMRgGIAEoCRISCgptYW51YWxfdXJsGAcgASgJIpACCgxBZGRvblZlcnNpb24SCgoCaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEhYKDnZlcnNpb25fbnVtYmVyGAQgASgJEhUKDWdhbWVfdmVyc2lvbnMYBSADKAkSDwoHbG9hZGVycxgGIAMoCRIwCgxwdWJsaXNoZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEigKBGZpbGUYCCABKAsyGi5yYXB0b3IucGFuZWwudjEuQWRkb25GaWxlEjYKDGRlcGVuZGVuY2llcxgJIAMoCzIgLnJhcHRvci5wYW5lbC52MS5BZGRvbkRlcGVuZGVuY3kipgEKE1NlYXJjaEFkZG9uc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgwKBGtpbmQYAiABKAkSDwoHbG9hZGVycxgDIAMoCRIUCgxnYW1lX3ZlcnNpb24YBCABKAkSDQoFcXVlcnkYBSABKAkSDgoGb2Zmc2V0GAYgASgFEg4KBnNvdXJjZRgHIAEoCRIbChNpbmNsdWRlX2NsaWVudF9vbmx5GAggASgIIlYKFFNlYXJjaEFkZG9uc1Jlc3BvbnNlEi8KCHByb2plY3RzGAEgAygLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uUHJvamVjdBINCgV0b3RhbBgCIAEoBSKDAQoYTGlzdEFkZG9uVmVyc2lvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEg8KB2xvYWRlcnMYAyADKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJEg4KBnNvdXJjZRgFIAEoCRIMCgRraW5kGAYgASgJIkwKGUxpc3RBZGRvblZlcnNpb25zUmVzcG9uc2USLwoIdmVyc2lvbnMYASADKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25WZXJzaW9uIq0EChVJZGVudGlmeUFkZG9uc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg4KBmhhc2hlcxgCIAMoCRIPCgdsb2FkZXJzGAMgAygJEhQKDGdhbWVfdmVyc2lvbhgEIAEoCRJCCgZzaGEyNTYYBSADKAsyMi5yYXB0b3IucGFuZWwudjEuSWRlbnRpZnlBZGRvbnNSZXF1ZXN0LlNoYTI1NkVudHJ5EkAKBW5hbWVzGAYgAygLMjEucmFwdG9yLnBhbmVsLnYxLklkZW50aWZ5QWRkb25zUmVxdWVzdC5OYW1lc0VudHJ5Ej4KBHNoYTEYByADKAsyMC5yYXB0b3IucGFuZWwudjEuSWRlbnRpZnlBZGRvbnNSZXF1ZXN0LlNoYTFFbnRyeRJKCgpjdXJzZWZvcmdlGAggAygLMjYucmFwdG9yLnBhbmVsLnYxLklkZW50aWZ5QWRkb25zUmVxdWVzdC5DdXJzZWZvcmdlRW50cnkaLQoLU2hhMjU2RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARosCgpOYW1lc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEaKwoJU2hhMUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEaMQoPQ3Vyc2Vmb3JnZUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoDToCOAEisAEKD0lkZW50aWZpZWRBZGRvbhIOCgZzaGE1MTIYASABKAkSLgoHcHJvamVjdBgCIAEoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblByb2plY3QSLgoHdmVyc2lvbhgDIAEoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblZlcnNpb24SLQoGbGF0ZXN0GAQgASgLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uVmVyc2lvbiJKChZJZGVudGlmeUFkZG9uc1Jlc3BvbnNlEjAKBmFkZG9ucxgBIAMoCzIgLnJhcHRvci5wYW5lbC52MS5JZGVudGlmaWVkQWRkb24iOQoaTG9va3VwV29ya3Nob3BJdGVtc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgsKA2lkcxgCIAMoCSKyAQoMV29ya3Nob3BJdGVtEgoKAmlkGAEgASgJEg4KBmFwcF9pZBgCIAEoAxINCgV0aXRsZRgDIAEoCRITCgtwcmV2aWV3X3VybBgEIAEoCRIMCgRzaXplGAUgASgDEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmNvbGxlY3Rpb24YByABKAgSEAoIY2hpbGRyZW4YCCADKAkiSwobTG9va3VwV29ya3Nob3BJdGVtc1Jlc3BvbnNlEiwKBWl0ZW1zGAEgAygLMh0ucmFwdG9yLnBhbmVsLnYxLldvcmtzaG9wSXRlbSKPAQofUmVzb2x2ZUFkZG9uRGVwZW5kZW5jaWVzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSEgoKdmVyc2lvbl9pZBgCIAEoCRIPCgdsb2FkZXJzGAMgAygJEhQKDGdhbWVfdmVyc2lvbhgEIAEoCRIRCglpbnN0YWxsZWQYBSADKAkSDgoGc291cmNlGAYgASgJIoIBCg1SZXNvbHZlZEFkZG9uEi4KB3Byb2plY3QYASABKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25Qcm9qZWN0Ei4KB3ZlcnNpb24YAiABKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25WZXJzaW9uEhEKCW5lZWRlZF9ieRgDIAEoCSLvAQogUmVzb2x2ZUFkZG9uRGVwZW5kZW5jaWVzUmVzcG9uc2USMAoIcmVxdWlyZWQYASADKAsyHi5yYXB0b3IucGFuZWwudjEuUmVzb2x2ZWRBZGRvbhIwCghvcHRpb25hbBgCIAMoCzIeLnJhcHRvci5wYW5lbC52MS5SZXNvbHZlZEFkZG9uEjMKDGluY29tcGF0aWJsZRgDIAMoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblByb2plY3QSMgoLdW5hdmFpbGFibGUYBCADKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25Qcm9qZWN0IjkKF0xpc3RHYW1lVmVyc2lvbnNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIOCgZzb3VyY2UYAiABKAkiKQoLR2FtZVZlcnNpb24SCgoCaWQYASABKAkSDgoGc3RhYmxlGAIgASgIIkoKGExpc3RHYW1lVmVyc2lvbnNSZXNwb25zZRIuCgh2ZXJzaW9ucxgBIAMoCzIcLnJhcHRvci5wYW5lbC52MS5HYW1lVmVyc2lvbiJNChxMb29rdXBNaW5lY3JhZnRQbGF5ZXJSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRIMCgRuYW1lGAIgASgJEg8KB29mZmxpbmUYAyABKAgiOwodTG9va3VwTWluZWNyYWZ0UGxheWVyUmVzcG9uc2USDAoEbmFtZRgBIAEoCRIMCgR1dWlkGAIgASgJMqAHCgxBZGRvblNlcnZpY2USYAoMU2VhcmNoQWRkb25zEiQucmFwdG9yLnBhbmVsLnYxLlNlYXJjaEFkZG9uc1JlcXVlc3QaJS5yYXB0b3IucGFuZWwudjEuU2VhcmNoQWRkb25zUmVzcG9uc2UiA5ACARJvChFMaXN0QWRkb25WZXJzaW9ucxIpLnJhcHRvci5wYW5lbC52MS5MaXN0QWRkb25WZXJzaW9uc1JlcXVlc3QaKi5yYXB0b3IucGFuZWwudjEuTGlzdEFkZG9uVmVyc2lvbnNSZXNwb25zZSIDkAIBEmYKDklkZW50aWZ5QWRkb25zEiYucmFwdG9yLnBhbmVsLnYxLklkZW50aWZ5QWRkb25zUmVxdWVzdBonLnJhcHRvci5wYW5lbC52MS5JZGVudGlmeUFkZG9uc1Jlc3BvbnNlIgOQAgESdQoTTG9va3VwV29ya3Nob3BJdGVtcxIrLnJhcHRvci5wYW5lbC52MS5Mb29rdXBXb3Jrc2hvcEl0ZW1zUmVxdWVzdBosLnJhcHRvci5wYW5lbC52MS5Mb29rdXBXb3Jrc2hvcEl0ZW1zUmVzcG9uc2UiA5ACARKEAQoYUmVzb2x2ZUFkZG9uRGVwZW5kZW5jaWVzEjAucmFwdG9yLnBhbmVsLnYxLlJlc29sdmVBZGRvbkRlcGVuZGVuY2llc1JlcXVlc3QaMS5yYXB0b3IucGFuZWwudjEuUmVzb2x2ZUFkZG9uRGVwZW5kZW5jaWVzUmVzcG9uc2UiA5ACARJ7ChVMb29rdXBNaW5lY3JhZnRQbGF5ZXISLS5yYXB0b3IucGFuZWwudjEuTG9va3VwTWluZWNyYWZ0UGxheWVyUmVxdWVzdBouLnJhcHRvci5wYW5lbC52MS5Mb29rdXBNaW5lY3JhZnRQbGF5ZXJSZXNwb25zZSIDkAIBEmwKEExpc3RHYW1lVmVyc2lvbnMSKC5yYXB0b3IucGFuZWwudjEuTGlzdEdhbWVWZXJzaW9uc1JlcXVlc3QaKS5yYXB0b3IucGFuZWwudjEuTGlzdEdhbWVWZXJzaW9uc1Jlc3BvbnNlIgOQAgESbAoQTGlzdEFkZG9uU291cmNlcxIoLnJhcHRvci5wYW5lbC52MS5MaXN0QWRkb25Tb3VyY2VzUmVxdWVzdBopLnJhcHRvci5wYW5lbC52MS5MaXN0QWRkb25Tb3VyY2VzUmVzcG9uc2UiA5ACAULKAQoTY29tLnJhcHRvci5wYW5lbC52MUIKQWRkb25Qcm90b1ABWklnaXRodWIuY29tL3hlbmEtc3R1ZGlvcy9yYXB0b3IvaW50ZXJuYWwvZ2VuL3Byb3RvL3JhcHRvci9wYW5lbC92MTtwYW5lbHYxogIDUlBYqgIPUmFwdG9yLlBhbmVsLlYxygIPUmFwdG9yXFBhbmVsXFYx4gIbUmFwdG9yXFBhbmVsXFYxXEdQQk1ldGFkYXRh6gIRUmFwdG9yOjpQYW5lbDo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
+  fileDesc("ChtyYXB0b3IvcGFuZWwvdjEvYWRkb24ucHJvdG8SD3JhcHRvci5wYW5lbC52MSJKChRIYXNoQWRkb25GaWxlUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDgoGc291cmNlGAIgASgJEhIKCnZlcnNpb25faWQYAyABKAkiQQoVSGFzaEFkZG9uRmlsZVJlc3BvbnNlEigKBGZpbGUYASABKAsyGi5yYXB0b3IucGFuZWwudjEuQWRkb25GaWxlIikKF0xpc3RBZGRvblNvdXJjZXNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCSIrChhMaXN0QWRkb25Tb3VyY2VzUmVzcG9uc2USDwoHc291cmNlcxgBIAMoCSLIAQoMQWRkb25Qcm9qZWN0EgoKAmlkGAEgASgJEgwKBHNsdWcYAiABKAkSDQoFdGl0bGUYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkSEAoIaWNvbl91cmwYBSABKAkSEQoJZG93bmxvYWRzGAYgASgDEg4KBmF1dGhvchgHIAEoCRILCgN1cmwYCCABKAkSDgoGc291cmNlGAkgASgJEhMKC3NlcnZlcl9zaWRlGAogASgJEhMKC2NsaWVudF9zaWRlGAsgASgJIkcKD0FkZG9uRGVwZW5kZW5jeRISCgpwcm9qZWN0X2lkGAEgASgJEhIKCnZlcnNpb25faWQYAiABKAkSDAoEdHlwZRgDIAEoCSJ6CglBZGRvbkZpbGUSCwoDdXJsGAEgASgJEhAKCGZpbGVuYW1lGAIgASgJEgwKBHNpemUYAyABKAMSDgoGc2hhNTEyGAQgASgJEg4KBnNoYTI1NhgFIAEoCRIMCgRzaGExGAYgASgJEhIKCm1hbnVhbF91cmwYByABKAkikAIKDEFkZG9uVmVyc2lvbhIKCgJpZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEgwKBG5hbWUYAyABKAkSFgoOdmVyc2lvbl9udW1iZXIYBCABKAkSFQoNZ2FtZV92ZXJzaW9ucxgFIAMoCRIPCgdsb2FkZXJzGAYgAygJEjAKDHB1Ymxpc2hlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKAoEZmlsZRgIIAEoCzIaLnJhcHRvci5wYW5lbC52MS5BZGRvbkZpbGUSNgoMZGVwZW5kZW5jaWVzGAkgAygLMiAucmFwdG9yLnBhbmVsLnYxLkFkZG9uRGVwZW5kZW5jeSKmAQoTU2VhcmNoQWRkb25zUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDAoEa2luZBgCIAEoCRIPCgdsb2FkZXJzGAMgAygJEhQKDGdhbWVfdmVyc2lvbhgEIAEoCRINCgVxdWVyeRgFIAEoCRIOCgZvZmZzZXQYBiABKAUSDgoGc291cmNlGAcgASgJEhsKE2luY2x1ZGVfY2xpZW50X29ubHkYCCABKAgiVgoUU2VhcmNoQWRkb25zUmVzcG9uc2USLwoIcHJvamVjdHMYASADKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25Qcm9qZWN0Eg0KBXRvdGFsGAIgASgFIoMBChhMaXN0QWRkb25WZXJzaW9uc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEhIKCnByb2plY3RfaWQYAiABKAkSDwoHbG9hZGVycxgDIAMoCRIUCgxnYW1lX3ZlcnNpb24YBCABKAkSDgoGc291cmNlGAUgASgJEgwKBGtpbmQYBiABKAkiTAoZTGlzdEFkZG9uVmVyc2lvbnNSZXNwb25zZRIvCgh2ZXJzaW9ucxgBIAMoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblZlcnNpb24irQQKFUlkZW50aWZ5QWRkb25zUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDgoGaGFzaGVzGAIgAygJEg8KB2xvYWRlcnMYAyADKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJEkIKBnNoYTI1NhgFIAMoCzIyLnJhcHRvci5wYW5lbC52MS5JZGVudGlmeUFkZG9uc1JlcXVlc3QuU2hhMjU2RW50cnkSQAoFbmFtZXMYBiADKAsyMS5yYXB0b3IucGFuZWwudjEuSWRlbnRpZnlBZGRvbnNSZXF1ZXN0Lk5hbWVzRW50cnkSPgoEc2hhMRgHIAMoCzIwLnJhcHRvci5wYW5lbC52MS5JZGVudGlmeUFkZG9uc1JlcXVlc3QuU2hhMUVudHJ5EkoKCmN1cnNlZm9yZ2UYCCADKAsyNi5yYXB0b3IucGFuZWwudjEuSWRlbnRpZnlBZGRvbnNSZXF1ZXN0LkN1cnNlZm9yZ2VFbnRyeRotCgtTaGEyNTZFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBGiwKCk5hbWVzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARorCglTaGExRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARoxCg9DdXJzZWZvcmdlRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgNOgI4ASKwAQoPSWRlbnRpZmllZEFkZG9uEg4KBnNoYTUxMhgBIAEoCRIuCgdwcm9qZWN0GAIgASgLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uUHJvamVjdBIuCgd2ZXJzaW9uGAMgASgLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uVmVyc2lvbhItCgZsYXRlc3QYBCABKAsyHS5yYXB0b3IucGFuZWwudjEuQWRkb25WZXJzaW9uIkoKFklkZW50aWZ5QWRkb25zUmVzcG9uc2USMAoGYWRkb25zGAEgAygLMiAucmFwdG9yLnBhbmVsLnYxLklkZW50aWZpZWRBZGRvbiI5ChpMb29rdXBXb3Jrc2hvcEl0ZW1zUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSCwoDaWRzGAIgAygJIrIBCgxXb3Jrc2hvcEl0ZW0SCgoCaWQYASABKAkSDgoGYXBwX2lkGAIgASgDEg0KBXRpdGxlGAMgASgJEhMKC3ByZXZpZXdfdXJsGAQgASgJEgwKBHNpemUYBSABKAMSLgoKdXBkYXRlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEgoKY29sbGVjdGlvbhgHIAEoCBIQCghjaGlsZHJlbhgIIAMoCSJLChtMb29rdXBXb3Jrc2hvcEl0ZW1zUmVzcG9uc2USLAoFaXRlbXMYASADKAsyHS5yYXB0b3IucGFuZWwudjEuV29ya3Nob3BJdGVtIjgKGUxvb2t1cFJlZm9yZ2VyTW9kc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgsKA2lkcxgCIAMoCSKZAgoLUmVmb3JnZXJNb2QSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIOCgZhdXRob3IYAyABKAkSDwoHc3VtbWFyeRgEIAEoCRIPCgd2ZXJzaW9uGAUgASgJEgwKBHNpemUYBiABKAMSEwoLcHJldmlld191cmwYByABKAkSLgoKdXBkYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASNQoMZGVwZW5kZW5jaWVzGAkgAygLMh8ucmFwdG9yLnBhbmVsLnYxLlJlZm9yZ2VyTW9kUmVmEjQKCXNjZW5hcmlvcxgKIAMoCzIhLnJhcHRvci5wYW5lbC52MS5SZWZvcmdlclNjZW5hcmlvIioKDlJlZm9yZ2VyTW9kUmVmEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkiLAoQUmVmb3JnZXJTY2VuYXJpbxIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJIkgKGkxvb2t1cFJlZm9yZ2VyTW9kc1Jlc3BvbnNlEioKBG1vZHMYASADKAsyHC5yYXB0b3IucGFuZWwudjEuUmVmb3JnZXJNb2QiSAoZU2VhcmNoUmVmb3JnZXJNb2RzUmVxdWVzdBIOCgZvcmdfaWQYASABKAkSDQoFcXVlcnkYAiABKAkSDAoEcGFnZRgDIAEoBSJXChpTZWFyY2hSZWZvcmdlck1vZHNSZXNwb25zZRIqCgRtb2RzGAEgAygLMhwucmFwdG9yLnBhbmVsLnYxLlJlZm9yZ2VyTW9kEg0KBXRvdGFsGAIgASgFIo8BCh9SZXNvbHZlQWRkb25EZXBlbmRlbmNpZXNSZXF1ZXN0Eg4KBm9yZ19pZBgBIAEoCRISCgp2ZXJzaW9uX2lkGAIgASgJEg8KB2xvYWRlcnMYAyADKAkSFAoMZ2FtZV92ZXJzaW9uGAQgASgJEhEKCWluc3RhbGxlZBgFIAMoCRIOCgZzb3VyY2UYBiABKAkiggEKDVJlc29sdmVkQWRkb24SLgoHcHJvamVjdBgBIAEoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblByb2plY3QSLgoHdmVyc2lvbhgCIAEoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblZlcnNpb24SEQoJbmVlZGVkX2J5GAMgASgJIu8BCiBSZXNvbHZlQWRkb25EZXBlbmRlbmNpZXNSZXNwb25zZRIwCghyZXF1aXJlZBgBIAMoCzIeLnJhcHRvci5wYW5lbC52MS5SZXNvbHZlZEFkZG9uEjAKCG9wdGlvbmFsGAIgAygLMh4ucmFwdG9yLnBhbmVsLnYxLlJlc29sdmVkQWRkb24SMwoMaW5jb21wYXRpYmxlGAMgAygLMh0ucmFwdG9yLnBhbmVsLnYxLkFkZG9uUHJvamVjdBIyCgt1bmF2YWlsYWJsZRgEIAMoCzIdLnJhcHRvci5wYW5lbC52MS5BZGRvblByb2plY3QiOQoXTGlzdEdhbWVWZXJzaW9uc1JlcXVlc3QSDgoGb3JnX2lkGAEgASgJEg4KBnNvdXJjZRgCIAEoCSIpCgtHYW1lVmVyc2lvbhIKCgJpZBgBIAEoCRIOCgZzdGFibGUYAiABKAgiSgoYTGlzdEdhbWVWZXJzaW9uc1Jlc3BvbnNlEi4KCHZlcnNpb25zGAEgAygLMhwucmFwdG9yLnBhbmVsLnYxLkdhbWVWZXJzaW9uIk0KHExvb2t1cE1pbmVjcmFmdFBsYXllclJlcXVlc3QSDgoGb3JnX2lkGAEgASgJEgwKBG5hbWUYAiABKAkSDwoHb2ZmbGluZRgDIAEoCCI7Ch1Mb29rdXBNaW5lY3JhZnRQbGF5ZXJSZXNwb25zZRIMCgRuYW1lGAEgASgJEgwKBHV1aWQYAiABKAky7QkKDEFkZG9uU2VydmljZRJgCgxTZWFyY2hBZGRvbnMSJC5yYXB0b3IucGFuZWwudjEuU2VhcmNoQWRkb25zUmVxdWVzdBolLnJhcHRvci5wYW5lbC52MS5TZWFyY2hBZGRvbnNSZXNwb25zZSIDkAIBEm8KEUxpc3RBZGRvblZlcnNpb25zEikucmFwdG9yLnBhbmVsLnYxLkxpc3RBZGRvblZlcnNpb25zUmVxdWVzdBoqLnJhcHRvci5wYW5lbC52MS5MaXN0QWRkb25WZXJzaW9uc1Jlc3BvbnNlIgOQAgESZgoOSWRlbnRpZnlBZGRvbnMSJi5yYXB0b3IucGFuZWwudjEuSWRlbnRpZnlBZGRvbnNSZXF1ZXN0GicucmFwdG9yLnBhbmVsLnYxLklkZW50aWZ5QWRkb25zUmVzcG9uc2UiA5ACARJ1ChNMb29rdXBXb3Jrc2hvcEl0ZW1zEisucmFwdG9yLnBhbmVsLnYxLkxvb2t1cFdvcmtzaG9wSXRlbXNSZXF1ZXN0GiwucmFwdG9yLnBhbmVsLnYxLkxvb2t1cFdvcmtzaG9wSXRlbXNSZXNwb25zZSIDkAIBEnIKEkxvb2t1cFJlZm9yZ2VyTW9kcxIqLnJhcHRvci5wYW5lbC52MS5Mb29rdXBSZWZvcmdlck1vZHNSZXF1ZXN0GisucmFwdG9yLnBhbmVsLnYxLkxvb2t1cFJlZm9yZ2VyTW9kc1Jlc3BvbnNlIgOQAgEScgoSU2VhcmNoUmVmb3JnZXJNb2RzEioucmFwdG9yLnBhbmVsLnYxLlNlYXJjaFJlZm9yZ2VyTW9kc1JlcXVlc3QaKy5yYXB0b3IucGFuZWwudjEuU2VhcmNoUmVmb3JnZXJNb2RzUmVzcG9uc2UiA5ACARKEAQoYUmVzb2x2ZUFkZG9uRGVwZW5kZW5jaWVzEjAucmFwdG9yLnBhbmVsLnYxLlJlc29sdmVBZGRvbkRlcGVuZGVuY2llc1JlcXVlc3QaMS5yYXB0b3IucGFuZWwudjEuUmVzb2x2ZUFkZG9uRGVwZW5kZW5jaWVzUmVzcG9uc2UiA5ACARJ7ChVMb29rdXBNaW5lY3JhZnRQbGF5ZXISLS5yYXB0b3IucGFuZWwudjEuTG9va3VwTWluZWNyYWZ0UGxheWVyUmVxdWVzdBouLnJhcHRvci5wYW5lbC52MS5Mb29rdXBNaW5lY3JhZnRQbGF5ZXJSZXNwb25zZSIDkAIBEmwKEExpc3RHYW1lVmVyc2lvbnMSKC5yYXB0b3IucGFuZWwudjEuTGlzdEdhbWVWZXJzaW9uc1JlcXVlc3QaKS5yYXB0b3IucGFuZWwudjEuTGlzdEdhbWVWZXJzaW9uc1Jlc3BvbnNlIgOQAgESbAoQTGlzdEFkZG9uU291cmNlcxIoLnJhcHRvci5wYW5lbC52MS5MaXN0QWRkb25Tb3VyY2VzUmVxdWVzdBopLnJhcHRvci5wYW5lbC52MS5MaXN0QWRkb25Tb3VyY2VzUmVzcG9uc2UiA5ACARJjCg1IYXNoQWRkb25GaWxlEiUucmFwdG9yLnBhbmVsLnYxLkhhc2hBZGRvbkZpbGVSZXF1ZXN0GiYucmFwdG9yLnBhbmVsLnYxLkhhc2hBZGRvbkZpbGVSZXNwb25zZSIDkAIBQsoBChNjb20ucmFwdG9yLnBhbmVsLnYxQgpBZGRvblByb3RvUAFaSWdpdGh1Yi5jb20veGVuYS1zdHVkaW9zL3JhcHRvci9pbnRlcm5hbC9nZW4vcHJvdG8vcmFwdG9yL3BhbmVsL3YxO3BhbmVsdjGiAgNSUFiqAg9SYXB0b3IuUGFuZWwuVjHKAg9SYXB0b3JcUGFuZWxcVjHiAhtSYXB0b3JcUGFuZWxcVjFcR1BCTWV0YWRhdGHqAhFSYXB0b3I6OlBhbmVsOjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+
+/**
+ * @generated from message raptor.panel.v1.HashAddonFileRequest
+ */
+export type HashAddonFileRequest = Message<"raptor.panel.v1.HashAddonFileRequest"> & {
+  /**
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * "thunderstore".
+   *
+   * @generated from field: string source = 2;
+   */
+  source: string;
+
+  /**
+   * The version: "Namespace-Name-1.2.3".
+   *
+   * @generated from field: string version_id = 3;
+   */
+  versionId: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.HashAddonFileRequest.
+ * Use `create(HashAddonFileRequestSchema)` to create a new message.
+ */
+export const HashAddonFileRequestSchema: GenMessage<HashAddonFileRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 0);
+
+/**
+ * @generated from message raptor.panel.v1.HashAddonFileResponse
+ */
+export type HashAddonFileResponse = Message<"raptor.panel.v1.HashAddonFileResponse"> & {
+  /**
+   * @generated from field: raptor.panel.v1.AddonFile file = 1;
+   */
+  file?: AddonFile | undefined;
+};
+
+/**
+ * Describes the message raptor.panel.v1.HashAddonFileResponse.
+ * Use `create(HashAddonFileResponseSchema)` to create a new message.
+ */
+export const HashAddonFileResponseSchema: GenMessage<HashAddonFileResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 1);
 
 /**
  * @generated from message raptor.panel.v1.ListAddonSourcesRequest
@@ -29,7 +77,7 @@ export type ListAddonSourcesRequest = Message<"raptor.panel.v1.ListAddonSourcesR
  * Use `create(ListAddonSourcesRequestSchema)` to create a new message.
  */
 export const ListAddonSourcesRequestSchema: GenMessage<ListAddonSourcesRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 0);
+  messageDesc(file_raptor_panel_v1_addon, 2);
 
 /**
  * @generated from message raptor.panel.v1.ListAddonSourcesResponse
@@ -46,7 +94,7 @@ export type ListAddonSourcesResponse = Message<"raptor.panel.v1.ListAddonSources
  * Use `create(ListAddonSourcesResponseSchema)` to create a new message.
  */
 export const ListAddonSourcesResponseSchema: GenMessage<ListAddonSourcesResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 1);
+  messageDesc(file_raptor_panel_v1_addon, 3);
 
 /**
  * @generated from message raptor.panel.v1.AddonProject
@@ -95,7 +143,8 @@ export type AddonProject = Message<"raptor.panel.v1.AddonProject"> & {
   url: string;
 
   /**
-   * "modrinth" or "hangar".
+   * "modrinth", "hangar", "curseforge", "umod", "factorio", or
+   * "thunderstore".
    *
    * @generated from field: string source = 9;
    */
@@ -103,7 +152,8 @@ export type AddonProject = Message<"raptor.panel.v1.AddonProject"> & {
 
   /**
    * Modrinth's mods: whether it runs on a server ("required", "optional",
-   * or "unsupported": client-only), and on the client.
+   * or "unsupported": client-only), and on the client. Thunderstore's:
+   * "unsupported" when its categories say client-side only.
    *
    * @generated from field: string server_side = 10;
    */
@@ -120,7 +170,7 @@ export type AddonProject = Message<"raptor.panel.v1.AddonProject"> & {
  * Use `create(AddonProjectSchema)` to create a new message.
  */
 export const AddonProjectSchema: GenMessage<AddonProject> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 2);
+  messageDesc(file_raptor_panel_v1_addon, 4);
 
 /**
  * @generated from message raptor.panel.v1.AddonDependency
@@ -151,7 +201,7 @@ export type AddonDependency = Message<"raptor.panel.v1.AddonDependency"> & {
  * Use `create(AddonDependencySchema)` to create a new message.
  */
 export const AddonDependencySchema: GenMessage<AddonDependency> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 3);
+  messageDesc(file_raptor_panel_v1_addon, 5);
 
 /**
  * @generated from message raptor.panel.v1.AddonFile
@@ -174,7 +224,9 @@ export type AddonFile = Message<"raptor.panel.v1.AddonFile"> & {
 
   /**
    * Modrinth's files have a SHA-512, Hangar's a SHA-256, uMod's,
-   * Factorio's, and CurseForge's a SHA-1.
+   * Factorio's, and CurseForge's a SHA-1. Thunderstore's have none until
+   * HashAddonFile: their url is Thunderstore's download link, which the
+   * node doesn't take.
    *
    * @generated from field: string sha512 = 4;
    */
@@ -204,7 +256,7 @@ export type AddonFile = Message<"raptor.panel.v1.AddonFile"> & {
  * Use `create(AddonFileSchema)` to create a new message.
  */
 export const AddonFileSchema: GenMessage<AddonFile> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 4);
+  messageDesc(file_raptor_panel_v1_addon, 6);
 
 /**
  * @generated from message raptor.panel.v1.AddonVersion
@@ -265,7 +317,7 @@ export type AddonVersion = Message<"raptor.panel.v1.AddonVersion"> & {
  * Use `create(AddonVersionSchema)` to create a new message.
  */
 export const AddonVersionSchema: GenMessage<AddonVersion> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 5);
+  messageDesc(file_raptor_panel_v1_addon, 7);
 
 /**
  * @generated from message raptor.panel.v1.SearchAddonsRequest
@@ -308,8 +360,9 @@ export type SearchAddonsRequest = Message<"raptor.panel.v1.SearchAddonsRequest">
 
   /**
    * "modrinth" (the default), "hangar" (plugins only), "curseforge"
-   * (plugins and mods, when the Panel has it), or "umod" (the umod kind,
-   * which has only uMod).
+   * (plugins and mods, when the Panel has it), "umod" (the umod kind,
+   * which has only uMod), "factorio", or "thunderstore" (the thunderstore
+   * kind; its loader is the community).
    *
    * @generated from field: string source = 7;
    */
@@ -329,7 +382,7 @@ export type SearchAddonsRequest = Message<"raptor.panel.v1.SearchAddonsRequest">
  * Use `create(SearchAddonsRequestSchema)` to create a new message.
  */
 export const SearchAddonsRequestSchema: GenMessage<SearchAddonsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 6);
+  messageDesc(file_raptor_panel_v1_addon, 8);
 
 /**
  * @generated from message raptor.panel.v1.SearchAddonsResponse
@@ -351,7 +404,7 @@ export type SearchAddonsResponse = Message<"raptor.panel.v1.SearchAddonsResponse
  * Use `create(SearchAddonsResponseSchema)` to create a new message.
  */
 export const SearchAddonsResponseSchema: GenMessage<SearchAddonsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 7);
+  messageDesc(file_raptor_panel_v1_addon, 9);
 
 /**
  * @generated from message raptor.panel.v1.ListAddonVersionsRequest
@@ -379,7 +432,8 @@ export type ListAddonVersionsRequest = Message<"raptor.panel.v1.ListAddonVersion
 
   /**
    * The project's source: "modrinth" (the default), "hangar",
-   * "curseforge", or "umod".
+   * "curseforge", "umod", "factorio", or "thunderstore" (project_id is
+   * "Namespace-Name").
    *
    * @generated from field: string source = 5;
    */
@@ -399,7 +453,7 @@ export type ListAddonVersionsRequest = Message<"raptor.panel.v1.ListAddonVersion
  * Use `create(ListAddonVersionsRequestSchema)` to create a new message.
  */
 export const ListAddonVersionsRequestSchema: GenMessage<ListAddonVersionsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 8);
+  messageDesc(file_raptor_panel_v1_addon, 10);
 
 /**
  * @generated from message raptor.panel.v1.ListAddonVersionsResponse
@@ -416,7 +470,7 @@ export type ListAddonVersionsResponse = Message<"raptor.panel.v1.ListAddonVersio
  * Use `create(ListAddonVersionsResponseSchema)` to create a new message.
  */
 export const ListAddonVersionsResponseSchema: GenMessage<ListAddonVersionsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 9);
+  messageDesc(file_raptor_panel_v1_addon, 11);
 
 /**
  * @generated from message raptor.panel.v1.IdentifyAddonsRequest
@@ -455,7 +509,9 @@ export type IdentifyAddonsRequest = Message<"raptor.panel.v1.IdentifyAddonsReque
   /**
    * uMod plugins (the umod kind) are named by file: each file's name and
    * SHA-1, by SHA-512. uMod lists only a plugin's newest file, so a file
-   * that isn't it is offered the update.
+   * that isn't it is offered the update. Factorio's mods are named by
+   * file too, and Thunderstore's packages by the version Wings unpacked
+   * ("Namespace-Name-1.2.3").
    *
    * @generated from field: map<string, string> names = 6;
    */
@@ -480,7 +536,7 @@ export type IdentifyAddonsRequest = Message<"raptor.panel.v1.IdentifyAddonsReque
  * Use `create(IdentifyAddonsRequestSchema)` to create a new message.
  */
 export const IdentifyAddonsRequestSchema: GenMessage<IdentifyAddonsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 10);
+  messageDesc(file_raptor_panel_v1_addon, 12);
 
 /**
  * @generated from message raptor.panel.v1.IdentifiedAddon
@@ -515,7 +571,7 @@ export type IdentifiedAddon = Message<"raptor.panel.v1.IdentifiedAddon"> & {
  * Use `create(IdentifiedAddonSchema)` to create a new message.
  */
 export const IdentifiedAddonSchema: GenMessage<IdentifiedAddon> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 11);
+  messageDesc(file_raptor_panel_v1_addon, 13);
 
 /**
  * @generated from message raptor.panel.v1.IdentifyAddonsResponse
@@ -534,7 +590,7 @@ export type IdentifyAddonsResponse = Message<"raptor.panel.v1.IdentifyAddonsResp
  * Use `create(IdentifyAddonsResponseSchema)` to create a new message.
  */
 export const IdentifyAddonsResponseSchema: GenMessage<IdentifyAddonsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 12);
+  messageDesc(file_raptor_panel_v1_addon, 14);
 
 /**
  * @generated from message raptor.panel.v1.LookupWorkshopItemsRequest
@@ -558,7 +614,7 @@ export type LookupWorkshopItemsRequest = Message<"raptor.panel.v1.LookupWorkshop
  * Use `create(LookupWorkshopItemsRequestSchema)` to create a new message.
  */
 export const LookupWorkshopItemsRequestSchema: GenMessage<LookupWorkshopItemsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 13);
+  messageDesc(file_raptor_panel_v1_addon, 15);
 
 /**
  * @generated from message raptor.panel.v1.WorkshopItem
@@ -618,7 +674,7 @@ export type WorkshopItem = Message<"raptor.panel.v1.WorkshopItem"> & {
  * Use `create(WorkshopItemSchema)` to create a new message.
  */
 export const WorkshopItemSchema: GenMessage<WorkshopItem> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 14);
+  messageDesc(file_raptor_panel_v1_addon, 16);
 
 /**
  * @generated from message raptor.panel.v1.LookupWorkshopItemsResponse
@@ -637,7 +693,221 @@ export type LookupWorkshopItemsResponse = Message<"raptor.panel.v1.LookupWorksho
  * Use `create(LookupWorkshopItemsResponseSchema)` to create a new message.
  */
 export const LookupWorkshopItemsResponseSchema: GenMessage<LookupWorkshopItemsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 15);
+  messageDesc(file_raptor_panel_v1_addon, 17);
+
+/**
+ * @generated from message raptor.panel.v1.LookupReforgerModsRequest
+ */
+export type LookupReforgerModsRequest = Message<"raptor.panel.v1.LookupReforgerModsRequest"> & {
+  /**
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * Mod IDs (16 hexadecimal digits), at most 100.
+   *
+   * @generated from field: repeated string ids = 2;
+   */
+  ids: string[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.LookupReforgerModsRequest.
+ * Use `create(LookupReforgerModsRequestSchema)` to create a new message.
+ */
+export const LookupReforgerModsRequestSchema: GenMessage<LookupReforgerModsRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 18);
+
+/**
+ * @generated from message raptor.panel.v1.ReforgerMod
+ */
+export type ReforgerMod = Message<"raptor.panel.v1.ReforgerMod"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string author = 3;
+   */
+  author: string;
+
+  /**
+   * @generated from field: string summary = 4;
+   */
+  summary: string;
+
+  /**
+   * Its newest version.
+   *
+   * @generated from field: string version = 5;
+   */
+  version: string;
+
+  /**
+   * The newest version's, in bytes.
+   *
+   * @generated from field: int64 size = 6;
+   */
+  size: bigint;
+
+  /**
+   * Its picture, on ar-gcp-cdn.bistudio.com; empty if none.
+   *
+   * @generated from field: string preview_url = 7;
+   */
+  previewUrl: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 8;
+   */
+  updatedAt?: Timestamp | undefined;
+
+  /**
+   * The mods it needs (not filled in by a search).
+   *
+   * @generated from field: repeated raptor.panel.v1.ReforgerModRef dependencies = 9;
+   */
+  dependencies: ReforgerModRef[];
+
+  /**
+   * The scenarios it adds (not filled in by a search).
+   *
+   * @generated from field: repeated raptor.panel.v1.ReforgerScenario scenarios = 10;
+   */
+  scenarios: ReforgerScenario[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.ReforgerMod.
+ * Use `create(ReforgerModSchema)` to create a new message.
+ */
+export const ReforgerModSchema: GenMessage<ReforgerMod> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 19);
+
+/**
+ * @generated from message raptor.panel.v1.ReforgerModRef
+ */
+export type ReforgerModRef = Message<"raptor.panel.v1.ReforgerModRef"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ReforgerModRef.
+ * Use `create(ReforgerModRefSchema)` to create a new message.
+ */
+export const ReforgerModRefSchema: GenMessage<ReforgerModRef> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 20);
+
+/**
+ * @generated from message raptor.panel.v1.ReforgerScenario
+ */
+export type ReforgerScenario = Message<"raptor.panel.v1.ReforgerScenario"> & {
+  /**
+   * What the server's game.scenarioId takes.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message raptor.panel.v1.ReforgerScenario.
+ * Use `create(ReforgerScenarioSchema)` to create a new message.
+ */
+export const ReforgerScenarioSchema: GenMessage<ReforgerScenario> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 21);
+
+/**
+ * @generated from message raptor.panel.v1.LookupReforgerModsResponse
+ */
+export type LookupReforgerModsResponse = Message<"raptor.panel.v1.LookupReforgerModsResponse"> & {
+  /**
+   * IDs the Workshop doesn't have, or that are private, are left out.
+   *
+   * @generated from field: repeated raptor.panel.v1.ReforgerMod mods = 1;
+   */
+  mods: ReforgerMod[];
+};
+
+/**
+ * Describes the message raptor.panel.v1.LookupReforgerModsResponse.
+ * Use `create(LookupReforgerModsResponseSchema)` to create a new message.
+ */
+export const LookupReforgerModsResponseSchema: GenMessage<LookupReforgerModsResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 22);
+
+/**
+ * @generated from message raptor.panel.v1.SearchReforgerModsRequest
+ */
+export type SearchReforgerModsRequest = Message<"raptor.panel.v1.SearchReforgerModsRequest"> & {
+  /**
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * @generated from field: string query = 2;
+   */
+  query: string;
+
+  /**
+   * From 1.
+   *
+   * @generated from field: int32 page = 3;
+   */
+  page: number;
+};
+
+/**
+ * Describes the message raptor.panel.v1.SearchReforgerModsRequest.
+ * Use `create(SearchReforgerModsRequestSchema)` to create a new message.
+ */
+export const SearchReforgerModsRequestSchema: GenMessage<SearchReforgerModsRequest> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 23);
+
+/**
+ * @generated from message raptor.panel.v1.SearchReforgerModsResponse
+ */
+export type SearchReforgerModsResponse = Message<"raptor.panel.v1.SearchReforgerModsResponse"> & {
+  /**
+   * @generated from field: repeated raptor.panel.v1.ReforgerMod mods = 1;
+   */
+  mods: ReforgerMod[];
+
+  /**
+   * How many match in all.
+   *
+   * @generated from field: int32 total = 2;
+   */
+  total: number;
+};
+
+/**
+ * Describes the message raptor.panel.v1.SearchReforgerModsResponse.
+ * Use `create(SearchReforgerModsResponseSchema)` to create a new message.
+ */
+export const SearchReforgerModsResponseSchema: GenMessage<SearchReforgerModsResponse> = /*@__PURE__*/
+  messageDesc(file_raptor_panel_v1_addon, 24);
 
 /**
  * @generated from message raptor.panel.v1.ResolveAddonDependenciesRequest
@@ -674,8 +944,12 @@ export type ResolveAddonDependenciesRequest = Message<"raptor.panel.v1.ResolveAd
   installed: string[];
 
   /**
-   * "modrinth" (the default), "factorio" (version_id is "mod@version"), or
-   * "curseforge" (version_id is "mod@file", both CurseForge IDs).
+   * "modrinth" (the default), "factorio" (version_id is "mod@version"),
+   * "curseforge" (version_id is "mod@file", both CurseForge IDs), or
+   * "thunderstore" (version_id is "Namespace-Name-1.2.3"; installed are
+   * "Namespace-Name"). Thunderstore's dependencies are all required; each
+   * is installed at its newest version, and the game's BepInEx pack (the
+   * egg installs it) is left out.
    *
    * @generated from field: string source = 6;
    */
@@ -687,7 +961,7 @@ export type ResolveAddonDependenciesRequest = Message<"raptor.panel.v1.ResolveAd
  * Use `create(ResolveAddonDependenciesRequestSchema)` to create a new message.
  */
 export const ResolveAddonDependenciesRequestSchema: GenMessage<ResolveAddonDependenciesRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 16);
+  messageDesc(file_raptor_panel_v1_addon, 25);
 
 /**
  * @generated from message raptor.panel.v1.ResolvedAddon
@@ -716,7 +990,7 @@ export type ResolvedAddon = Message<"raptor.panel.v1.ResolvedAddon"> & {
  * Use `create(ResolvedAddonSchema)` to create a new message.
  */
 export const ResolvedAddonSchema: GenMessage<ResolvedAddon> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 17);
+  messageDesc(file_raptor_panel_v1_addon, 26);
 
 /**
  * @generated from message raptor.panel.v1.ResolveAddonDependenciesResponse
@@ -757,7 +1031,7 @@ export type ResolveAddonDependenciesResponse = Message<"raptor.panel.v1.ResolveA
  * Use `create(ResolveAddonDependenciesResponseSchema)` to create a new message.
  */
 export const ResolveAddonDependenciesResponseSchema: GenMessage<ResolveAddonDependenciesResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 18);
+  messageDesc(file_raptor_panel_v1_addon, 27);
 
 /**
  * @generated from message raptor.panel.v1.ListGameVersionsRequest
@@ -779,7 +1053,7 @@ export type ListGameVersionsRequest = Message<"raptor.panel.v1.ListGameVersionsR
  * Use `create(ListGameVersionsRequestSchema)` to create a new message.
  */
 export const ListGameVersionsRequestSchema: GenMessage<ListGameVersionsRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 19);
+  messageDesc(file_raptor_panel_v1_addon, 28);
 
 /**
  * @generated from message raptor.panel.v1.GameVersion
@@ -803,7 +1077,7 @@ export type GameVersion = Message<"raptor.panel.v1.GameVersion"> & {
  * Use `create(GameVersionSchema)` to create a new message.
  */
 export const GameVersionSchema: GenMessage<GameVersion> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 20);
+  messageDesc(file_raptor_panel_v1_addon, 29);
 
 /**
  * @generated from message raptor.panel.v1.ListGameVersionsResponse
@@ -822,7 +1096,7 @@ export type ListGameVersionsResponse = Message<"raptor.panel.v1.ListGameVersions
  * Use `create(ListGameVersionsResponseSchema)` to create a new message.
  */
 export const ListGameVersionsResponseSchema: GenMessage<ListGameVersionsResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 21);
+  messageDesc(file_raptor_panel_v1_addon, 30);
 
 /**
  * @generated from message raptor.panel.v1.LookupMinecraftPlayerRequest
@@ -849,7 +1123,7 @@ export type LookupMinecraftPlayerRequest = Message<"raptor.panel.v1.LookupMinecr
  * Use `create(LookupMinecraftPlayerRequestSchema)` to create a new message.
  */
 export const LookupMinecraftPlayerRequestSchema: GenMessage<LookupMinecraftPlayerRequest> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 22);
+  messageDesc(file_raptor_panel_v1_addon, 31);
 
 /**
  * @generated from message raptor.panel.v1.LookupMinecraftPlayerResponse
@@ -871,7 +1145,7 @@ export type LookupMinecraftPlayerResponse = Message<"raptor.panel.v1.LookupMinec
  * Use `create(LookupMinecraftPlayerResponseSchema)` to create a new message.
  */
 export const LookupMinecraftPlayerResponseSchema: GenMessage<LookupMinecraftPlayerResponse> = /*@__PURE__*/
-  messageDesc(file_raptor_panel_v1_addon, 23);
+  messageDesc(file_raptor_panel_v1_addon, 32);
 
 /**
  * AddonService finds plugins and mods on Modrinth, and plugins on Hangar,
@@ -931,6 +1205,28 @@ export const AddonService: GenService<{
     output: typeof LookupWorkshopItemsResponseSchema;
   },
   /**
+   * LookupReforgerMods says what Arma Reforger Workshop mods are, by ID,
+   * for games whose egg takes them (docs/EGGS.md#arma-reforger-mods). The
+   * game downloads them itself; this only names them.
+   *
+   * @generated from rpc raptor.panel.v1.AddonService.LookupReforgerMods
+   */
+  lookupReforgerMods: {
+    methodKind: "unary";
+    input: typeof LookupReforgerModsRequestSchema;
+    output: typeof LookupReforgerModsResponseSchema;
+  },
+  /**
+   * SearchReforgerMods searches the Arma Reforger Workshop.
+   *
+   * @generated from rpc raptor.panel.v1.AddonService.SearchReforgerMods
+   */
+  searchReforgerMods: {
+    methodKind: "unary";
+    input: typeof SearchReforgerModsRequestSchema;
+    output: typeof SearchReforgerModsResponseSchema;
+  },
+  /**
    * ResolveAddonDependencies says what else a Modrinth version needs
    * installed (#434): its required dependencies and theirs, each at the
    * newest version for the loaders and game version, and its optional
@@ -979,6 +1275,19 @@ export const AddonService: GenService<{
     methodKind: "unary";
     input: typeof ListAddonSourcesRequestSchema;
     output: typeof ListAddonSourcesResponseSchema;
+  },
+  /**
+   * HashAddonFile is a file to install from a source that publishes no
+   * hashes (Thunderstore, #410): the Panel downloads the version once,
+   * hashes it, and answers with its CDN URL and SHA-256, which the node's
+   * addons.install checks. Remembered by version.
+   *
+   * @generated from rpc raptor.panel.v1.AddonService.HashAddonFile
+   */
+  hashAddonFile: {
+    methodKind: "unary";
+    input: typeof HashAddonFileRequestSchema;
+    output: typeof HashAddonFileResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_raptor_panel_v1_addon, 0);

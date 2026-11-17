@@ -37,6 +37,18 @@ service AddonService {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
+  // LookupReforgerMods says what Arma Reforger Workshop mods are, by ID,
+  // for games whose egg takes them (docs/EGGS.md#arma-reforger-mods). The
+  // game downloads them itself; this only names them.
+  rpc LookupReforgerMods(LookupReforgerModsRequest) returns (LookupReforgerModsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // SearchReforgerMods searches the Arma Reforger Workshop.
+  rpc SearchReforgerMods(SearchReforgerModsRequest) returns (SearchReforgerModsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
   // ResolveAddonDependencies says what else a Modrinth version needs
   // installed (#434): its required dependencies and theirs, each at the
   // newest version for the loaders and game version, and its optional
@@ -66,6 +78,26 @@ service AddonService {
   rpc ListAddonSources(ListAddonSourcesRequest) returns (ListAddonSourcesResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+
+  // HashAddonFile is a file to install from a source that publishes no
+  // hashes (Thunderstore, #410): the Panel downloads the version once,
+  // hashes it, and answers with its CDN URL and SHA-256, which the node's
+  // addons.install checks. Remembered by version.
+  rpc HashAddonFile(HashAddonFileRequest) returns (HashAddonFileResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+message HashAddonFileRequest {
+  string org_id = 1;
+  // "thunderstore".
+  string source = 2;
+  // The version: "Namespace-Name-1.2.3".
+  string version_id = 3;
+}
+
+message HashAddonFileResponse {
+  AddonFile file = 1;
 }
 
 message ListAddonSourcesRequest {
@@ -86,10 +118,12 @@ message AddonProject {
   string author = 7;
   // Its page on its source.
   string url = 8;
-  // "modrinth" or "hangar".
+  // "modrinth", "hangar", "curseforge", "umod", "factorio", or
+  // "thunderstore".
   string source = 9;
   // Modrinth's mods: whether it runs on a server ("required", "optional",
-  // or "unsupported": client-only), and on the client.
+  // or "unsupported": client-only), and on the client. Thunderstore's:
+  // "unsupported" when its categories say client-side only.
   string server_side = 10;
   string client_side = 11;
 }
@@ -107,7 +141,9 @@ message AddonFile {
   string filename = 2;
   int64 size = 3;
   // Modrinth's files have a SHA-512, Hangar's a SHA-256, uMod's,
-  // Factorio's, and CurseForge's a SHA-1.
+  // Factorio's, and CurseForge's a SHA-1. Thunderstore's have none until
+  // HashAddonFile: their url is Thunderstore's download link, which the
+  // node doesn't take.
   string sha512 = 4;
   string sha256 = 5;
   string sha1 = 6;
@@ -141,8 +177,9 @@ message SearchAddonsRequest {
   string query = 5;
   int32 offset = 6;
   // "modrinth" (the default), "hangar" (plugins only), "curseforge"
-  // (plugins and mods, when the Panel has it), or "umod" (the umod kind,
-  // which has only uMod).
+  // (plugins and mods, when the Panel has it), "umod" (the umod kind,
+  // which has only uMod), "factorio", or "thunderstore" (the thunderstore
+  // kind; its loader is the community).
   string source = 7;
   // Mods only: include client-only ones (left out by default, since they
   // don't run on a server).
@@ -160,7 +197,8 @@ message ListAddonVersionsRequest {
   repeated string loaders = 3;
   string game_version = 4;
   // The project's source: "modrinth" (the default), "hangar",
-  // "curseforge", or "umod".
+  // "curseforge", "umod", "factorio", or "thunderstore" (project_id is
+  // "Namespace-Name").
   string source = 5;
   // "modpacks" for a modpack's versions (no loaders needed); empty for
   // add-ons.
@@ -182,7 +220,9 @@ message IdentifyAddonsRequest {
   map<string, string> sha256 = 5;
   // uMod plugins (the umod kind) are named by file: each file's name and
   // SHA-1, by SHA-512. uMod lists only a plugin's newest file, so a file
-  // that isn't it is offered the update.
+  // that isn't it is offered the update. Factorio's mods are named by
+  // file too, and Thunderstore's packages by the version Wings unpacked
+  // ("Namespace-Name-1.2.3").
   map<string, string> names = 6;
   map<string, string> sha1 = 7;
   // CurseForge's fingerprints, by SHA-512: files neither Modrinth nor
@@ -230,6 +270,59 @@ message LookupWorkshopItemsResponse {
   repeated WorkshopItem items = 1;
 }
 
+message LookupReforgerModsRequest {
+  string org_id = 1;
+  // Mod IDs (16 hexadecimal digits), at most 100.
+  repeated string ids = 2;
+}
+
+message ReforgerMod {
+  string id = 1;
+  string name = 2;
+  string author = 3;
+  string summary = 4;
+  // Its newest version.
+  string version = 5;
+  // The newest version's, in bytes.
+  int64 size = 6;
+  // Its picture, on ar-gcp-cdn.bistudio.com; empty if none.
+  string preview_url = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  // The mods it needs (not filled in by a search).
+  repeated ReforgerModRef dependencies = 9;
+  // The scenarios it adds (not filled in by a search).
+  repeated ReforgerScenario scenarios = 10;
+}
+
+message ReforgerModRef {
+  string id = 1;
+  string name = 2;
+}
+
+message ReforgerScenario {
+  // What the server's game.scenarioId takes.
+  string id = 1;
+  string name = 2;
+}
+
+message LookupReforgerModsResponse {
+  // IDs the Workshop doesn't have, or that are private, are left out.
+  repeated ReforgerMod mods = 1;
+}
+
+message SearchReforgerModsRequest {
+  string org_id = 1;
+  string query = 2;
+  // From 1.
+  int32 page = 3;
+}
+
+message SearchReforgerModsResponse {
+  repeated ReforgerMod mods = 1;
+  // How many match in all.
+  int32 total = 2;
+}
+
 message ResolveAddonDependenciesRequest {
   string org_id = 1;
   // The Modrinth version to install.
@@ -239,8 +332,12 @@ message ResolveAddonDependenciesRequest {
   // Projects already on the server (Modrinth IDs, or Factorio mod names),
   // left out of what's needed and checked against incompatible ones.
   repeated string installed = 5;
-  // "modrinth" (the default), "factorio" (version_id is "mod@version"), or
-  // "curseforge" (version_id is "mod@file", both CurseForge IDs).
+  // "modrinth" (the default), "factorio" (version_id is "mod@version"),
+  // "curseforge" (version_id is "mod@file", both CurseForge IDs), or
+  // "thunderstore" (version_id is "Namespace-Name-1.2.3"; installed are
+  // "Namespace-Name"). Thunderstore's dependencies are all required; each
+  // is installed at its newest version, and the game's BepInEx pack (the
+  // egg installs it) is left out.
   string source = 6;
 }
 

@@ -8,12 +8,14 @@ import { NeedsAttention } from "@/components/needs-attention";
 import { DetailList } from "@/components/page";
 import { PopoutButton } from "@/components/popout";
 import { ProblemHint } from "@/components/problem-hint";
+import { ResourceScan } from "@/components/resource-scan";
 import { ServerGraphs, ServerLastHour, ServerStats } from "@/components/server-stats";
 import { RangePicker } from "@/components/stats";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { WebDashboard } from "@/components/web-dashboard";
 import { nodeHostname } from "@/lib/addresses";
 import { message } from "@/lib/errors";
+import { txAdminPin } from "@/lib/fivem";
 import { useIds } from "@/lib/ids";
 import { type MetricRange, useMetrics } from "@/lib/metrics";
 import { can, useServer } from "@/lib/org-data";
@@ -38,12 +40,16 @@ function Overview() {
   // its newest lines.
   const tail = useRef<string[]>([]);
   const [problem, setProblem] = useState<Problem>();
+  // txAdmin's first-run PIN (#428), kept once seen until the next start.
+  const [pin, setPin] = useState<string>();
   // The line of a problem dismissed, so the next lines don't bring it back.
   const dismissed = useRef("");
   const onOutput = useCallback((lines: string[], reset: boolean) => {
     tail.current = (reset ? lines : [...tail.current, ...lines]).slice(-problemWindow);
     const p = findProblem(tail.current);
     setProblem(p && p.line !== dismissed.current ? p : undefined);
+    const found = txAdminPin(tail.current);
+    if (found) setPin(found);
   }, []);
   const state = server?.state;
   // Starting again clears it; if it's still wrong, the console says so
@@ -52,6 +58,7 @@ function Overview() {
     if (state === "starting") {
       tail.current = [];
       setProblem(undefined);
+      setPin(undefined);
     }
   }, [state]);
   if (!server) return null;
@@ -150,9 +157,18 @@ function Overview() {
                 nodeId={nodeId}
                 serverId={serverId}
                 host={server.displayAddress || (node ? nodeHostname(node) : "")}
+                pin={pin}
               />
             </CardContent>
           </Card>
+          {server.resourceScan && can(server, "files.read") && (
+            <ResourceScan
+              orgId={orgId}
+              nodeId={nodeId}
+              serverId={serverId}
+              canWrite={can(server, "files.write")}
+            />
+          )}
           <ServerLastHour metrics={live.data} />
         </div>
       </div>

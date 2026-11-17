@@ -207,6 +207,28 @@ func TestPhonePush(t *testing.T) {
 	if err != nil || len(mine.GetChannels()) != 2 { // email and the phone
 		t.Fatalf("Alice's channels: %v, %v", mine, err)
 	}
+	for _, ch := range mine.GetChannels() {
+		if ch.GetThisDevice() {
+			t.Error("the browser was told a phone is this device")
+		}
+	}
+	// The app sees which channel is its own.
+	theirs, err := iphone.alerts.ListAlertChannels(ctx, &panelv1.ListAlertChannelsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	own := 0
+	for _, c := range theirs.GetChannels() {
+		if c.GetThisDevice() {
+			own++
+			if c.GetId() != ch.GetId() {
+				t.Errorf("the app's own channel: %v", c)
+			}
+		}
+	}
+	if own != 1 {
+		t.Errorf("the app found %d channels of its own", own)
+	}
 	for _, typ := range mine.GetTypes() {
 		if typ == alerts.Phone {
 			t.Error("phones are offered as a channel to add by hand")
@@ -244,12 +266,16 @@ func TestPhonePush(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	queue(ch.GetId(), alerts.Message{Condition: "crash_loop", Level: alerts.Critical, Title: "Server down after repeated crashes", Server: "smp", Node: "box", ServerID: "s1", URL: appOrigin + "/x", At: time.Now()})
+	queue(ch.GetId(), alerts.Message{
+		Condition: "crash_loop", Level: alerts.Critical, Title: "Server down after repeated crashes", Server: "smp", Node: "box",
+		ServerID: "s1", NodeID: "n1", OrgID: org.GetOrg().GetId(), URL: appOrigin + "/x", At: time.Now(),
+	})
 	got = apns.last(t)
 	aps, _ = got.Payload["aps"].(map[string]any)
 	alert, _ = aps["alert"].(map[string]any)
 	if got.Path != "/3/device/"+strings.Repeat("c", 64) || aps["interruption-level"] != "time-sensitive" || alert["body"] != "smp on box" ||
-		aps["thread-id"] != "s1" || got.Payload["url"] != appOrigin+"/x" {
+		aps["thread-id"] != "s1" || aps["category"] != "server" || got.Payload["url"] != appOrigin+"/x" ||
+		got.Payload["server_id"] != "s1" || got.Payload["node_id"] != "n1" {
 		t.Errorf("crash push: %+v", got)
 	}
 

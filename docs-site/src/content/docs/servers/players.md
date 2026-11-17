@@ -1,11 +1,11 @@
 ---
 title: Players
-description: Who's online on a Minecraft server, and its whitelist, operators, and bans, from the app.
+description: Who's on your server, and a Minecraft server's whitelist, operators, and bans, from the app.
 sidebar:
   order: 5
 ---
 
-Minecraft Java servers (not proxies) have a **Players** tab, after Game, for who's on now, who may join, and who runs the place: the whitelist, operators, banned players, and banned addresses, plus everyone who's joined before. It shows for anyone with **Manage players**, **See files**, or **Send console commands**.
+Minecraft Java servers (not proxies) have a **Players** tab, after Game, for who's on now, who may join, and who runs the place: the whitelist, operators, banned players, and banned addresses, plus everyone who's joined before. It shows for anyone with **Manage players**, **See files**, or **Send console commands**. Many Steam games have one too, over RCON: see [Steam games](#steam-games) below.
 
 ## Running or stopped
 
@@ -26,3 +26,16 @@ Give someone **Manage players** in the server's **Access** to let them whitelist
 - **Seen before:** everyone who's joined (`usercache.json`), with buttons to whitelist, make operator, kick (while running), or ban.
 
 Names are letters, digits, and underscores, up to 16, as Minecraft's are; anything else is refused before it reaches the server.
+
+## Steam games
+
+Source games (Counter-Strike 2 and Source, Team Fortress 2, Garry's Mod, Left 4 Dead 1 and 2, and the other Source mods in the library), ARK, ARK: Survival Ascended, Palworld, and Rust get a **Players** tab that talks to the game over RCON, its remote console:
+
+- **Online:** who's on now, with their ID, ping, and how long they've been on. It refreshes every 15 seconds.
+- **Kick** and **Ban** on each player. A ban lasts a restart; the confirmation shows the player's ID, which is what you unban them by.
+- **Unban:** paste the player's ID (a Steam ID, like `STEAM_1:0:123` in Source games or `76561198…` in Rust).
+- **Message everyone:** one line in the game's chat.
+
+In Source games RCON is off until it has a password: set **RCON password** in the server's **Startup** and restart the server (Counter-Strike 2 also needs **RCON** turned on there). ARK and Palworld use their **Admin password**, and Rust its **RCON password**, which they always have. The password stays on your node: Raptor's node software connects to the game itself, and the app never sees it. The tab works while the server runs; when it's stopped there's nobody to manage.
+
+It needs the **Manage players** permission. Raptor builds every command itself and checks the ID and the text first, so a moderator can't run anything else on the server.

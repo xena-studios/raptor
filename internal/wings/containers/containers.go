@@ -184,7 +184,7 @@ type State struct {
 	// name (ServiceState only).
 	IPv6 map[string]netip.Addr
 	// Networks are the networks it's on, by name, with its IPv4 address on
-	// each (ServiceState only).
+	// each.
 	Networks map[string]netip.Addr
 }
 

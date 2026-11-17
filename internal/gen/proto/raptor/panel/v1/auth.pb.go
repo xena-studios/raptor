@@ -1737,7 +1737,9 @@ type BeginReauthResponse struct {
 	Method isBeginReauthResponse_Method `protobuf_oneof:"method"`
 	// The account has TOTP, so a code from the authenticator app works too
 	// (or alone, if method is unset).
-	TotpAllowed   bool `protobuf:"varint,3,opt,name=totp_allowed,json=totpAllowed,proto3" json:"totp_allowed,omitempty"`
+	TotpAllowed bool `protobuf:"varint,3,opt,name=totp_allowed,json=totpAllowed,proto3" json:"totp_allowed,omitempty"`
+	// The account has a phone that approves (StartPhoneApproval).
+	PhoneAllowed  bool `protobuf:"varint,4,opt,name=phone_allowed,json=phoneAllowed,proto3" json:"phone_allowed,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1804,6 +1806,13 @@ func (x *BeginReauthResponse) GetTotpAllowed() bool {
 	return false
 }
 
+func (x *BeginReauthResponse) GetPhoneAllowed() bool {
+	if x != nil {
+		return x.PhoneAllowed
+	}
+	return false
+}
+
 type isBeginReauthResponse_Method interface {
 	isBeginReauthResponse_Method()
 }
@@ -1829,6 +1838,7 @@ type FinishReauthRequest struct {
 	//	*FinishReauthRequest_Passkey
 	//	*FinishReauthRequest_EmailCode
 	//	*FinishReauthRequest_TotpCode
+	//	*FinishReauthRequest_PhoneApprovalId
 	Proof         isFinishReauthRequest_Proof `protobuf_oneof:"proof"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1898,6 +1908,15 @@ func (x *FinishReauthRequest) GetTotpCode() string {
 	return ""
 }
 
+func (x *FinishReauthRequest) GetPhoneApprovalId() string {
+	if x != nil {
+		if x, ok := x.Proof.(*FinishReauthRequest_PhoneApprovalId); ok {
+			return x.PhoneApprovalId
+		}
+	}
+	return ""
+}
+
 type isFinishReauthRequest_Proof interface {
 	isFinishReauthRequest_Proof()
 }
@@ -1914,11 +1933,18 @@ type FinishReauthRequest_TotpCode struct {
 	TotpCode string `protobuf:"bytes,3,opt,name=totp_code,json=totpCode,proto3,oneof"`
 }
 
+type FinishReauthRequest_PhoneApprovalId struct {
+	// An approval the phone approved (StartPhoneApproval, purpose reauth).
+	PhoneApprovalId string `protobuf:"bytes,4,opt,name=phone_approval_id,json=phoneApprovalId,proto3,oneof"`
+}
+
 func (*FinishReauthRequest_Passkey) isFinishReauthRequest_Proof() {}
 
 func (*FinishReauthRequest_EmailCode) isFinishReauthRequest_Proof() {}
 
 func (*FinishReauthRequest_TotpCode) isFinishReauthRequest_Proof() {}
+
+func (*FinishReauthRequest_PhoneApprovalId) isFinishReauthRequest_Proof() {}
 
 type FinishReauthResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1970,6 +1996,7 @@ type FinishSecondFactorRequest struct {
 	//
 	//	*FinishSecondFactorRequest_TotpCode
 	//	*FinishSecondFactorRequest_RecoveryCode
+	//	*FinishSecondFactorRequest_PhoneApprovalId
 	Proof         isFinishSecondFactorRequest_Proof `protobuf_oneof:"proof"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2030,6 +2057,15 @@ func (x *FinishSecondFactorRequest) GetRecoveryCode() string {
 	return ""
 }
 
+func (x *FinishSecondFactorRequest) GetPhoneApprovalId() string {
+	if x != nil {
+		if x, ok := x.Proof.(*FinishSecondFactorRequest_PhoneApprovalId); ok {
+			return x.PhoneApprovalId
+		}
+	}
+	return ""
+}
+
 type isFinishSecondFactorRequest_Proof interface {
 	isFinishSecondFactorRequest_Proof()
 }
@@ -2042,9 +2078,16 @@ type FinishSecondFactorRequest_RecoveryCode struct {
 	RecoveryCode string `protobuf:"bytes,2,opt,name=recovery_code,json=recoveryCode,proto3,oneof"`
 }
 
+type FinishSecondFactorRequest_PhoneApprovalId struct {
+	// An approval the phone approved (StartPhoneApproval, purpose signin).
+	PhoneApprovalId string `protobuf:"bytes,3,opt,name=phone_approval_id,json=phoneApprovalId,proto3,oneof"`
+}
+
 func (*FinishSecondFactorRequest_TotpCode) isFinishSecondFactorRequest_Proof() {}
 
 func (*FinishSecondFactorRequest_RecoveryCode) isFinishSecondFactorRequest_Proof() {}
+
+func (*FinishSecondFactorRequest_PhoneApprovalId) isFinishSecondFactorRequest_Proof() {}
 
 type FinishSecondFactorResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -3525,6 +3568,764 @@ func (x *ApproveAppResponse) GetCode() string {
 	return ""
 }
 
+type GetPhoneApproverRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPhoneApproverRequest) Reset() {
+	*x = GetPhoneApproverRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[69]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPhoneApproverRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPhoneApproverRequest) ProtoMessage() {}
+
+func (x *GetPhoneApproverRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[69]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPhoneApproverRequest.ProtoReflect.Descriptor instead.
+func (*GetPhoneApproverRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{69}
+}
+
+type GetPhoneApproverResponse struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Enrolled bool                   `protobuf:"varint,1,opt,name=enrolled,proto3" json:"enrolled,omitempty"`
+	// It isn't, and could be now.
+	CanEnroll bool `protobuf:"varint,2,opt,name=can_enroll,json=canEnroll,proto3" json:"can_enroll,omitempty"`
+	// Why it can't, in words, when it isn't and can't.
+	Reason        string `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPhoneApproverResponse) Reset() {
+	*x = GetPhoneApproverResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[70]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPhoneApproverResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPhoneApproverResponse) ProtoMessage() {}
+
+func (x *GetPhoneApproverResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[70]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPhoneApproverResponse.ProtoReflect.Descriptor instead.
+func (*GetPhoneApproverResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{70}
+}
+
+func (x *GetPhoneApproverResponse) GetEnrolled() bool {
+	if x != nil {
+		return x.Enrolled
+	}
+	return false
+}
+
+func (x *GetPhoneApproverResponse) GetCanEnroll() bool {
+	if x != nil {
+		return x.CanEnroll
+	}
+	return false
+}
+
+func (x *GetPhoneApproverResponse) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type EnrollPhoneApproverRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 32 random bytes the app made and keeps behind Face ID.
+	Secret        []byte `protobuf:"bytes,1,opt,name=secret,proto3" json:"secret,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnrollPhoneApproverRequest) Reset() {
+	*x = EnrollPhoneApproverRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[71]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnrollPhoneApproverRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnrollPhoneApproverRequest) ProtoMessage() {}
+
+func (x *EnrollPhoneApproverRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[71]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnrollPhoneApproverRequest.ProtoReflect.Descriptor instead.
+func (*EnrollPhoneApproverRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{71}
+}
+
+func (x *EnrollPhoneApproverRequest) GetSecret() []byte {
+	if x != nil {
+		return x.Secret
+	}
+	return nil
+}
+
+type EnrollPhoneApproverResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnrollPhoneApproverResponse) Reset() {
+	*x = EnrollPhoneApproverResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[72]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnrollPhoneApproverResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnrollPhoneApproverResponse) ProtoMessage() {}
+
+func (x *EnrollPhoneApproverResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[72]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnrollPhoneApproverResponse.ProtoReflect.Descriptor instead.
+func (*EnrollPhoneApproverResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{72}
+}
+
+type RemovePhoneApproverRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemovePhoneApproverRequest) Reset() {
+	*x = RemovePhoneApproverRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[73]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemovePhoneApproverRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemovePhoneApproverRequest) ProtoMessage() {}
+
+func (x *RemovePhoneApproverRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[73]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemovePhoneApproverRequest.ProtoReflect.Descriptor instead.
+func (*RemovePhoneApproverRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{73}
+}
+
+type RemovePhoneApproverResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemovePhoneApproverResponse) Reset() {
+	*x = RemovePhoneApproverResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[74]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemovePhoneApproverResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemovePhoneApproverResponse) ProtoMessage() {}
+
+func (x *RemovePhoneApproverResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[74]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemovePhoneApproverResponse.ProtoReflect.Descriptor instead.
+func (*RemovePhoneApproverResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{74}
+}
+
+type StartPhoneApprovalRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// "signin" (with the pending sign-in's cookie) or "reauth" (a browser
+	// session).
+	Purpose       string `protobuf:"bytes,1,opt,name=purpose,proto3" json:"purpose,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartPhoneApprovalRequest) Reset() {
+	*x = StartPhoneApprovalRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[75]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartPhoneApprovalRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartPhoneApprovalRequest) ProtoMessage() {}
+
+func (x *StartPhoneApprovalRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[75]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartPhoneApprovalRequest.ProtoReflect.Descriptor instead.
+func (*StartPhoneApprovalRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{75}
+}
+
+func (x *StartPhoneApprovalRequest) GetPurpose() string {
+	if x != nil {
+		return x.Purpose
+	}
+	return ""
+}
+
+type StartPhoneApprovalResponse struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	ApprovalId string                 `protobuf:"bytes,1,opt,name=approval_id,json=approvalId,proto3" json:"approval_id,omitempty"`
+	// What to pick on the phone.
+	Number    int32                  `protobuf:"varint,2,opt,name=number,proto3" json:"number,omitempty"`
+	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	// How many phones were sent a notification (0: none have push on; the
+	// request still shows when the app is opened).
+	Notified      int32 `protobuf:"varint,4,opt,name=notified,proto3" json:"notified,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartPhoneApprovalResponse) Reset() {
+	*x = StartPhoneApprovalResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[76]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartPhoneApprovalResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartPhoneApprovalResponse) ProtoMessage() {}
+
+func (x *StartPhoneApprovalResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[76]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartPhoneApprovalResponse.ProtoReflect.Descriptor instead.
+func (*StartPhoneApprovalResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{76}
+}
+
+func (x *StartPhoneApprovalResponse) GetApprovalId() string {
+	if x != nil {
+		return x.ApprovalId
+	}
+	return ""
+}
+
+func (x *StartPhoneApprovalResponse) GetNumber() int32 {
+	if x != nil {
+		return x.Number
+	}
+	return 0
+}
+
+func (x *StartPhoneApprovalResponse) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+func (x *StartPhoneApprovalResponse) GetNotified() int32 {
+	if x != nil {
+		return x.Notified
+	}
+	return 0
+}
+
+type CheckPhoneApprovalRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApprovalId    string                 `protobuf:"bytes,1,opt,name=approval_id,json=approvalId,proto3" json:"approval_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckPhoneApprovalRequest) Reset() {
+	*x = CheckPhoneApprovalRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[77]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckPhoneApprovalRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckPhoneApprovalRequest) ProtoMessage() {}
+
+func (x *CheckPhoneApprovalRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[77]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckPhoneApprovalRequest.ProtoReflect.Descriptor instead.
+func (*CheckPhoneApprovalRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{77}
+}
+
+func (x *CheckPhoneApprovalRequest) GetApprovalId() string {
+	if x != nil {
+		return x.ApprovalId
+	}
+	return ""
+}
+
+type CheckPhoneApprovalResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// pending, approved, denied, or expired.
+	Status        string `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckPhoneApprovalResponse) Reset() {
+	*x = CheckPhoneApprovalResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[78]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckPhoneApprovalResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckPhoneApprovalResponse) ProtoMessage() {}
+
+func (x *CheckPhoneApprovalResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[78]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckPhoneApprovalResponse.ProtoReflect.Descriptor instead.
+func (*CheckPhoneApprovalResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{78}
+}
+
+func (x *CheckPhoneApprovalResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+type ListPhoneApprovalsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPhoneApprovalsRequest) Reset() {
+	*x = ListPhoneApprovalsRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[79]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPhoneApprovalsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPhoneApprovalsRequest) ProtoMessage() {}
+
+func (x *ListPhoneApprovalsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[79]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPhoneApprovalsRequest.ProtoReflect.Descriptor instead.
+func (*ListPhoneApprovalsRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{79}
+}
+
+type PhoneApproval struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// signin or reauth.
+	Purpose string `protobuf:"bytes,2,opt,name=purpose,proto3" json:"purpose,omitempty"`
+	// The numbers to offer, one of them the browser's.
+	Choices []int32 `protobuf:"varint,3,rep,packed,name=choices,proto3" json:"choices,omitempty"`
+	// What the answer's MAC covers (see DecidePhoneApprovalRequest).
+	Challenge []byte `protobuf:"bytes,4,opt,name=challenge,proto3" json:"challenge,omitempty"`
+	// Where it's from.
+	Ip            string                 `protobuf:"bytes,5,opt,name=ip,proto3" json:"ip,omitempty"`
+	UserAgent     string                 `protobuf:"bytes,6,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PhoneApproval) Reset() {
+	*x = PhoneApproval{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[80]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PhoneApproval) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PhoneApproval) ProtoMessage() {}
+
+func (x *PhoneApproval) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[80]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PhoneApproval.ProtoReflect.Descriptor instead.
+func (*PhoneApproval) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{80}
+}
+
+func (x *PhoneApproval) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *PhoneApproval) GetPurpose() string {
+	if x != nil {
+		return x.Purpose
+	}
+	return ""
+}
+
+func (x *PhoneApproval) GetChoices() []int32 {
+	if x != nil {
+		return x.Choices
+	}
+	return nil
+}
+
+func (x *PhoneApproval) GetChallenge() []byte {
+	if x != nil {
+		return x.Challenge
+	}
+	return nil
+}
+
+func (x *PhoneApproval) GetIp() string {
+	if x != nil {
+		return x.Ip
+	}
+	return ""
+}
+
+func (x *PhoneApproval) GetUserAgent() string {
+	if x != nil {
+		return x.UserAgent
+	}
+	return ""
+}
+
+func (x *PhoneApproval) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *PhoneApproval) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+type ListPhoneApprovalsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Approvals     []*PhoneApproval       `protobuf:"bytes,1,rep,name=approvals,proto3" json:"approvals,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPhoneApprovalsResponse) Reset() {
+	*x = ListPhoneApprovalsResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[81]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPhoneApprovalsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPhoneApprovalsResponse) ProtoMessage() {}
+
+func (x *ListPhoneApprovalsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[81]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPhoneApprovalsResponse.ProtoReflect.Descriptor instead.
+func (*ListPhoneApprovalsResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{81}
+}
+
+func (x *ListPhoneApprovalsResponse) GetApprovals() []*PhoneApproval {
+	if x != nil {
+		return x.Approvals
+	}
+	return nil
+}
+
+type DecidePhoneApprovalRequest struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	ApprovalId string                 `protobuf:"bytes,1,opt,name=approval_id,json=approvalId,proto3" json:"approval_id,omitempty"`
+	Approve    bool                   `protobuf:"varint,2,opt,name=approve,proto3" json:"approve,omitempty"`
+	// The number picked (approving only; 0 when denying).
+	Number int32 `protobuf:"varint,3,opt,name=number,proto3" json:"number,omitempty"`
+	// HMAC-SHA256 with the approver's secret over the lines
+	// "raptor approval v1", the approval ID, base64url(challenge),
+	// "approve" or "deny", and the number, joined by newlines.
+	Mac           []byte `protobuf:"bytes,4,opt,name=mac,proto3" json:"mac,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DecidePhoneApprovalRequest) Reset() {
+	*x = DecidePhoneApprovalRequest{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[82]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DecidePhoneApprovalRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DecidePhoneApprovalRequest) ProtoMessage() {}
+
+func (x *DecidePhoneApprovalRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[82]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DecidePhoneApprovalRequest.ProtoReflect.Descriptor instead.
+func (*DecidePhoneApprovalRequest) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{82}
+}
+
+func (x *DecidePhoneApprovalRequest) GetApprovalId() string {
+	if x != nil {
+		return x.ApprovalId
+	}
+	return ""
+}
+
+func (x *DecidePhoneApprovalRequest) GetApprove() bool {
+	if x != nil {
+		return x.Approve
+	}
+	return false
+}
+
+func (x *DecidePhoneApprovalRequest) GetNumber() int32 {
+	if x != nil {
+		return x.Number
+	}
+	return 0
+}
+
+func (x *DecidePhoneApprovalRequest) GetMac() []byte {
+	if x != nil {
+		return x.Mac
+	}
+	return nil
+}
+
+type DecidePhoneApprovalResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// approved or denied.
+	Status        string `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DecidePhoneApprovalResponse) Reset() {
+	*x = DecidePhoneApprovalResponse{}
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[83]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DecidePhoneApprovalResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DecidePhoneApprovalResponse) ProtoMessage() {}
+
+func (x *DecidePhoneApprovalResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raptor_panel_v1_auth_proto_msgTypes[83]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DecidePhoneApprovalResponse.ProtoReflect.Descriptor instead.
+func (*DecidePhoneApprovalResponse) Descriptor() ([]byte, []int) {
+	return file_raptor_panel_v1_auth_proto_rawDescGZIP(), []int{83}
+}
+
+func (x *DecidePhoneApprovalResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
 var File_raptor_panel_v1_auth_proto protoreflect.FileDescriptor
 
 const file_raptor_panel_v1_auth_proto_rawDesc = "" +
@@ -3632,24 +4433,27 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\x14DeletePasskeyRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x17\n" +
 	"\x15DeletePasskeyResponse\"\x14\n" +
-	"\x12BeginReauthRequest\"\xa2\x01\n" +
+	"\x12BeginReauthRequest\"\xc7\x01\n" +
 	"\x13BeginReauthResponse\x12=\n" +
 	"\apasskey\x18\x01 \x01(\v2!.raptor.panel.v1.PasskeyChallengeH\x00R\apasskey\x12\x1f\n" +
 	"\n" +
 	"email_sent\x18\x02 \x01(\bH\x00R\temailSent\x12!\n" +
-	"\ftotp_allowed\x18\x03 \x01(\bR\vtotpAllowedB\b\n" +
-	"\x06method\"\x9a\x01\n" +
+	"\ftotp_allowed\x18\x03 \x01(\bR\vtotpAllowed\x12#\n" +
+	"\rphone_allowed\x18\x04 \x01(\bR\fphoneAllowedB\b\n" +
+	"\x06method\"\xc8\x01\n" +
 	"\x13FinishReauthRequest\x12:\n" +
 	"\apasskey\x18\x01 \x01(\v2\x1e.raptor.panel.v1.PasskeyAnswerH\x00R\apasskey\x12\x1f\n" +
 	"\n" +
 	"email_code\x18\x02 \x01(\tH\x00R\temailCode\x12\x1d\n" +
-	"\ttotp_code\x18\x03 \x01(\tH\x00R\btotpCodeB\a\n" +
+	"\ttotp_code\x18\x03 \x01(\tH\x00R\btotpCode\x12,\n" +
+	"\x11phone_approval_id\x18\x04 \x01(\tH\x00R\x0fphoneApprovalIdB\a\n" +
 	"\x05proof\"U\n" +
 	"\x14FinishReauthResponse\x12=\n" +
-	"\freauth_until\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\vreauthUntil\"j\n" +
+	"\freauth_until\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\vreauthUntil\"\x98\x01\n" +
 	"\x19FinishSecondFactorRequest\x12\x1d\n" +
 	"\ttotp_code\x18\x01 \x01(\tH\x00R\btotpCode\x12%\n" +
-	"\rrecovery_code\x18\x02 \x01(\tH\x00R\frecoveryCodeB\a\n" +
+	"\rrecovery_code\x18\x02 \x01(\tH\x00R\frecoveryCode\x12,\n" +
+	"\x11phone_approval_id\x18\x03 \x01(\tH\x00R\x0fphoneApprovalIdB\a\n" +
 	"\x05proof\"w\n" +
 	"\x1aFinishSecondFactorResponse\x12)\n" +
 	"\x04user\x18\x01 \x01(\v2\x15.raptor.panel.v1.UserR\x04user\x12.\n" +
@@ -3729,7 +4533,55 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\vdevice_name\x18\x04 \x01(\tR\n" +
 	"deviceName\"(\n" +
 	"\x12ApproveAppResponse\x12\x12\n" +
-	"\x04code\x18\x01 \x01(\tR\x04code2\x98\x19\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\"\x19\n" +
+	"\x17GetPhoneApproverRequest\"m\n" +
+	"\x18GetPhoneApproverResponse\x12\x1a\n" +
+	"\benrolled\x18\x01 \x01(\bR\benrolled\x12\x1d\n" +
+	"\n" +
+	"can_enroll\x18\x02 \x01(\bR\tcanEnroll\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"4\n" +
+	"\x1aEnrollPhoneApproverRequest\x12\x16\n" +
+	"\x06secret\x18\x01 \x01(\fR\x06secret\"\x1d\n" +
+	"\x1bEnrollPhoneApproverResponse\"\x1c\n" +
+	"\x1aRemovePhoneApproverRequest\"\x1d\n" +
+	"\x1bRemovePhoneApproverResponse\"5\n" +
+	"\x19StartPhoneApprovalRequest\x12\x18\n" +
+	"\apurpose\x18\x01 \x01(\tR\apurpose\"\xac\x01\n" +
+	"\x1aStartPhoneApprovalResponse\x12\x1f\n" +
+	"\vapproval_id\x18\x01 \x01(\tR\n" +
+	"approvalId\x12\x16\n" +
+	"\x06number\x18\x02 \x01(\x05R\x06number\x129\n" +
+	"\n" +
+	"expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x1a\n" +
+	"\bnotified\x18\x04 \x01(\x05R\bnotified\"<\n" +
+	"\x19CheckPhoneApprovalRequest\x12\x1f\n" +
+	"\vapproval_id\x18\x01 \x01(\tR\n" +
+	"approvalId\"4\n" +
+	"\x1aCheckPhoneApprovalResponse\x12\x16\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status\"\x1b\n" +
+	"\x19ListPhoneApprovalsRequest\"\x96\x02\n" +
+	"\rPhoneApproval\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
+	"\apurpose\x18\x02 \x01(\tR\apurpose\x12\x18\n" +
+	"\achoices\x18\x03 \x03(\x05R\achoices\x12\x1c\n" +
+	"\tchallenge\x18\x04 \x01(\fR\tchallenge\x12\x0e\n" +
+	"\x02ip\x18\x05 \x01(\tR\x02ip\x12\x1d\n" +
+	"\n" +
+	"user_agent\x18\x06 \x01(\tR\tuserAgent\x129\n" +
+	"\n" +
+	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"expires_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"Z\n" +
+	"\x1aListPhoneApprovalsResponse\x12<\n" +
+	"\tapprovals\x18\x01 \x03(\v2\x1e.raptor.panel.v1.PhoneApprovalR\tapprovals\"\x81\x01\n" +
+	"\x1aDecidePhoneApprovalRequest\x12\x1f\n" +
+	"\vapproval_id\x18\x01 \x01(\tR\n" +
+	"approvalId\x12\x18\n" +
+	"\aapprove\x18\x02 \x01(\bR\aapprove\x12\x16\n" +
+	"\x06number\x18\x03 \x01(\x05R\x06number\x12\x10\n" +
+	"\x03mac\x18\x04 \x01(\fR\x03mac\"5\n" +
+	"\x1bDecidePhoneApprovalResponse\x12\x16\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status2\xbb\x1f\n" +
 	"\vAuthService\x12i\n" +
 	"\x10StartEmailSignIn\x12(.raptor.panel.v1.StartEmailSignInRequest\x1a).raptor.panel.v1.StartEmailSignInResponse\"\x00\x12l\n" +
 	"\x11FinishEmailSignIn\x12).raptor.panel.v1.FinishEmailSignInRequest\x1a*.raptor.panel.v1.FinishEmailSignInResponse\"\x00\x12Z\n" +
@@ -3764,7 +4616,14 @@ const file_raptor_panel_v1_auth_proto_rawDesc = "" +
 	"\x11FinishEmailChange\x12).raptor.panel.v1.FinishEmailChangeRequest\x1a*.raptor.panel.v1.FinishEmailChangeResponse\"\x00\x12`\n" +
 	"\rDeleteAccount\x12%.raptor.panel.v1.DeleteAccountRequest\x1a&.raptor.panel.v1.DeleteAccountResponse\"\x00\x12W\n" +
 	"\n" +
-	"ApproveApp\x12\".raptor.panel.v1.ApproveAppRequest\x1a#.raptor.panel.v1.ApproveAppResponse\"\x00B\xc9\x01\n" +
+	"ApproveApp\x12\".raptor.panel.v1.ApproveAppRequest\x1a#.raptor.panel.v1.ApproveAppResponse\"\x00\x12l\n" +
+	"\x10GetPhoneApprover\x12(.raptor.panel.v1.GetPhoneApproverRequest\x1a).raptor.panel.v1.GetPhoneApproverResponse\"\x03\x90\x02\x01\x12r\n" +
+	"\x13EnrollPhoneApprover\x12+.raptor.panel.v1.EnrollPhoneApproverRequest\x1a,.raptor.panel.v1.EnrollPhoneApproverResponse\"\x00\x12r\n" +
+	"\x13RemovePhoneApprover\x12+.raptor.panel.v1.RemovePhoneApproverRequest\x1a,.raptor.panel.v1.RemovePhoneApproverResponse\"\x00\x12o\n" +
+	"\x12StartPhoneApproval\x12*.raptor.panel.v1.StartPhoneApprovalRequest\x1a+.raptor.panel.v1.StartPhoneApprovalResponse\"\x00\x12r\n" +
+	"\x12CheckPhoneApproval\x12*.raptor.panel.v1.CheckPhoneApprovalRequest\x1a+.raptor.panel.v1.CheckPhoneApprovalResponse\"\x03\x90\x02\x01\x12r\n" +
+	"\x12ListPhoneApprovals\x12*.raptor.panel.v1.ListPhoneApprovalsRequest\x1a+.raptor.panel.v1.ListPhoneApprovalsResponse\"\x03\x90\x02\x01\x12r\n" +
+	"\x13DecidePhoneApproval\x12+.raptor.panel.v1.DecidePhoneApprovalRequest\x1a,.raptor.panel.v1.DecidePhoneApprovalResponse\"\x00B\xc9\x01\n" +
 	"\x13com.raptor.panel.v1B\tAuthProtoP\x01ZIgithub.com/xena-studios/raptor/internal/gen/proto/raptor/panel/v1;panelv1\xa2\x02\x03RPX\xaa\x02\x0fRaptor.Panel.V1\xca\x02\x0fRaptor\\Panel\\V1\xe2\x02\x1bRaptor\\Panel\\V1\\GPBMetadata\xea\x02\x11Raptor::Panel::V1b\x06proto3"
 
 var (
@@ -3779,7 +4638,7 @@ func file_raptor_panel_v1_auth_proto_rawDescGZIP() []byte {
 	return file_raptor_panel_v1_auth_proto_rawDescData
 }
 
-var file_raptor_panel_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 69)
+var file_raptor_panel_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 84)
 var file_raptor_panel_v1_auth_proto_goTypes = []any{
 	(*StartEmailSignInRequest)(nil),           // 0: raptor.panel.v1.StartEmailSignInRequest
 	(*StartEmailSignInResponse)(nil),          // 1: raptor.panel.v1.StartEmailSignInResponse
@@ -3850,19 +4709,34 @@ var file_raptor_panel_v1_auth_proto_goTypes = []any{
 	(*DeleteAccountResponse)(nil),             // 66: raptor.panel.v1.DeleteAccountResponse
 	(*ApproveAppRequest)(nil),                 // 67: raptor.panel.v1.ApproveAppRequest
 	(*ApproveAppResponse)(nil),                // 68: raptor.panel.v1.ApproveAppResponse
-	(*timestamppb.Timestamp)(nil),             // 69: google.protobuf.Timestamp
-	(*ActivityFilter)(nil),                    // 70: raptor.panel.v1.ActivityFilter
-	(*AuditEvent)(nil),                        // 71: raptor.panel.v1.AuditEvent
+	(*GetPhoneApproverRequest)(nil),           // 69: raptor.panel.v1.GetPhoneApproverRequest
+	(*GetPhoneApproverResponse)(nil),          // 70: raptor.panel.v1.GetPhoneApproverResponse
+	(*EnrollPhoneApproverRequest)(nil),        // 71: raptor.panel.v1.EnrollPhoneApproverRequest
+	(*EnrollPhoneApproverResponse)(nil),       // 72: raptor.panel.v1.EnrollPhoneApproverResponse
+	(*RemovePhoneApproverRequest)(nil),        // 73: raptor.panel.v1.RemovePhoneApproverRequest
+	(*RemovePhoneApproverResponse)(nil),       // 74: raptor.panel.v1.RemovePhoneApproverResponse
+	(*StartPhoneApprovalRequest)(nil),         // 75: raptor.panel.v1.StartPhoneApprovalRequest
+	(*StartPhoneApprovalResponse)(nil),        // 76: raptor.panel.v1.StartPhoneApprovalResponse
+	(*CheckPhoneApprovalRequest)(nil),         // 77: raptor.panel.v1.CheckPhoneApprovalRequest
+	(*CheckPhoneApprovalResponse)(nil),        // 78: raptor.panel.v1.CheckPhoneApprovalResponse
+	(*ListPhoneApprovalsRequest)(nil),         // 79: raptor.panel.v1.ListPhoneApprovalsRequest
+	(*PhoneApproval)(nil),                     // 80: raptor.panel.v1.PhoneApproval
+	(*ListPhoneApprovalsResponse)(nil),        // 81: raptor.panel.v1.ListPhoneApprovalsResponse
+	(*DecidePhoneApprovalRequest)(nil),        // 82: raptor.panel.v1.DecidePhoneApprovalRequest
+	(*DecidePhoneApprovalResponse)(nil),       // 83: raptor.panel.v1.DecidePhoneApprovalResponse
+	(*timestamppb.Timestamp)(nil),             // 84: google.protobuf.Timestamp
+	(*ActivityFilter)(nil),                    // 85: raptor.panel.v1.ActivityFilter
+	(*AuditEvent)(nil),                        // 86: raptor.panel.v1.AuditEvent
 }
 var file_raptor_panel_v1_auth_proto_depIdxs = []int32{
 	3,  // 0: raptor.panel.v1.FinishEmailSignInRequest.code:type_name -> raptor.panel.v1.EmailCode
 	5,  // 1: raptor.panel.v1.FinishEmailSignInResponse.user:type_name -> raptor.panel.v1.User
-	69, // 2: raptor.panel.v1.User.created_at:type_name -> google.protobuf.Timestamp
+	84, // 2: raptor.panel.v1.User.created_at:type_name -> google.protobuf.Timestamp
 	5,  // 3: raptor.panel.v1.GetSessionResponse.user:type_name -> raptor.panel.v1.User
 	8,  // 4: raptor.panel.v1.GetSessionResponse.session:type_name -> raptor.panel.v1.Session
-	69, // 5: raptor.panel.v1.Session.created_at:type_name -> google.protobuf.Timestamp
-	69, // 6: raptor.panel.v1.Session.last_seen_at:type_name -> google.protobuf.Timestamp
-	69, // 7: raptor.panel.v1.Session.reauth_until:type_name -> google.protobuf.Timestamp
+	84, // 5: raptor.panel.v1.Session.created_at:type_name -> google.protobuf.Timestamp
+	84, // 6: raptor.panel.v1.Session.last_seen_at:type_name -> google.protobuf.Timestamp
+	84, // 7: raptor.panel.v1.Session.reauth_until:type_name -> google.protobuf.Timestamp
 	8,  // 8: raptor.panel.v1.ListSessionsResponse.sessions:type_name -> raptor.panel.v1.Session
 	15, // 9: raptor.panel.v1.BeginPasskeySignInResponse.challenge:type_name -> raptor.panel.v1.PasskeyChallenge
 	16, // 10: raptor.panel.v1.FinishPasskeySignInRequest.answer:type_name -> raptor.panel.v1.PasskeyAnswer
@@ -3870,88 +4744,106 @@ var file_raptor_panel_v1_auth_proto_depIdxs = []int32{
 	15, // 12: raptor.panel.v1.BeginPasskeyRegistrationResponse.challenge:type_name -> raptor.panel.v1.PasskeyChallenge
 	16, // 13: raptor.panel.v1.FinishPasskeyRegistrationRequest.answer:type_name -> raptor.panel.v1.PasskeyAnswer
 	25, // 14: raptor.panel.v1.FinishPasskeyRegistrationResponse.passkey:type_name -> raptor.panel.v1.Passkey
-	69, // 15: raptor.panel.v1.Passkey.created_at:type_name -> google.protobuf.Timestamp
-	69, // 16: raptor.panel.v1.Passkey.last_used_at:type_name -> google.protobuf.Timestamp
+	84, // 15: raptor.panel.v1.Passkey.created_at:type_name -> google.protobuf.Timestamp
+	84, // 16: raptor.panel.v1.Passkey.last_used_at:type_name -> google.protobuf.Timestamp
 	25, // 17: raptor.panel.v1.ListPasskeysResponse.passkeys:type_name -> raptor.panel.v1.Passkey
 	15, // 18: raptor.panel.v1.BeginReauthResponse.passkey:type_name -> raptor.panel.v1.PasskeyChallenge
 	16, // 19: raptor.panel.v1.FinishReauthRequest.passkey:type_name -> raptor.panel.v1.PasskeyAnswer
-	69, // 20: raptor.panel.v1.FinishReauthResponse.reauth_until:type_name -> google.protobuf.Timestamp
+	84, // 20: raptor.panel.v1.FinishReauthResponse.reauth_until:type_name -> google.protobuf.Timestamp
 	5,  // 21: raptor.panel.v1.FinishSecondFactorResponse.user:type_name -> raptor.panel.v1.User
-	69, // 22: raptor.panel.v1.OAuthAccount.created_at:type_name -> google.protobuf.Timestamp
-	69, // 23: raptor.panel.v1.OAuthAccount.last_used_at:type_name -> google.protobuf.Timestamp
+	84, // 22: raptor.panel.v1.OAuthAccount.created_at:type_name -> google.protobuf.Timestamp
+	84, // 23: raptor.panel.v1.OAuthAccount.last_used_at:type_name -> google.protobuf.Timestamp
 	50, // 24: raptor.panel.v1.ListOAuthAccountsResponse.accounts:type_name -> raptor.panel.v1.OAuthAccount
-	70, // 25: raptor.panel.v1.ListActivityRequest.filter:type_name -> raptor.panel.v1.ActivityFilter
-	71, // 26: raptor.panel.v1.ListActivityResponse.events:type_name -> raptor.panel.v1.AuditEvent
+	85, // 25: raptor.panel.v1.ListActivityRequest.filter:type_name -> raptor.panel.v1.ActivityFilter
+	86, // 26: raptor.panel.v1.ListActivityResponse.events:type_name -> raptor.panel.v1.AuditEvent
 	5,  // 27: raptor.panel.v1.UpdateProfileResponse.user:type_name -> raptor.panel.v1.User
 	5,  // 28: raptor.panel.v1.SetAvatarResponse.user:type_name -> raptor.panel.v1.User
 	5,  // 29: raptor.panel.v1.FinishEmailChangeResponse.user:type_name -> raptor.panel.v1.User
-	0,  // 30: raptor.panel.v1.AuthService.StartEmailSignIn:input_type -> raptor.panel.v1.StartEmailSignInRequest
-	2,  // 31: raptor.panel.v1.AuthService.FinishEmailSignIn:input_type -> raptor.panel.v1.FinishEmailSignInRequest
-	6,  // 32: raptor.panel.v1.AuthService.GetSession:input_type -> raptor.panel.v1.GetSessionRequest
-	9,  // 33: raptor.panel.v1.AuthService.SignOut:input_type -> raptor.panel.v1.SignOutRequest
-	11, // 34: raptor.panel.v1.AuthService.ListSessions:input_type -> raptor.panel.v1.ListSessionsRequest
-	13, // 35: raptor.panel.v1.AuthService.RevokeSession:input_type -> raptor.panel.v1.RevokeSessionRequest
-	17, // 36: raptor.panel.v1.AuthService.BeginPasskeySignIn:input_type -> raptor.panel.v1.BeginPasskeySignInRequest
-	19, // 37: raptor.panel.v1.AuthService.FinishPasskeySignIn:input_type -> raptor.panel.v1.FinishPasskeySignInRequest
-	21, // 38: raptor.panel.v1.AuthService.BeginPasskeyRegistration:input_type -> raptor.panel.v1.BeginPasskeyRegistrationRequest
-	23, // 39: raptor.panel.v1.AuthService.FinishPasskeyRegistration:input_type -> raptor.panel.v1.FinishPasskeyRegistrationRequest
-	26, // 40: raptor.panel.v1.AuthService.ListPasskeys:input_type -> raptor.panel.v1.ListPasskeysRequest
-	28, // 41: raptor.panel.v1.AuthService.RenamePasskey:input_type -> raptor.panel.v1.RenamePasskeyRequest
-	30, // 42: raptor.panel.v1.AuthService.DeletePasskey:input_type -> raptor.panel.v1.DeletePasskeyRequest
-	32, // 43: raptor.panel.v1.AuthService.BeginReauth:input_type -> raptor.panel.v1.BeginReauthRequest
-	34, // 44: raptor.panel.v1.AuthService.FinishReauth:input_type -> raptor.panel.v1.FinishReauthRequest
-	36, // 45: raptor.panel.v1.AuthService.FinishSecondFactor:input_type -> raptor.panel.v1.FinishSecondFactorRequest
-	38, // 46: raptor.panel.v1.AuthService.BeginTOTPSetup:input_type -> raptor.panel.v1.BeginTOTPSetupRequest
-	40, // 47: raptor.panel.v1.AuthService.FinishTOTPSetup:input_type -> raptor.panel.v1.FinishTOTPSetupRequest
-	42, // 48: raptor.panel.v1.AuthService.DisableTOTP:input_type -> raptor.panel.v1.DisableTOTPRequest
-	44, // 49: raptor.panel.v1.AuthService.RegenerateRecoveryCodes:input_type -> raptor.panel.v1.RegenerateRecoveryCodesRequest
-	46, // 50: raptor.panel.v1.AuthService.GetSignInMethods:input_type -> raptor.panel.v1.GetSignInMethodsRequest
-	48, // 51: raptor.panel.v1.AuthService.BeginOAuth:input_type -> raptor.panel.v1.BeginOAuthRequest
-	51, // 52: raptor.panel.v1.AuthService.ListOAuthAccounts:input_type -> raptor.panel.v1.ListOAuthAccountsRequest
-	53, // 53: raptor.panel.v1.AuthService.UnlinkOAuthAccount:input_type -> raptor.panel.v1.UnlinkOAuthAccountRequest
-	55, // 54: raptor.panel.v1.AuthService.ListActivity:input_type -> raptor.panel.v1.ListActivityRequest
-	57, // 55: raptor.panel.v1.AuthService.UpdateProfile:input_type -> raptor.panel.v1.UpdateProfileRequest
-	59, // 56: raptor.panel.v1.AuthService.SetAvatar:input_type -> raptor.panel.v1.SetAvatarRequest
-	61, // 57: raptor.panel.v1.AuthService.StartEmailChange:input_type -> raptor.panel.v1.StartEmailChangeRequest
-	63, // 58: raptor.panel.v1.AuthService.FinishEmailChange:input_type -> raptor.panel.v1.FinishEmailChangeRequest
-	65, // 59: raptor.panel.v1.AuthService.DeleteAccount:input_type -> raptor.panel.v1.DeleteAccountRequest
-	67, // 60: raptor.panel.v1.AuthService.ApproveApp:input_type -> raptor.panel.v1.ApproveAppRequest
-	1,  // 61: raptor.panel.v1.AuthService.StartEmailSignIn:output_type -> raptor.panel.v1.StartEmailSignInResponse
-	4,  // 62: raptor.panel.v1.AuthService.FinishEmailSignIn:output_type -> raptor.panel.v1.FinishEmailSignInResponse
-	7,  // 63: raptor.panel.v1.AuthService.GetSession:output_type -> raptor.panel.v1.GetSessionResponse
-	10, // 64: raptor.panel.v1.AuthService.SignOut:output_type -> raptor.panel.v1.SignOutResponse
-	12, // 65: raptor.panel.v1.AuthService.ListSessions:output_type -> raptor.panel.v1.ListSessionsResponse
-	14, // 66: raptor.panel.v1.AuthService.RevokeSession:output_type -> raptor.panel.v1.RevokeSessionResponse
-	18, // 67: raptor.panel.v1.AuthService.BeginPasskeySignIn:output_type -> raptor.panel.v1.BeginPasskeySignInResponse
-	20, // 68: raptor.panel.v1.AuthService.FinishPasskeySignIn:output_type -> raptor.panel.v1.FinishPasskeySignInResponse
-	22, // 69: raptor.panel.v1.AuthService.BeginPasskeyRegistration:output_type -> raptor.panel.v1.BeginPasskeyRegistrationResponse
-	24, // 70: raptor.panel.v1.AuthService.FinishPasskeyRegistration:output_type -> raptor.panel.v1.FinishPasskeyRegistrationResponse
-	27, // 71: raptor.panel.v1.AuthService.ListPasskeys:output_type -> raptor.panel.v1.ListPasskeysResponse
-	29, // 72: raptor.panel.v1.AuthService.RenamePasskey:output_type -> raptor.panel.v1.RenamePasskeyResponse
-	31, // 73: raptor.panel.v1.AuthService.DeletePasskey:output_type -> raptor.panel.v1.DeletePasskeyResponse
-	33, // 74: raptor.panel.v1.AuthService.BeginReauth:output_type -> raptor.panel.v1.BeginReauthResponse
-	35, // 75: raptor.panel.v1.AuthService.FinishReauth:output_type -> raptor.panel.v1.FinishReauthResponse
-	37, // 76: raptor.panel.v1.AuthService.FinishSecondFactor:output_type -> raptor.panel.v1.FinishSecondFactorResponse
-	39, // 77: raptor.panel.v1.AuthService.BeginTOTPSetup:output_type -> raptor.panel.v1.BeginTOTPSetupResponse
-	41, // 78: raptor.panel.v1.AuthService.FinishTOTPSetup:output_type -> raptor.panel.v1.FinishTOTPSetupResponse
-	43, // 79: raptor.panel.v1.AuthService.DisableTOTP:output_type -> raptor.panel.v1.DisableTOTPResponse
-	45, // 80: raptor.panel.v1.AuthService.RegenerateRecoveryCodes:output_type -> raptor.panel.v1.RegenerateRecoveryCodesResponse
-	47, // 81: raptor.panel.v1.AuthService.GetSignInMethods:output_type -> raptor.panel.v1.GetSignInMethodsResponse
-	49, // 82: raptor.panel.v1.AuthService.BeginOAuth:output_type -> raptor.panel.v1.BeginOAuthResponse
-	52, // 83: raptor.panel.v1.AuthService.ListOAuthAccounts:output_type -> raptor.panel.v1.ListOAuthAccountsResponse
-	54, // 84: raptor.panel.v1.AuthService.UnlinkOAuthAccount:output_type -> raptor.panel.v1.UnlinkOAuthAccountResponse
-	56, // 85: raptor.panel.v1.AuthService.ListActivity:output_type -> raptor.panel.v1.ListActivityResponse
-	58, // 86: raptor.panel.v1.AuthService.UpdateProfile:output_type -> raptor.panel.v1.UpdateProfileResponse
-	60, // 87: raptor.panel.v1.AuthService.SetAvatar:output_type -> raptor.panel.v1.SetAvatarResponse
-	62, // 88: raptor.panel.v1.AuthService.StartEmailChange:output_type -> raptor.panel.v1.StartEmailChangeResponse
-	64, // 89: raptor.panel.v1.AuthService.FinishEmailChange:output_type -> raptor.panel.v1.FinishEmailChangeResponse
-	66, // 90: raptor.panel.v1.AuthService.DeleteAccount:output_type -> raptor.panel.v1.DeleteAccountResponse
-	68, // 91: raptor.panel.v1.AuthService.ApproveApp:output_type -> raptor.panel.v1.ApproveAppResponse
-	61, // [61:92] is the sub-list for method output_type
-	30, // [30:61] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	84, // 30: raptor.panel.v1.StartPhoneApprovalResponse.expires_at:type_name -> google.protobuf.Timestamp
+	84, // 31: raptor.panel.v1.PhoneApproval.created_at:type_name -> google.protobuf.Timestamp
+	84, // 32: raptor.panel.v1.PhoneApproval.expires_at:type_name -> google.protobuf.Timestamp
+	80, // 33: raptor.panel.v1.ListPhoneApprovalsResponse.approvals:type_name -> raptor.panel.v1.PhoneApproval
+	0,  // 34: raptor.panel.v1.AuthService.StartEmailSignIn:input_type -> raptor.panel.v1.StartEmailSignInRequest
+	2,  // 35: raptor.panel.v1.AuthService.FinishEmailSignIn:input_type -> raptor.panel.v1.FinishEmailSignInRequest
+	6,  // 36: raptor.panel.v1.AuthService.GetSession:input_type -> raptor.panel.v1.GetSessionRequest
+	9,  // 37: raptor.panel.v1.AuthService.SignOut:input_type -> raptor.panel.v1.SignOutRequest
+	11, // 38: raptor.panel.v1.AuthService.ListSessions:input_type -> raptor.panel.v1.ListSessionsRequest
+	13, // 39: raptor.panel.v1.AuthService.RevokeSession:input_type -> raptor.panel.v1.RevokeSessionRequest
+	17, // 40: raptor.panel.v1.AuthService.BeginPasskeySignIn:input_type -> raptor.panel.v1.BeginPasskeySignInRequest
+	19, // 41: raptor.panel.v1.AuthService.FinishPasskeySignIn:input_type -> raptor.panel.v1.FinishPasskeySignInRequest
+	21, // 42: raptor.panel.v1.AuthService.BeginPasskeyRegistration:input_type -> raptor.panel.v1.BeginPasskeyRegistrationRequest
+	23, // 43: raptor.panel.v1.AuthService.FinishPasskeyRegistration:input_type -> raptor.panel.v1.FinishPasskeyRegistrationRequest
+	26, // 44: raptor.panel.v1.AuthService.ListPasskeys:input_type -> raptor.panel.v1.ListPasskeysRequest
+	28, // 45: raptor.panel.v1.AuthService.RenamePasskey:input_type -> raptor.panel.v1.RenamePasskeyRequest
+	30, // 46: raptor.panel.v1.AuthService.DeletePasskey:input_type -> raptor.panel.v1.DeletePasskeyRequest
+	32, // 47: raptor.panel.v1.AuthService.BeginReauth:input_type -> raptor.panel.v1.BeginReauthRequest
+	34, // 48: raptor.panel.v1.AuthService.FinishReauth:input_type -> raptor.panel.v1.FinishReauthRequest
+	36, // 49: raptor.panel.v1.AuthService.FinishSecondFactor:input_type -> raptor.panel.v1.FinishSecondFactorRequest
+	38, // 50: raptor.panel.v1.AuthService.BeginTOTPSetup:input_type -> raptor.panel.v1.BeginTOTPSetupRequest
+	40, // 51: raptor.panel.v1.AuthService.FinishTOTPSetup:input_type -> raptor.panel.v1.FinishTOTPSetupRequest
+	42, // 52: raptor.panel.v1.AuthService.DisableTOTP:input_type -> raptor.panel.v1.DisableTOTPRequest
+	44, // 53: raptor.panel.v1.AuthService.RegenerateRecoveryCodes:input_type -> raptor.panel.v1.RegenerateRecoveryCodesRequest
+	46, // 54: raptor.panel.v1.AuthService.GetSignInMethods:input_type -> raptor.panel.v1.GetSignInMethodsRequest
+	48, // 55: raptor.panel.v1.AuthService.BeginOAuth:input_type -> raptor.panel.v1.BeginOAuthRequest
+	51, // 56: raptor.panel.v1.AuthService.ListOAuthAccounts:input_type -> raptor.panel.v1.ListOAuthAccountsRequest
+	53, // 57: raptor.panel.v1.AuthService.UnlinkOAuthAccount:input_type -> raptor.panel.v1.UnlinkOAuthAccountRequest
+	55, // 58: raptor.panel.v1.AuthService.ListActivity:input_type -> raptor.panel.v1.ListActivityRequest
+	57, // 59: raptor.panel.v1.AuthService.UpdateProfile:input_type -> raptor.panel.v1.UpdateProfileRequest
+	59, // 60: raptor.panel.v1.AuthService.SetAvatar:input_type -> raptor.panel.v1.SetAvatarRequest
+	61, // 61: raptor.panel.v1.AuthService.StartEmailChange:input_type -> raptor.panel.v1.StartEmailChangeRequest
+	63, // 62: raptor.panel.v1.AuthService.FinishEmailChange:input_type -> raptor.panel.v1.FinishEmailChangeRequest
+	65, // 63: raptor.panel.v1.AuthService.DeleteAccount:input_type -> raptor.panel.v1.DeleteAccountRequest
+	67, // 64: raptor.panel.v1.AuthService.ApproveApp:input_type -> raptor.panel.v1.ApproveAppRequest
+	69, // 65: raptor.panel.v1.AuthService.GetPhoneApprover:input_type -> raptor.panel.v1.GetPhoneApproverRequest
+	71, // 66: raptor.panel.v1.AuthService.EnrollPhoneApprover:input_type -> raptor.panel.v1.EnrollPhoneApproverRequest
+	73, // 67: raptor.panel.v1.AuthService.RemovePhoneApprover:input_type -> raptor.panel.v1.RemovePhoneApproverRequest
+	75, // 68: raptor.panel.v1.AuthService.StartPhoneApproval:input_type -> raptor.panel.v1.StartPhoneApprovalRequest
+	77, // 69: raptor.panel.v1.AuthService.CheckPhoneApproval:input_type -> raptor.panel.v1.CheckPhoneApprovalRequest
+	79, // 70: raptor.panel.v1.AuthService.ListPhoneApprovals:input_type -> raptor.panel.v1.ListPhoneApprovalsRequest
+	82, // 71: raptor.panel.v1.AuthService.DecidePhoneApproval:input_type -> raptor.panel.v1.DecidePhoneApprovalRequest
+	1,  // 72: raptor.panel.v1.AuthService.StartEmailSignIn:output_type -> raptor.panel.v1.StartEmailSignInResponse
+	4,  // 73: raptor.panel.v1.AuthService.FinishEmailSignIn:output_type -> raptor.panel.v1.FinishEmailSignInResponse
+	7,  // 74: raptor.panel.v1.AuthService.GetSession:output_type -> raptor.panel.v1.GetSessionResponse
+	10, // 75: raptor.panel.v1.AuthService.SignOut:output_type -> raptor.panel.v1.SignOutResponse
+	12, // 76: raptor.panel.v1.AuthService.ListSessions:output_type -> raptor.panel.v1.ListSessionsResponse
+	14, // 77: raptor.panel.v1.AuthService.RevokeSession:output_type -> raptor.panel.v1.RevokeSessionResponse
+	18, // 78: raptor.panel.v1.AuthService.BeginPasskeySignIn:output_type -> raptor.panel.v1.BeginPasskeySignInResponse
+	20, // 79: raptor.panel.v1.AuthService.FinishPasskeySignIn:output_type -> raptor.panel.v1.FinishPasskeySignInResponse
+	22, // 80: raptor.panel.v1.AuthService.BeginPasskeyRegistration:output_type -> raptor.panel.v1.BeginPasskeyRegistrationResponse
+	24, // 81: raptor.panel.v1.AuthService.FinishPasskeyRegistration:output_type -> raptor.panel.v1.FinishPasskeyRegistrationResponse
+	27, // 82: raptor.panel.v1.AuthService.ListPasskeys:output_type -> raptor.panel.v1.ListPasskeysResponse
+	29, // 83: raptor.panel.v1.AuthService.RenamePasskey:output_type -> raptor.panel.v1.RenamePasskeyResponse
+	31, // 84: raptor.panel.v1.AuthService.DeletePasskey:output_type -> raptor.panel.v1.DeletePasskeyResponse
+	33, // 85: raptor.panel.v1.AuthService.BeginReauth:output_type -> raptor.panel.v1.BeginReauthResponse
+	35, // 86: raptor.panel.v1.AuthService.FinishReauth:output_type -> raptor.panel.v1.FinishReauthResponse
+	37, // 87: raptor.panel.v1.AuthService.FinishSecondFactor:output_type -> raptor.panel.v1.FinishSecondFactorResponse
+	39, // 88: raptor.panel.v1.AuthService.BeginTOTPSetup:output_type -> raptor.panel.v1.BeginTOTPSetupResponse
+	41, // 89: raptor.panel.v1.AuthService.FinishTOTPSetup:output_type -> raptor.panel.v1.FinishTOTPSetupResponse
+	43, // 90: raptor.panel.v1.AuthService.DisableTOTP:output_type -> raptor.panel.v1.DisableTOTPResponse
+	45, // 91: raptor.panel.v1.AuthService.RegenerateRecoveryCodes:output_type -> raptor.panel.v1.RegenerateRecoveryCodesResponse
+	47, // 92: raptor.panel.v1.AuthService.GetSignInMethods:output_type -> raptor.panel.v1.GetSignInMethodsResponse
+	49, // 93: raptor.panel.v1.AuthService.BeginOAuth:output_type -> raptor.panel.v1.BeginOAuthResponse
+	52, // 94: raptor.panel.v1.AuthService.ListOAuthAccounts:output_type -> raptor.panel.v1.ListOAuthAccountsResponse
+	54, // 95: raptor.panel.v1.AuthService.UnlinkOAuthAccount:output_type -> raptor.panel.v1.UnlinkOAuthAccountResponse
+	56, // 96: raptor.panel.v1.AuthService.ListActivity:output_type -> raptor.panel.v1.ListActivityResponse
+	58, // 97: raptor.panel.v1.AuthService.UpdateProfile:output_type -> raptor.panel.v1.UpdateProfileResponse
+	60, // 98: raptor.panel.v1.AuthService.SetAvatar:output_type -> raptor.panel.v1.SetAvatarResponse
+	62, // 99: raptor.panel.v1.AuthService.StartEmailChange:output_type -> raptor.panel.v1.StartEmailChangeResponse
+	64, // 100: raptor.panel.v1.AuthService.FinishEmailChange:output_type -> raptor.panel.v1.FinishEmailChangeResponse
+	66, // 101: raptor.panel.v1.AuthService.DeleteAccount:output_type -> raptor.panel.v1.DeleteAccountResponse
+	68, // 102: raptor.panel.v1.AuthService.ApproveApp:output_type -> raptor.panel.v1.ApproveAppResponse
+	70, // 103: raptor.panel.v1.AuthService.GetPhoneApprover:output_type -> raptor.panel.v1.GetPhoneApproverResponse
+	72, // 104: raptor.panel.v1.AuthService.EnrollPhoneApprover:output_type -> raptor.panel.v1.EnrollPhoneApproverResponse
+	74, // 105: raptor.panel.v1.AuthService.RemovePhoneApprover:output_type -> raptor.panel.v1.RemovePhoneApproverResponse
+	76, // 106: raptor.panel.v1.AuthService.StartPhoneApproval:output_type -> raptor.panel.v1.StartPhoneApprovalResponse
+	78, // 107: raptor.panel.v1.AuthService.CheckPhoneApproval:output_type -> raptor.panel.v1.CheckPhoneApprovalResponse
+	81, // 108: raptor.panel.v1.AuthService.ListPhoneApprovals:output_type -> raptor.panel.v1.ListPhoneApprovalsResponse
+	83, // 109: raptor.panel.v1.AuthService.DecidePhoneApproval:output_type -> raptor.panel.v1.DecidePhoneApprovalResponse
+	72, // [72:110] is the sub-list for method output_type
+	34, // [34:72] is the sub-list for method input_type
+	34, // [34:34] is the sub-list for extension type_name
+	34, // [34:34] is the sub-list for extension extendee
+	0,  // [0:34] is the sub-list for field type_name
 }
 
 func init() { file_raptor_panel_v1_auth_proto_init() }
@@ -3976,10 +4868,12 @@ func file_raptor_panel_v1_auth_proto_init() {
 		(*FinishReauthRequest_Passkey)(nil),
 		(*FinishReauthRequest_EmailCode)(nil),
 		(*FinishReauthRequest_TotpCode)(nil),
+		(*FinishReauthRequest_PhoneApprovalId)(nil),
 	}
 	file_raptor_panel_v1_auth_proto_msgTypes[36].OneofWrappers = []any{
 		(*FinishSecondFactorRequest_TotpCode)(nil),
 		(*FinishSecondFactorRequest_RecoveryCode)(nil),
+		(*FinishSecondFactorRequest_PhoneApprovalId)(nil),
 	}
 	file_raptor_panel_v1_auth_proto_msgTypes[57].OneofWrappers = []any{}
 	type x struct{}
@@ -3988,7 +4882,7 @@ func file_raptor_panel_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raptor_panel_v1_auth_proto_rawDesc), len(file_raptor_panel_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   69,
+			NumMessages:   84,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
