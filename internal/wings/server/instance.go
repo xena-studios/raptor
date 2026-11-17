@@ -47,6 +47,10 @@ type instance struct {
 	crashes      crashTracker
 	restartTimer *time.Timer
 	deleted      bool
+	// pullImage makes the next start pull its image even if it's on the
+	// node: set by an install and by an image change. Other starts use
+	// the local copy and refresh it in the background (DECISIONS #386).
+	pullImage bool
 }
 
 func (m *Manager) newInstance(id string, state State) *instance {
@@ -279,6 +283,9 @@ func (m *Manager) finishInstall(i *instance, srv *Server, res install.Result, ru
 	} else {
 		i.console.Notice("install finished")
 	}
+	i.mu.Lock()
+	i.pullImage = true
+	i.mu.Unlock()
 	i.setState(Offline)
 	m.publish(EventInstallDone, i.id, srv.Version, data)
 	return nil
@@ -394,7 +401,12 @@ func (i *instance) launch(ctx context.Context, srv *Server) error {
 	if err != nil {
 		return err
 	}
+	i.mu.Lock()
+	pull := i.pullImage
+	i.mu.Unlock()
 	cid, err := m.o.Runtime.Create(ctx, containers.ServerSpec{
+		Pull:        pull,
+		Pulling:     func() { i.console.Notice("pulling image %s", srv.Image) },
 		MachineID:   machineID,
 		ServerID:    i.id,
 		Dir:         dir,
@@ -411,6 +423,11 @@ func (i *instance) launch(ctx context.Context, srv *Server) error {
 	})
 	if err != nil {
 		return err
+	}
+	if pull {
+		i.mu.Lock()
+		i.pullImage = false
+		i.mu.Unlock()
 	}
 	in, err := m.o.Runtime.Input(ctx, cid)
 	if err != nil {

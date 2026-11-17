@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -102,19 +103,32 @@ func (g *Gate) Sync(ctx context.Context, nodeID string) error {
 	return q.SetNodeSFTP(ctx, store.SetNodeSFTPParams{ID: node, SftpEnabled: st.Enabled, SftpPort: st.Port, SftpHostKey: st.Fingerprint})
 }
 
-// Tick syncs every node that's out of step.
+// tickParallel is how many nodes a tick syncs at once, so one slow node
+// doesn't hold up closing the others' ports.
+const tickParallel = 4
+
+// Tick syncs every connected node that's out of step. Offline nodes aren't
+// listed (each would only wait out the send timeout); one that reconnects
+// is still out of step, so the first tick after it connects syncs it.
 func (g *Gate) Tick(ctx context.Context) {
 	ids, err := store.New(g.DB).NodesSFTPOutOfStep(ctx)
 	if err != nil {
 		g.log().Error("listing nodes' sftp failed", "err", err)
 		return
 	}
+	sem := make(chan struct{}, tickParallel)
+	var wg sync.WaitGroup
 	for _, id := range ids {
 		node := uuid.UUID(id.Bytes).String()
-		if err := g.Sync(ctx, node); err != nil {
-			g.log().Info("couldn't sync a node's sftp; trying again next time", "node", node, "err", err)
-		}
+		sem <- struct{}{}
+		wg.Go(func() {
+			defer func() { <-sem }()
+			if err := g.Sync(ctx, node); err != nil {
+				g.log().Info("couldn't sync a node's sftp; trying again next time", "node", node, "err", err)
+			}
+		})
 	}
+	wg.Wait()
 }
 
 // Run ticks every interval until ctx ends. Every Panel instance runs it;

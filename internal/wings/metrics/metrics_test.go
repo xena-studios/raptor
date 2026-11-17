@@ -23,6 +23,7 @@ type fakeServers struct {
 	rx      map[string]uint64
 	mem     int64
 	disk    int64
+	hang    map[string]bool // Sample blocks until its ctx ends
 }
 
 func (f *fakeServers) List() map[string]server.State {
@@ -35,8 +36,13 @@ func (f *fakeServers) List() map[string]server.State {
 	return out
 }
 
-func (f *fakeServers) Sample(_ context.Context, id string) (server.Sample, error) {
+func (f *fakeServers) Sample(ctx context.Context, id string) (server.Sample, error) {
 	f.mu.Lock()
+	if f.hang[id] {
+		f.mu.Unlock()
+		<-ctx.Done()
+		return server.Sample{}, ctx.Err()
+	}
 	defer f.mu.Unlock()
 	s := server.Sample{At: *f.now, DiskBytes: f.disk, State: server.Offline}
 	if f.running[id] {
@@ -90,6 +96,26 @@ func (e *env) step() {
 	e.srv.rx["a"] += 10 << 20
 	e.srv.mu.Unlock()
 	e.c.Tick(context.Background())
+}
+
+// A server whose sample hangs (Docker stats stuck) is skipped after
+// sampleTimeout; the others are still sampled.
+func TestTickHungSample(t *testing.T) {
+	old := sampleTimeout
+	sampleTimeout = 50 * time.Millisecond
+	t.Cleanup(func() { sampleTimeout = old })
+	e := newEnv(t)
+	e.srv.hang = map[string]bool{"b": true}
+	done := make(chan struct{})
+	go func() { e.c.Tick(context.Background()); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Tick waited on a hung sample")
+	}
+	if l := e.c.Latest("a"); l.DiskBytes != 5<<30 {
+		t.Errorf("server a wasn't sampled: %+v", l)
+	}
 }
 
 func TestHistory(t *testing.T) {

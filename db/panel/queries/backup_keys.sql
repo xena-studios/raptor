@@ -9,10 +9,15 @@ SELECT * FROM backup_keys WHERE node_id = $1;
 DELETE FROM backup_keys WHERE node_id = $1;
 
 -- name: NodesWithoutBackupKey :many
--- Linked nodes whose key the Panel hasn't asked for yet.
+-- Connected, linked nodes whose key the Panel hasn't asked for yet.
+-- "Connected" is MachinesToSync's test: offline nodes would only make the
+-- keeper wait out a timeout each. One that reconnects still has no key, so
+-- it's asked on connect (Keeper.Connected) or by the next tick.
 SELECT n.id, n.org_id FROM nodes n
 WHERE n.deleted_at IS NULL AND n.org_id IS NOT NULL
-  AND NOT EXISTS (SELECT 1 FROM backup_keys k WHERE k.node_id = n.id);
+  AND NOT EXISTS (SELECT 1 FROM backup_keys k WHERE k.node_id = n.id)
+  AND EXISTS (SELECT 1 FROM node_connections c JOIN panel_instances i ON i.id = c.instance_id
+              WHERE c.node_id = n.id AND i.seen_at > now() - interval '20 seconds');
 
 -- name: RecoverySources :many
 -- The org's nodes, removed ones included, with what's there to recover

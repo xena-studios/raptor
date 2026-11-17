@@ -64,9 +64,10 @@ type Config struct {
 
 // Client is the Docker implementation of containers.Runtime.
 type Client struct {
-	api  *client.Client
-	cfg  Config
-	nets containers.Networks
+	api    *client.Client
+	cfg    Config
+	nets   containers.Networks
+	images *images
 }
 
 var _ containers.Runtime = (*Client)(nil)
@@ -77,7 +78,17 @@ func New(cfg Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{api: api, cfg: cfg}, nil
+	c := &Client{api: api, cfg: cfg}
+	c.images = &images{
+		local: func(ctx context.Context, ref string) bool {
+			_, err := c.api.ImageInspect(ctx, ref)
+			return err == nil
+		},
+		pull:  func(ctx context.Context, ref string) error { return c.EnsureImage(ctx, ref, nil) },
+		now:   time.Now,
+		tried: map[string]time.Time{},
+	}
+	return c, nil
 }
 
 // Setup ensures Wings' networks exist and detects cgroup placement. It's
@@ -342,7 +353,9 @@ func (c *Client) Create(ctx context.Context, s containers.ServerSpec) (string, e
 	if c.nets.Server.Name == "" {
 		return "", errors.New("runtime not set up")
 	}
-	if err := c.EnsureImage(ctx, s.Image, nil); err != nil {
+	// The image already here is used at once and refreshed in the
+	// background; one that isn't (or s.Pull) is pulled first.
+	if err := c.images.forStart(ctx, s.Image, s.Pull, s.Pulling); err != nil {
 		return "", err
 	}
 

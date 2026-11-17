@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -225,8 +226,13 @@ func (k *Keeper) Run(ctx context.Context, interval time.Duration) {
 	}
 }
 
-// Tick asks every linked node without a copy for its key. Offline nodes
-// are asked again next time. One Panel instance at a time.
+// tickParallel is how many nodes a tick asks at once.
+const tickParallel = 4
+
+// Tick asks every connected, linked node without a copy for its key, a few
+// at a time. Offline nodes aren't listed (each would only wait out the
+// send timeout); one that reconnects is asked by Connected or the next
+// tick. One Panel instance at a time.
 func (k *Keeper) Tick(ctx context.Context) error {
 	if !k.Enabled() {
 		return nil
@@ -245,10 +251,17 @@ func (k *Keeper) Tick(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	sem := make(chan struct{}, tickParallel)
+	var wg sync.WaitGroup
 	for _, r := range rows {
-		if _, err := k.Sync(ctx, uuid.UUID(r.OrgID.Bytes), uuid.UUID(r.ID.Bytes)); err != nil && ctx.Err() == nil {
-			k.log().Debug("asking a node for its backup key", "node", uuid.UUID(r.ID.Bytes), "err", err)
-		}
+		sem <- struct{}{}
+		wg.Go(func() {
+			defer func() { <-sem }()
+			if _, err := k.Sync(ctx, uuid.UUID(r.OrgID.Bytes), uuid.UUID(r.ID.Bytes)); err != nil && ctx.Err() == nil {
+				k.log().Debug("asking a node for its backup key", "node", uuid.UUID(r.ID.Bytes), "err", err)
+			}
+		})
 	}
+	wg.Wait()
 	return nil
 }
