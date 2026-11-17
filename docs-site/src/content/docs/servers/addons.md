@@ -64,11 +64,8 @@ Valheim and V Rising servers get a **Mods** section for BepInEx mods from [Thund
 - Thunderstore doesn't publish hashes, so the Panel downloads the mod first and hashes it; the machine then downloads the same file from Thunderstore and keeps it only if it matches.
 - Each mod is unpacked into its own folder in `BepInEx/plugins`. **Remove** moves that folder to the trash; an update replaces it, with the old one in the trash.
 - Mods' settings are in `BepInEx/config` in the file manager, made when the server first starts with the mod.
-## Unturned plugins (OpenMod)
 
-:::note
-Coming with the next update of the Unturned egg: the plugin installer is in, but the egg that turns it on is still being tested.
-:::
+## Unturned plugins (OpenMod)
 
 Unturned servers get a **Plugins** tab for [OpenMod](https://openmod.github.io/openmod-docs/) plugins, which are published on [NuGet](https://www.nuget.org/packages?q=Tags%3A%22openmod-plugin%22).
 
@@ -110,7 +107,7 @@ Raptor puts resource packs on the world's list, but players only download them i
 
 ## Steam Workshop
 
-Games that load Steam Workshop items themselves get a **Workshop** section in Add-ons: Garry's Mod (a collection), Counter-Strike 2 (a map collection), ARK (mods), Conan Exiles (mods, loaded in the order you list them), and Squad (items). Project Zomboid and Don't Starve Together get one too ([below](#games-that-list-mods-in-a-file)); Unturned comes with its egg's next update.
+Games that load Steam Workshop items themselves get a **Workshop** section in Add-ons: Garry's Mod (a collection), Counter-Strike 2 (a map collection), ARK (mods), Conan Exiles (mods, loaded in the order you list them), and Squad (items). Project Zomboid, Don't Starve Together, and Unturned get one too ([below](#games-that-list-mods-in-a-file)).
 
 - Paste a Workshop link or ID: Raptor shows what it is, and refuses items for another game.
 - For games that take a list, a collection's link adds its items.
@@ -124,7 +121,7 @@ Project Zomboid, Don't Starve Together, and Unturned read their Workshop items f
 
 - **Project Zomboid** (`.cache/Server/<server name>.ini`): two lists. **Workshop items** are what the game downloads, and **Mods to load** are the mod IDs inside them, which aren't the same numbers. Once the game has downloaded an item, its mod IDs show as buttons to add, so a new item takes one restart before its mods can be picked. You can also type a mod ID from the item's Steam page. Start the server once first, because the game makes the file on its first start.
 - **Don't Starve Together**: the items go in `mods/dedicated_server_mods_setup.lua` (which downloads them) and in each shard's `modoverrides.lua` (which turns them on). A mod's settings in `modoverrides.lua` are kept, and removing an item removes its entry. Leave **Validate** off: a validated update puts back the game's own setup file.
-- **Unturned** (`Servers/<server ID>/WorkshopDownloadConfig.json`, `File_IDs`), coming with its egg's next update: start the server once first, because the game makes the file on its first start.
+- **Unturned** (`Servers/<server ID>/WorkshopDownloadConfig.json`, `File_IDs`): start the server once first, because the game makes the file on its first start.
 ## Counter-Strike 2 plugins
 
 Counter-Strike 2 servers get a **Frameworks** section in Add-ons, for the two frameworks CS2 server plugins run on:

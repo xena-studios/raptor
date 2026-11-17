@@ -6,7 +6,24 @@ credits:
   - "Based on the Unturned egg in https://github.com/pelican-eggs/games-steamcmd (MIT) and https://github.com/pterodactyl/game-eggs (MIT)"
   - "Icon: Unturned's logo, from its Steam store page (Smartly Dressed Games)"
 certified: true
+# Unturned ships x86-64 Linux builds only.
 arch: [amd64]
+# Workshop items are listed in the server's WorkshopDownloadConfig.json,
+# which the game makes on its first start.
+workshop:
+  app_id: 304930
+  file:
+    path: Servers/{{SRV_ID}}/WorkshopDownloadConfig.json
+    format: json
+    key: File_IDs
+  apply: restart
+# OpenMod's plugins from NuGet (#415). They load from the server's folder
+# in Servers/, which is Servers/Raptor (SRV_ID can't be changed by users).
+# RocketMod's plugins have no registry with hashes, so they aren't offered.
+addons:
+  openmod:
+    loaders: [openmod]
+    dir: Servers/Raptor/OpenMod/plugins
 # Unturned can't pause saving, so a backup saves first and has nothing to undo.
 backup:
   pre: ["save"]
