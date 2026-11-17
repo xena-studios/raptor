@@ -268,8 +268,9 @@ func demoNodeCLI(ctx context.Context, q *store.Queries, out io.Writer, args []st
 		return errors.New(demoUsage)
 	}
 	from, to, ok := strings.Cut(*ports, "-")
-	pmin, errA := strconv.Atoi(from)
-	pmax, errB := strconv.Atoi(to)
+	// Ports fit in 16 bits; parsing to that size bounds the conversion.
+	pmin, errA := strconv.ParseUint(from, 10, 16)
+	pmax, errB := strconv.ParseUint(to, 10, 16)
 	switch {
 	case !ok || errA != nil || errB != nil || pmin < 1024 || pmax > 65535 || pmin > pmax:
 		return errors.New("-ports is a range like 30000-30099")

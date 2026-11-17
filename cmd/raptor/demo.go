@@ -69,8 +69,9 @@ func demoCmd(ctx context.Context, args []string) error {
 		req := &localv1.SetDemoRequest{Enabled: true, Key: key, MaxSandboxes: int32(sandboxes), Templates: int32(templates)} //nolint:gosec // checked by Wings
 		if ports != "" {
 			from, to, ok := strings.Cut(ports, "-")
-			a, errA := strconv.Atoi(from)
-			b, errB := strconv.Atoi(to)
+			// Ports fit in 16 bits; parsing to that size bounds the conversion.
+			a, errA := strconv.ParseUint(from, 10, 16)
+			b, errB := strconv.ParseUint(to, 10, 16)
 			if !ok || errA != nil || errB != nil {
 				return errors.New("-ports is a range like 30000-30099")
 			}
