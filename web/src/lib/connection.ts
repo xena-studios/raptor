@@ -14,20 +14,36 @@ function set(next: boolean) {
   for (const l of listeners) l();
 }
 
+// fetch's own failure when nothing answers, as Chrome, Firefox and Safari
+// word it. Only these: any other TypeError is a bug in the app, not the
+// network.
+function fetchFailed(err: unknown): boolean {
+  return (
+    err instanceof TypeError &&
+    /^(Failed to fetch|NetworkError when attempting to fetch resource\.|Load failed|network error)$/.test(
+      err.message,
+    )
+  );
+}
+
 // unreachable reports whether an error means the Panel couldn't be reached
-// (it's down, or the network is), rather than that it answered.
+// (it's down, or the network is), rather than that it answered. An error
+// the Panel wrote is an answer even when its code is "unavailable": that's
+// the Panel saying a node is offline, or a service isn't set up, and the
+// page should say so instead of claiming Raptor is down.
 export function unreachable(err: unknown): boolean {
   if (err instanceof ConnectError) {
-    // Cloudflare's own errors for an origin that's down (520 to 530) have
-    // no Connect body, so they arrive as "unknown" with the HTTP status.
     return (
-      err.code === Code.Unavailable ||
-      err.code === Code.DeadlineExceeded ||
-      (err.code === Code.Unknown && /^HTTP 5\d\d$/.test(err.rawMessage))
+      // connect wraps fetch's failure, keeping it as the cause.
+      fetchFailed(err.cause) ||
+      // A proxy's own error page (Caddy's 502, Cloudflare's 520 to 530)
+      // has no Connect body, so only the HTTP status comes through.
+      /^HTTP 5\d\d$/.test(err.rawMessage) ||
+      // The client's own deadline (lib/transport.ts), not the Panel's.
+      (err.code === Code.DeadlineExceeded && err.rawMessage === "the operation timed out")
     );
   }
-  // fetch's own failure when nothing answers.
-  return err instanceof TypeError;
+  return fetchFailed(err);
 }
 
 export function reportResult(err: unknown) {
