@@ -4,6 +4,15 @@
 # (scripts/secrets.sh, from 1Password at boot); nothing secret is on disk.
 name: raptor
 
+# Every container's log, rotated: Docker's default json-file log grows
+# until the disk is full (it filled once). Three 20 MB files a container,
+# compressed ("local"); `docker compose logs` reads them as before.
+x-logging: &logging
+  driver: local
+  options:
+    max-size: 20m
+    max-file: "3"
+
 x-panel: &panel
   image: ${PANEL_IMAGE:-ghcr.io/xena-studios/raptor-panel:latest}
   restart: unless-stopped
@@ -23,6 +32,9 @@ x-panel: &panel
     PANEL_MAIL_FROM: "Raptor <account@mail.raptorpanel.net>"
     PANEL_MAIL_REPLY_TO: support@raptorpanel.net
     PANEL_NODE_DOMAIN: raptornodes.net
+    # The Go runtime collects harder near this, well under mem_limit, so a
+    # leak or a burst slows an instance down before the kernel kills it.
+    GOMEMLIMIT: 1200MiB
   volumes:
     - ${RAPTOR_RUN:-/run/raptor}/keys:/keys:ro
   depends_on:
@@ -38,6 +50,9 @@ x-panel: &panel
   read_only: true
   security_opt: ["no-new-privileges:true"]
   cap_drop: [ALL]
+  # One instance can't take the server's memory from Postgres and the other.
+  mem_limit: 1536m
+  logging: *logging
 
 services:
   # Two instances: a deploy restarts one at a time while the other serves,
@@ -72,6 +87,7 @@ services:
       API_HOST: ${API_HOST:-api.raptorpanel.net}
     depends_on: [panel-a, panel-b]
     security_opt: ["no-new-privileges:true"]
+    logging: *logging
 
   postgres:
     image: ${POSTGRES_IMAGE:-ghcr.io/xena-studios/raptor-postgres:18}
@@ -80,7 +96,20 @@ services:
     environment:
       POSTGRES_DB: raptor
       POSTGRES_USER: postgres
-    command: ["postgres", "-c", "config_file=/etc/raptor/postgresql.conf", "-c", "hba_file=/etc/raptor/pg_hba.conf"]
+    # Memory settings come from .env (docs/DEPLOY.md#the-server), sized for
+    # the machine; the defaults suit 4 GB. postgresql.conf has the rest.
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/raptor/postgresql.conf
+      - -c
+      - hba_file=/etc/raptor/pg_hba.conf
+      - -c
+      - shared_buffers=${PG_SHARED_BUFFERS:-1GB}
+      - -c
+      - effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-3GB}
+      - -c
+      - maintenance_work_mem=${PG_MAINTENANCE_WORK_MEM:-256MB}
     volumes:
       - pgdata:/var/lib/postgresql
       - ./postgresql.conf:/etc/raptor/postgresql.conf:ro
@@ -96,6 +125,7 @@ services:
     ulimits:
       core: 0
     stop_grace_period: 120s
+    logging: *logging
     healthcheck:
       # As the postgres user: as root, every check logs a failed login.
       test: ["CMD", "gosu", "postgres", "pg_isready", "-q", "-U", "postgres", "-d", "raptor"]
