@@ -156,8 +156,12 @@ func (c *Collector) Tick(ctx context.Context) {
 func (c *Collector) sample(ctx context.Context, id string) {
 	sctx, cancel := context.WithTimeout(ctx, sampleTimeout)
 	s, err := c.Servers.Sample(sctx, id)
+	// Sample reports a stats call that failed as "not running"; one that
+	// ran out of time is skipped instead, so a stuck call isn't read as
+	// the server stopping (which would reset its rates and players).
+	late := sctx.Err() != nil
 	cancel()
-	if err != nil {
+	if err != nil || late {
 		return
 	}
 	now := c.Now()
