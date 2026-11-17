@@ -44,6 +44,9 @@ export default function Console({
   const shown = useRef<string[]>([]);
   const box = useRef<HTMLDivElement>(null);
   const [problem, setProblem] = useState<{ text: string; retrying: boolean }>();
+  // Whether the console has shown what it has (its first lines, or a
+  // moment's wait for a quiet one), so it can be shared.
+  const [loaded, setLoaded] = useState(false);
   const [command, setCommand] = useState("");
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
@@ -94,6 +97,7 @@ export default function Console({
       serverId,
       {
         onLines: (lines, reset) => {
+          setLoaded(true);
           if (reset) term.reset();
           setProblem(undefined);
           if (lines.length > 0) term.write(`${lines.join("\r\n")}\r\n`);
@@ -104,8 +108,10 @@ export default function Console({
       },
       support,
     );
+    const quiet = setTimeout(() => setLoaded(true), 2000);
     return () => {
       gone = true;
+      clearTimeout(quiet);
       stop();
       resize.disconnect();
       term.dispose();
@@ -170,6 +176,7 @@ export default function Console({
             serverId={serverId}
             name="console"
             content={() => shown.current.join("\n")}
+            ready={loaded}
             className="absolute top-2 right-11 z-10 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
           />
         )}

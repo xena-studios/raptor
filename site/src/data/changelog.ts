@@ -16,6 +16,11 @@ export const changelog: Release[] = [
     title: "Minecraft, all the way down",
     changes: [
       {
+        title: "A command menu",
+        text: "Press Ctrl+K (⌘K on a Mac) anywhere to find any page, server, or player action by typing, and run it from the keyboard: restart a server, send a command, whitelist a player, update every add-on.",
+        link: "/servers/command-menu/",
+      },
+      {
         title: "Mods and plugins from CurseForge",
         text: "The Add-ons tab now searches CurseForge beside Modrinth and Hangar, and installs a mod's dependencies with it.",
         link: "/servers/addons/",

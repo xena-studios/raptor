@@ -9,7 +9,7 @@ Each server opens on its **Overview**: what it's using now, the live console, ho
 
 ## Tabs
 
-The row of tabs keeps to what you use most: **Overview**, then the game's own tabs when it has them (**Game**, **Add-ons**, **Players**, **Worlds**), then **Files**, **Backups**, and **Schedules**. The rest are under **More**, at the end of the row: **Databases**, **Network**, **Startup**, **Settings**, **Activity**, and **Access**. When you're on one of those, the menu shows its name. You only see the tabs you're allowed to use. On a phone, swipe the row sideways.
+The row of tabs keeps to what you use most: **Overview**, then the game's own tabs when it has them (**Game**, **Add-ons**, **Players**, **Worlds**), then **Files**, **Backups**, and **Schedules**. The rest are under **More**, at the end of the row: **Databases**, **Network**, **Startup**, **Settings**, **Activity**, and **Access**. When you're on one of those, the menu shows its name. You only see the tabs you're allowed to use. On a phone, swipe the row sideways. To jump straight to a tab or an action, press **Ctrl+K** (**⌘K** on a Mac) and type: see [the command menu](/servers/command-menu/).
 
 **Game** and **Startup** change the same values: Game as a friendly form, Startup as the exact list of variables. **Settings** is Raptor's settings for the server (its name, limits, and crash behaviour), not the game's.
 

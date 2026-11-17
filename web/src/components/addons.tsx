@@ -11,7 +11,7 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { AddonListMenu } from "@/components/addon-list";
 import { type AddonListing, addonListKey, useInstalledAddons } from "@/components/addons-data";
 import { useConfirm } from "@/components/confirm";
@@ -40,6 +40,7 @@ import {
 } from "@/gen/raptor/panel/v1/addon_pb";
 import { OrgService } from "@/gen/raptor/panel/v1/org_pb";
 import { fileOf, type InstallFile, modLoaderOff } from "@/lib/addon-install";
+import { takeIntent } from "@/lib/command-intent";
 import { addonKinds, addonSources, loaderName, sourceNames } from "@/lib/eggs";
 import { message } from "@/lib/errors";
 import { dateOnly } from "@/lib/format";
@@ -252,6 +253,17 @@ function Addons({
     if (done > 0) setNote(`Updated ${done}. Restart the server to load them.`);
     if (failed.length > 0) setError(`Not updated: ${failed.join("; ")}`);
   }
+
+  // "Update all add-ons" from the command menu (#436): once it's known
+  // what's outdated, the same confirm and updates as the button.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once the list is known
+  useEffect(() => {
+    const none = !!list.data && files.length === 0;
+    if (!(known.data || none) || !canWrite || !takeIntent("addons.update", serverId)) return;
+    if (none) setNote(`No ${meta?.noun ?? "add-on"}s are installed yet.`);
+    else if (outdated.length === 0) setNote(`All ${meta?.noun ?? "add-on"}s are up to date.`);
+    else void updateAll();
+  }, [known.data, list.data]);
 
   const installedIds = [...installedProjects].filter((id): id is string => !!id);
   const identified = known.data?.addons ?? [];

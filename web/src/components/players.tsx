@@ -1,11 +1,12 @@
 import { useQueryClient, useQuery as useTanQuery } from "@tanstack/react-query";
 import { Ban, Crown, Loader2, LogOut, ShieldCheck, UserMinus, UserPlus } from "lucide-react";
-import { type FormEvent, type ReactNode, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 
 import { type Content, useFilesApi } from "@/components/file-manager/data";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { takeIntent } from "@/lib/command-intent";
 import { message } from "@/lib/errors";
 import { fromBase64 } from "@/lib/files";
 import {
@@ -291,6 +292,17 @@ export function Players({
   };
 
   const loading = canPlayers ? fromWings.isPending : Object.values(files).some((f) => f.isPending);
+  // Whitelist, op, or kick from the command menu (#436): once the lists are
+  // in, the same as the buttons here.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once the lists are in
+  useEffect(() => {
+    if (loading || !can) return;
+    const i = takeIntent("players", serverId);
+    if (!i) return;
+    if (i.op === "kick" && !running)
+      setError("The server isn't running, so there's nobody to kick.");
+    else void actions[i.op](i.name);
+  }, [loading]);
   if (fromWings.error)
     return <p className="text-sm text-destructive">{message(fromWings.error)}</p>;
   if (loading) return <p className="text-sm text-muted-foreground">Loading players…</p>;

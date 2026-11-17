@@ -29,6 +29,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { AlertsBell } from "@/components/alerts-bell";
 import { Announcements } from "@/components/announcements";
 import { BillingBanner } from "@/components/billing-banner";
+import { CommandMenuButton, CommandMenuProvider } from "@/components/command-menu";
 import { DemoBanner } from "@/components/demo-banner";
 import { NotFound } from "@/components/error-screen";
 import { Logo, RaptorMark, Wordmark } from "@/components/logo";
@@ -150,69 +151,72 @@ export function AppShell({
   }, [orgId]);
 
   return (
-    <SidebarProvider>
-      <CloseOnNavigate path={path} />
-      <Sidebar collapsible="icon">
-        <SidebarHeader className="gap-3">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton size="lg" tooltip="Raptor" render={<Link to="/" />}>
-                <Logo className="hidden size-8! shrink-0 group-data-[collapsible=icon]:block" />
-                <RaptorMark className="h-7! w-auto! shrink-0 group-data-[collapsible=icon]:hidden" />
-                <Wordmark className="h-3! w-auto! text-sidebar-foreground group-data-[collapsible=icon]:hidden" />
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              {orgs.isPending ? (
-                <div className="flex h-12 items-center gap-2 rounded-md border p-2 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:p-0">
-                  <Skeleton className="size-8 shrink-0 rounded-md" />
-                  <Skeleton className="h-4 flex-1 group-data-[collapsible=icon]:hidden" />
-                </div>
-              ) : (
-                <Switcher orgs={list} current={current?.id} admin={admin} />
-              )}
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarHeader>
-        <SidebarContent>
-          {admin ? <AdminNav /> : current && <OrgNav orgId={current.id} />}
-        </SidebarContent>
-        <SidebarFooter>
-          {!admin && current && <NodeCount orgId={current.id} />}
-          <UserMenu session={session} />
-          <SourceLink className="px-2 group-data-[collapsible=icon]:hidden" />
-        </SidebarFooter>
-        <SidebarRail />
-      </Sidebar>
-      <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
-          <SidebarTrigger className="-ml-1" />
-          {title && (
-            <>
-              <Separator orientation="vertical" className="mr-1 h-4 self-center!" />
-              <span className="truncate text-sm text-muted-foreground">{title}</span>
-            </>
-          )}
-          <div className="ml-auto flex items-center gap-1">
-            {orgId && !admin && <NodeClock orgId={orgId} />}
-            <AlertsBell />
-          </div>
-        </header>
-        <ConnectionBanner />
-        {demo && <DemoBanner />}
-        <Announcements />
-        {orgId && !admin && !demo && <BillingBanner orgId={orgId} />}
-        <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 p-6">
-          {orgId && orgs.data && !list.some((o) => o.id === orgId) ? (
-            <NotFound full={false} what="org" />
-          ) : (
-            children
-          )}
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+    <CommandMenuProvider orgId={current?.id}>
+      <SidebarProvider>
+        <CloseOnNavigate path={path} />
+        <Sidebar collapsible="icon">
+          <SidebarHeader className="gap-3">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton size="lg" tooltip="Raptor" render={<Link to="/" />}>
+                  <Logo className="hidden size-8! shrink-0 group-data-[collapsible=icon]:block" />
+                  <RaptorMark className="h-7! w-auto! shrink-0 group-data-[collapsible=icon]:hidden" />
+                  <Wordmark className="h-3! w-auto! text-sidebar-foreground group-data-[collapsible=icon]:hidden" />
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                {orgs.isPending ? (
+                  <div className="flex h-12 items-center gap-2 rounded-md border p-2 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:p-0">
+                    <Skeleton className="size-8 shrink-0 rounded-md" />
+                    <Skeleton className="h-4 flex-1 group-data-[collapsible=icon]:hidden" />
+                  </div>
+                ) : (
+                  <Switcher orgs={list} current={current?.id} admin={admin} />
+                )}
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarHeader>
+          <SidebarContent>
+            {admin ? <AdminNav /> : current && <OrgNav orgId={current.id} />}
+          </SidebarContent>
+          <SidebarFooter>
+            {!admin && current && <NodeCount orgId={current.id} />}
+            <UserMenu session={session} />
+            <SourceLink className="px-2 group-data-[collapsible=icon]:hidden" />
+          </SidebarFooter>
+          <SidebarRail />
+        </Sidebar>
+        <SidebarInset>
+          <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
+            <SidebarTrigger className="-ml-1" />
+            {title && (
+              <>
+                <Separator orientation="vertical" className="mr-1 h-4 self-center!" />
+                <span className="truncate text-sm text-muted-foreground">{title}</span>
+              </>
+            )}
+            <div className="ml-auto flex items-center gap-1">
+              <CommandMenuButton />
+              {orgId && !admin && <NodeClock orgId={orgId} />}
+              <AlertsBell />
+            </div>
+          </header>
+          <ConnectionBanner />
+          {demo && <DemoBanner />}
+          <Announcements />
+          {orgId && !admin && !demo && <BillingBanner orgId={orgId} />}
+          <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 p-6">
+            {orgId && orgs.data && !list.some((o) => o.id === orgId) ? (
+              <NotFound full={false} what="org" />
+            ) : (
+              children
+            )}
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
+    </CommandMenuProvider>
   );
 }
 

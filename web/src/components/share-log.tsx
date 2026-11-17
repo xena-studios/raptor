@@ -1,5 +1,5 @@
 import { Check, Copy, ExternalLink, Loader2, Share2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { takeIntent } from "@/lib/command-intent";
 import { message } from "@/lib/errors";
 import { logTail, shareableLog } from "@/lib/share-log";
 import { orgClient } from "@/lib/transport";
@@ -24,6 +25,7 @@ export function ShareLogButton({
   name,
   content,
   className,
+  ready,
 }: {
   orgId: string;
   nodeId: string;
@@ -33,8 +35,15 @@ export function ShareLogButton({
   // Read when the dialog opens, so it's the log as it is then.
   content: () => string;
   className?: string;
+  // Set once there's a log to share: "Share the log" from the command menu
+  // (#436) opens the dialog then.
+  ready?: boolean;
 }) {
   const [open, setOpen] = useState<string>();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, when the log is in
+  useEffect(() => {
+    if (ready && takeIntent("log.share", serverId)) setOpen(content());
+  }, [ready]);
   return (
     <>
       <Button
