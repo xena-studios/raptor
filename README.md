@@ -2,10 +2,10 @@
 
 **Your machine. Every game. Run one command on any Linux box you own or rent, pick from 350+ games and apps, and manage it all from the web, with no panel to host.**
 
-<!-- Badges: Devin's Badges, and ours from xena-studios/brand (docs/badges.md there says which go where). -->
-<a href="https://raptorpanel.net"><img alt="Visit the Website" height="32" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/compact/documentation/website_vector.svg"></a>
-<a href="https://docs.raptorpanel.net"><img alt="Read the Docs" height="32" src="https://raw.githubusercontent.com/xena-studios/brand/main/badges/compact/documentation/docs.svg"></a>
-<a href="https://discord.gg/HyUa3sRpeN"><img alt="Chat with us on Discord" height="32" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/compact/social/discord-plural_vector.svg"></a>
+<!-- Badges: Xena's, from xena-studios/brand (docs/badges.md there says which go where). -->
+<a href="https://raptorpanel.net"><img alt="Visit the Website" height="32" src="https://raw.githubusercontent.com/xena-studios/brand/main/badges/raptor/compact/website.svg"></a>
+<a href="https://docs.raptorpanel.net"><img alt="Read the Docs" height="32" src="https://raw.githubusercontent.com/xena-studios/brand/main/badges/raptor/compact/docs.svg"></a>
+<a href="https://discord.gg/HyUa3sRpeN"><img alt="Chat on Discord" height="32" src="https://raw.githubusercontent.com/xena-studios/brand/main/badges/raptor/compact/discord.svg"></a>
 
 Raptor is a hosted game server management platform. You bring your own Linux machine (a dedicated server, a VPS, a spare box at home), run a single install command, and it links to the web panel at [raptorpanel.net](https://raptorpanel.net). From there you run game servers, Discord bots, voice servers, and self-hosted apps, from Raptor's own [library of tested eggs](https://raptorpanel.net/library/) or any Pterodactyl egg.
 
