@@ -1,13 +1,13 @@
-![Raptor by Xena Studios. The running raptor and the RAPTOR wordmark over a planet horizon, with the headline "Your machine. Every game."](.github/assets/banner.png)
+![Raptor by Xena Studios. The running raptor and the RAPTOR wordmark over a planet horizon, with the headline "Your machine. Every game."](https://cdn.jsdelivr.net/gh/xena-studios/brand@1/raptor/banner.png)
 
-**Your machine. Every game. Run one command on any Linux box you own or rent, pick from 350+ games and apps, and manage it all from the web, with no panel to host.**
+**Your machine. Every game.**
 
 <!-- Badges: Xena's, from xena-studios/brand (docs/badges.md there says which go where). -->
 <a href="https://raptorpanel.net"><img alt="Visit the Website" height="32" src="https://cdn.jsdelivr.net/gh/xena-studios/brand@1/badges/raptor/compact/website.svg"></a>
 <a href="https://docs.raptorpanel.net"><img alt="Read the Docs" height="32" src="https://cdn.jsdelivr.net/gh/xena-studios/brand@1/badges/raptor/compact/docs.svg"></a>
 <a href="https://discord.gg/HyUa3sRpeN"><img alt="Chat on Discord" height="32" src="https://cdn.jsdelivr.net/gh/xena-studios/brand@1/badges/raptor/compact/discord.svg"></a>
 
-Raptor is a hosted game server management platform. You bring your own Linux machine (a dedicated server, a VPS, a spare box at home), run a single install command, and it links to the web panel at [raptorpanel.net](https://raptorpanel.net). From there you run game servers, Discord bots, voice servers, and self-hosted apps, from Raptor's own [library of tested eggs](https://raptorpanel.net/library/) or any Pterodactyl egg.
+Raptor is a hosted game server management platform by [Xena Studios](https://xenastudios.co): run one command on any Linux box you own or rent, pick from 350+ games and apps, and manage it all from the web, with no panel to host. You bring your own Linux machine (a dedicated server, a VPS, a spare box at home), run a single install command, and it links to the web panel at [raptorpanel.net](https://raptorpanel.net). From there you run game servers, Discord bots, voice servers, and self-hosted apps, from Raptor's own [library of tested eggs](https://raptorpanel.net/library/) or any Pterodactyl egg.
 
 What's built in, that other panels leave to add-ons: plugins, mods, and modpacks from Modrinth, Hangar, CurseForge, FTB, Technic, uMod, and the Factorio mod portal, and Steam Workshop items; Minecraft's players, worlds, versions, and settings as forms; incremental, encrypted backups; six database engines with a browser for each; private networks and a firewall; alerts; and dangerous actions signed with your passkey and checked by your machine. Your servers, schedules, and backups keep running if the Panel is down.
 
@@ -42,6 +42,10 @@ Coming from Pterodactyl? `raptor import pterodactyl` moves servers over on the s
 - [Decisions log](docs/DECISIONS.md): every locked decision and why
 - [Roadmap](docs/ROADMAP.md)
 
+## Contributing
+
+Bugs and ideas go in [issues](https://github.com/xena-studios/raptor/issues/new/choose), and help is on [Discord](https://discord.gg/HyUa3sRpeN). [CONTRIBUTING.md](CONTRIBUTING.md) covers building, testing and pull requests; every commit needs a [Developer Certificate of Origin](CONTRIBUTING.md#developer-certificate-of-origin-dco) sign-off. Report security problems privately, as [SECURITY.md](SECURITY.md) describes.
+
 ## Licence
 
-Raptor is licensed under the [GNU Affero General Public License v3.0](LICENSE). Contributions are accepted under the [Developer Certificate of Origin](CONTRIBUTING.md#developer-certificate-of-origin-dco).
+[AGPL-3.0](LICENSE).
