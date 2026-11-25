@@ -49,7 +49,7 @@
     "@biomejs/biome": "2.5.14",
     "@bufbuild/protoc-gen-es": "^2.17.0",
     "@types/react": "~19.3.0",
-    "typescript": "~6.0.3"
+    "typescript": "~7.0.0"
   },
   "scripts": {
     "start": "expo start",
